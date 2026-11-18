@@ -53,7 +53,7 @@ export async function loginAs(formData: FormData) {
   const next = str(formData, "next");
   if (!(await hr().getEmployee(id))) throw new Error("Unknown employee");
   await startSession(id);
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+  redirect(/^\/(?![/\\])/.test(next) && !next.includes("\\") ? next : "/");
 }
 
 export async function logout() {

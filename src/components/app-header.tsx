@@ -23,9 +23,9 @@ export async function AppHeader({ user }: { user: Employee | null }) {
               {user.role === "hr" && (
                 <NavLink href="/hr" icon={<ShieldCheck className="size-4" />}>{t.nav.hr}</NavLink>
               )}
+              <NavLink href="/outbox" icon={<Mail className="size-4" />}>{t.nav.outbox}</NavLink>
             </>
           )}
-          <NavLink href="/outbox" icon={<Mail className="size-4" />}>{t.nav.outbox}</NavLink>
         </nav>
         <div className="flex items-center gap-2">
           <form action={setLanguage}>

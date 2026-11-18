@@ -3,13 +3,13 @@ import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readDb } from "@/lib/db";
 import { getI18n } from "@/lib/i18n/server";
-import { currentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 
 export default async function OutboxPage() {
-  const user = await currentUser();
+  const user = await requireUser("/outbox");
   const { t, date } = await getI18n();
   const db = await readDb();
-  const mail = [...db.outbox].reverse();
+  const mail = db.outbox.filter((m) => user.role === "hr" || m.toEmployeeId === user.id).reverse();
 
   return (
     <>

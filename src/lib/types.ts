@@ -154,4 +154,5 @@ export interface Database {
   outbox: EmailMessage[];
   tokens: AccessToken[];
   counter: number;
+  sessionKey: string;
 }
