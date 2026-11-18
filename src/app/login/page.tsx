@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { KeyRound, UserRound } from "lucide-react";
-import { loginAs } from "@/app/actions";
-import { AppHeader } from "@/components/app-header";
+import { UserRound } from "lucide-react";
+import { loginAs, setLanguage } from "@/app/actions";
+import { BrandLockup } from "@/components/brand-lockup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { hr } from "@/lib/hr";
 import { getI18n } from "@/lib/i18n/server";
 import { currentUser, demoLoginEnabled } from "@/lib/session";
@@ -17,24 +17,36 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const user = await currentUser();
   if (user && (!forId || forId === user.id)) redirect(next);
 
-  const { t, name, pick } = await getI18n();
+  const { t, name, pick, locale } = await getI18n();
   const employees = await hr().listEmployees();
   const intended = forId ? employees.find((e) => e.id === forId) : null;
   const list = intended ? [intended, ...employees.filter((e) => e.id !== intended.id)] : employees;
 
   return (
-    <>
-      <AppHeader user={null} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-        <Card>
-          <CardHeader>
-            <div className="mb-2 grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <KeyRound className="size-5" />
-            </div>
-            <CardTitle className="text-xl">{t.login.title}</CardTitle>
-            <CardDescription>{t.login.subtitle}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <main className="grid min-h-full flex-1 lg:grid-cols-2">
+      <section className="brand-navy relative flex min-h-56 flex-col justify-between overflow-hidden px-8 py-10 lg:min-h-full lg:px-12">
+        <div className="brand-mark-watermark pointer-events-none absolute -bottom-16 -inset-inline-start-16 size-80" />
+        <div className="brand-mark-watermark pointer-events-none absolute -top-24 -inset-inline-end-24 size-72 rotate-12" />
+        <BrandLockup className="relative h-14 w-auto max-w-full object-contain sm:h-20" />
+        <div className="relative max-w-md space-y-4">
+          <div className="h-px w-16 bg-[var(--gold)]" />
+          <h1 className="text-3xl font-semibold leading-snug text-[var(--cream)] sm:text-4xl">{t.appName}</h1>
+          <p className="text-sm leading-relaxed text-[var(--gold)]">{t.appTagline}</p>
+        </div>
+        <p className="relative text-xs tracking-[0.22em] text-[var(--gold)]/80">ALFARIS GROUP</p>
+      </section>
+      <section className="flex flex-col px-5 py-8 sm:px-10">
+        <div className="mb-6 flex justify-end">
+          <form action={setLanguage}>
+            <input type="hidden" name="lang" value={locale === "ar" ? "en" : "ar"} />
+            <Button type="submit" variant="ghost" size="sm">{t.nav.language}</Button>
+          </form>
+        </div>
+        <div className="mx-auto w-full max-w-xl flex-1 space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold">{t.login.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t.login.subtitle}</p>
+          </div>
             {intended && (
               <Alert>
                 <AlertDescription>
@@ -77,9 +89,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             ) : (
               <p className="text-sm text-muted-foreground">{t.login.subtitle}</p>
             )}
-          </CardContent>
-        </Card>
-      </main>
-    </>
+        </div>
+      </section>
+    </main>
   );
 }

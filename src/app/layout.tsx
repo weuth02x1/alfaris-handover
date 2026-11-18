@@ -11,8 +11,9 @@ const font = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "نظام تسليم المهام | Employee Handover",
-  description: "Employee handover receipt automation for vacation and termination clearance.",
+  title: "مجموعة الفارس | تسليم المهام",
+  description: "نظام تسليم المهام لمجموعة الفارس، مربوط بإخلاء الطرف في موارد الفارس البشرية.",
+  icons: { icon: "/brand/alfaris-mark.png" },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

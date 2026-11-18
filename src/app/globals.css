@@ -49,24 +49,27 @@
 }
 
 :root {
-  --background: oklch(0.985 0.003 185);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.45 0.09 185);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --navy: #0b114f;
+  --gold: #a49787;
+  --cream: #f4efe4;
+  --background: #f6f3ec;
+  --foreground: #0b114f;
+  --card: #fffcf7;
+  --card-foreground: #0b114f;
+  --popover: #fffcf7;
+  --popover-foreground: #0b114f;
+  --primary: #0b114f;
+  --primary-foreground: #f4efe4;
+  --secondary: #efe8da;
+  --secondary-foreground: #0b114f;
+  --muted: #efe8da;
+  --muted-foreground: #5c584f;
+  --accent: #efe8da;
+  --accent-foreground: #0b114f;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.6 0.09 185);
+  --border: #e3d9c8;
+  --input: #e3d9c8;
+  --ring: #a49787;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -124,9 +127,37 @@
   body {
     @apply bg-background text-foreground;
   }
+  body::before {
+    content: "";
+    position: fixed;
+    z-index: 0;
+    inset-inline-start: -90px;
+    bottom: -90px;
+    width: 340px;
+    height: 340px;
+    background: url("/brand/alfaris-mark.png") center / contain no-repeat;
+    opacity: 0.08;
+    pointer-events: none;
+  }
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
   html {
     @apply font-sans;
   }
+}
+.brand-navy {
+  background-color: var(--navy);
+  color: var(--cream);
+}
+.brand-mark-watermark {
+  background-image: url("/brand/alfaris-mark.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 78%;
+  opacity: 0.14;
+  filter: saturate(0.8);
 }
 @media print {
   .no-print { display: none !important; }

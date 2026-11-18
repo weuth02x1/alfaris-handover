@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { BrandLockup } from "@/components/brand-lockup";
 import { PrintButton } from "@/components/print-button";
 import { buttonVariants } from "@/components/ui/button";
 import { hr } from "@/lib/hr";
@@ -60,9 +61,14 @@ export default async function ReportPage({ params }: PageProps<"/handovers/[id]/
       </div>
 
       <article className="space-y-6 rounded-2xl border bg-white p-8 text-[13px] text-slate-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none" dir="rtl">
-        <header className="flex items-start justify-between gap-4 border-b-2 border-primary pb-4">
+        <header className="overflow-hidden rounded-xl print:rounded-none">
+          <div className="brand-navy flex items-center justify-between gap-4 px-5 py-4 [print-color-adjust:exact]">
+            <BrandLockup className="h-12" />
+            <p className="text-[11px] tracking-[0.18em] text-[var(--gold)]">ALFARIS GROUP</p>
+          </div>
+          <div className="flex items-end justify-between gap-4 border-b-2 border-[var(--navy)] px-1 py-4">
           <div>
-            <h1 className="text-xl font-bold">إيصال تسليم المهام</h1>
+            <h1 className="text-xl font-bold text-[var(--navy)]">إيصال تسليم المهام</h1>
             <p className="text-slate-500" dir="ltr">Employee Handover Receipt</p>
           </div>
           <div className="text-start text-xs leading-6" dir="ltr">
@@ -75,6 +81,7 @@ export default async function ReportPage({ params }: PageProps<"/handovers/[id]/
             <div>
               <span className="text-slate-500">Issued</span> {fmtDate(h.finalizedAt, "en", true)}
             </div>
+          </div>
           </div>
         </header>
 
