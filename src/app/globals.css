@@ -127,22 +127,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  body::before {
-    content: "";
-    position: fixed;
-    z-index: 0;
-    inset-inline-start: -90px;
-    bottom: -90px;
-    width: 340px;
-    height: 340px;
-    background: url("/brand/alfaris-mark.png") center / contain no-repeat;
-    opacity: 0.08;
-    pointer-events: none;
-  }
-  body > * {
-    position: relative;
-    z-index: 1;
-  }
   html {
     @apply font-sans;
   }
