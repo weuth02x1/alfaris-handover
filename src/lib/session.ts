@@ -1,0 +1,56 @@
+import "server-only";
+import { createHmac, timingSafeEqual } from "crypto";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { hr } from "@/lib/hr";
+import type { Employee } from "@/lib/types";
+
+const COOKIE = "hs_session";
+const MAX_AGE = 60 * 60 * 8;
+
+function secret() {
+  return process.env.SESSION_SECRET || "dev-only-session-secret-change-me";
+}
+
+function sign(value: string) {
+  return createHmac("sha256", secret()).update(value).digest("base64url");
+}
+
+export function demoLoginEnabled() {
+  return process.env.ALLOW_DEMO_LOGIN !== "false";
+}
+
+export async function startSession(employeeId: string) {
+  const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
+  const payload = `${employeeId}.${exp}`;
+  (await cookies()).set(COOKIE, `${payload}.${sign(payload)}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: MAX_AGE,
+  });
+}
+
+export async function endSession() {
+  (await cookies()).delete(COOKIE);
+}
+
+export async function currentUser(): Promise<Employee | null> {
+  const raw = (await cookies()).get(COOKIE)?.value;
+  if (!raw) return null;
+  const parts = raw.split(".");
+  if (parts.length !== 3) return null;
+  const [id, exp, sig] = parts;
+  const expected = Buffer.from(sign(`${id}.${exp}`));
+  const given = Buffer.from(sig);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  if (Number(exp) < Date.now() / 1000) return null;
+  return hr().getEmployee(id);
+}
+
+export async function requireUser(next?: string): Promise<Employee> {
+  const user = await currentUser();
+  if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  return user;
+}
