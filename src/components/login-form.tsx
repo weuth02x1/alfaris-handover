@@ -19,7 +19,6 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
   const [employeeNo, setEmployeeNo] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [departmentId, setDepartmentId] = useState("D-HR");
-  const [role, setRole] = useState<"employee" | "hr">("hr");
   const [code, setCode] = useState("");
   const [masked, setMasked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +58,6 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
           employeeNo,
           jobTitle,
           departmentId,
-          role,
         }),
       );
     });
@@ -120,34 +118,20 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
               <Input id="job" value={jobTitle} placeholder={t.login.jobTitlePh} onChange={(event) => setJobTitle(event.target.value)} />
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="dept">{t.login.department}</Label>
-              <select
-                id="dept"
-                value={departmentId}
-                onChange={(event) => setDepartmentId(event.target.value)}
-                className="h-9 w-full rounded-lg border bg-card px-3 text-sm"
-              >
-                {departments.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="role">{t.login.role}</Label>
-              <select
-                id="role"
-                value={role}
-                onChange={(event) => setRole(event.target.value === "hr" ? "hr" : "employee")}
-                className="h-9 w-full rounded-lg border bg-card px-3 text-sm"
-              >
-                <option value="employee">{t.login.roleEmployee}</option>
-                <option value="hr">{t.login.roleHr}</option>
-              </select>
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dept">{t.login.department}</Label>
+            <select
+              id="dept"
+              value={departmentId}
+              onChange={(event) => setDepartmentId(event.target.value)}
+              className="h-9 w-full rounded-lg border bg-card px-3 text-sm"
+            >
+              {departments.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}

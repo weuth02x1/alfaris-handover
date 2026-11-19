@@ -7,8 +7,18 @@ export function mailConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+/** Sign-in mail can only go to the same domain as the company mailbox. */
+export function recipientAllowed(email: string) {
+  const raw = `${process.env.SMTP_FROM || ""} ${process.env.SMTP_USER || ""}`.toLowerCase();
+  const domain = raw.match(/@([a-z0-9.-]+\.[a-z]{2,})/)?.[1];
+  if (!domain) return false;
+  return email.trim().toLowerCase().endsWith(`@${domain}`);
+}
+
 /** Sends one message. Returns false when company mail is not configured yet. */
 export async function deliver(message: { to: string; subject: string; text: string }) {
+  const to = message.to.trim();
+  if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return false;
   if (!mailConfigured()) return false;
   const port = Number(process.env.SMTP_PORT || 587);
   const transporter = nodemailer.createTransport({
@@ -19,7 +29,7 @@ export async function deliver(message: { to: string; subject: string; text: stri
   });
   await transporter.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: message.to,
+    to,
     subject: message.subject,
     text: message.text,
   });

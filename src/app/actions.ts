@@ -1,10 +1,8 @@
 "use server";
 
-import { createHash } from "crypto";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { sessionKey } from "@/lib/db";
 import { flushOutbox } from "@/lib/mail";
 import { appOrigin } from "@/lib/origin";
 import { requestOtp, verifyOtp } from "@/lib/otp";
@@ -30,12 +28,6 @@ async function baseUrl() {
   return appOrigin();
 }
 
-async function clientBucket() {
-  const h = await headers();
-  const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "local").split(",")[0]?.trim().slice(0, 80) || "local";
-  return createHash("sha256").update(`${ip}.${await sessionKey()}`).digest("hex").slice(0, 32);
-}
-
 async function run(fn: () => Promise<unknown>): Promise<ActionResult> {
   try {
     await fn();
@@ -57,13 +49,19 @@ async function actor() {
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
 export async function requestOtpAction(email: string) {
-  return requestOtp(email, await clientBucket());
+  return requestOtp(email);
 }
 
 export async function registerAction(input: SignupInput) {
-  const created = await registerAccount(input);
+  const created = await registerAccount({
+    email: input.email,
+    name: input.name,
+    employeeNo: input.employeeNo,
+    jobTitle: input.jobTitle,
+    departmentId: input.departmentId,
+  });
   if (!created.ok) return created;
-  return requestOtp(created.employee.email, await clientBucket());
+  return requestOtp(created.employee.email);
 }
 
 export async function verifyOtpAction(email: string, code: string, next: string) {

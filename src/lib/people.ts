@@ -1,8 +1,9 @@
 import "server-only";
 import { mutate, readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
+import { recipientAllowed } from "@/lib/mail";
 import { mockEmployees } from "@/lib/hr/mock-data";
-import type { Employee, Role } from "@/lib/types";
+import type { Employee } from "@/lib/types";
 
 export const DEPARTMENTS = [
   {
@@ -52,7 +53,10 @@ export async function listPeople(): Promise<Employee[]> {
   const accounts = (await readDb()).accounts ?? [];
   const byId = new Map<string, Employee>();
   for (const person of remote) byId.set(person.id, person);
-  for (const account of accounts) byId.set(account.id, account);
+  for (const account of accounts) {
+    if (byId.has(account.id)) continue;
+    byId.set(account.id, { ...account, role: "employee" });
+  }
   return [...byId.values()];
 }
 
@@ -84,12 +88,13 @@ export interface SignupInput {
   employeeNo: string;
   jobTitle: string;
   departmentId: string;
-  role: Role;
 }
 
 export type SignupResult =
   | { ok: true; employee: Employee }
-  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" };
+  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "domain" };
+
+const MAX_ACCOUNTS = 50;
 
 export async function registerAccount(input: SignupInput): Promise<SignupResult> {
   const email = normalizeEmail(input.email);
@@ -101,7 +106,7 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
   if (!/^\d{3,10}$/.test(employeeNo)) return { ok: false, error: "invalid" };
   if (jobTitle.length < 2 || jobTitle.length > 80) return { ok: false, error: "invalid" };
   if (!department) return { ok: false, error: "invalid" };
-  if (input.role !== "employee" && input.role !== "hr") return { ok: false, error: "invalid" };
+  if (!recipientAllowed(email)) return { ok: false, error: "domain" };
 
   const existing = await listPeople();
   if (existing.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
@@ -122,12 +127,15 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
     branchId: "B-RUH",
     managerId: manager && manager.id !== employeeNo ? manager.id : null,
     email,
-    role: input.role,
+    role: "employee",
   };
 
-  await mutate((db) => {
+  const stored = await mutate((db) => {
+    if (db.accounts.length >= MAX_ACCOUNTS) return false;
     db.accounts = db.accounts.filter((account) => account.id !== employee.id && account.email.toLowerCase() !== email);
     db.accounts.push(employee);
+    return true;
   });
+  if (!stored) return { ok: false, error: "slow" };
   return { ok: true, employee };
 }

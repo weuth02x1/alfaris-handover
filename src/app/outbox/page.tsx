@@ -1,4 +1,4 @@
-import { ExternalLink, MailOpen } from "lucide-react";
+import { MailOpen } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readDb } from "@/lib/db";
@@ -9,7 +9,7 @@ export default async function OutboxPage() {
   const user = await requireUser("/outbox");
   const { t, date } = await getI18n();
   const db = await readDb();
-  const mail = db.outbox.filter((m) => user.role === "hr" || m.toEmployeeId === user.id).reverse();
+  const mail = db.outbox.filter((m) => m.kind !== "otp" && m.toEmployeeId === user.id).reverse();
 
   return (
     <>
@@ -40,18 +40,7 @@ export default async function OutboxPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="whitespace-pre-line text-sm text-muted-foreground">
-                    {m.kind === "otp" ? t.outbox.otpHidden : m.body}
-                  </p>
-                  {m.link && (
-                    <a
-                      href={m.link}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      {t.outbox.openLink}
-                    </a>
-                  )}
+                  <p className="whitespace-pre-line text-sm text-muted-foreground">{m.body}</p>
                 </CardContent>
               </Card>
             ))}

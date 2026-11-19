@@ -59,6 +59,7 @@ function notify(
     kind: "workflow",
     delivered: false,
   });
+  db.outbox = db.outbox.slice(-100);
 }
 
 function find(db: Database, id: string) {

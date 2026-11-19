@@ -1,18 +1,19 @@
 import "server-only";
-import { createHash, randomInt, randomUUID, timingSafeEqual } from "crypto";
+import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { mutate, sessionKey } from "@/lib/db";
-import { deliver } from "@/lib/mail";
+import { deliver, recipientAllowed } from "@/lib/mail";
 import { findByEmail, isEmail, normalizeEmail } from "@/lib/people";
 
 const TTL_MS = 10 * 60 * 1000;
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_SENDS = 5;
+const MAX_SENDS = 3;
 const MAX_ATTEMPTS = 5;
-const MAX_SENDS_PER_IP = 8;
+const MAX_GLOBAL_SENDS = 10;
+const MAX_ROWS = 50;
 
 export type OtpRequestResult =
   | { ok: true; maskedEmail: string }
-  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" };
+  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" | "domain" };
 
 export type OtpVerifyResult = { ok: true; employeeId: string } | { ok: false; error: "notFound" | "badCode" | "expired" | "slow" };
 
@@ -36,9 +37,18 @@ function fresh(sentAt: string, now: number) {
   return now - new Date(sentAt).getTime() < WINDOW_MS;
 }
 
-export async function requestOtp(emailInput: string, ipHash: string): Promise<OtpRequestResult> {
+function prune(db: { otps: { sentAt: string; active: boolean; expiresAt: string }[]; otpSends: { sentAt: string }[]; otpGuards: { windowStart: string }[] }, now: number) {
+  db.otpSends = db.otpSends.filter((item) => fresh(item.sentAt, now)).slice(-MAX_ROWS);
+  db.otps = db.otps
+    .filter((item) => fresh(item.sentAt, now) || (item.active && new Date(item.expiresAt).getTime() > now))
+    .slice(-MAX_ROWS);
+  db.otpGuards = db.otpGuards.filter((item) => fresh(item.windowStart, now)).slice(-MAX_ROWS);
+}
+
+export async function requestOtp(emailInput: string): Promise<OtpRequestResult> {
   const email = normalizeEmail(emailInput);
   if (!isEmail(email)) return { ok: false, error: "invalid" };
+  if (!recipientAllowed(email)) return { ok: false, error: "domain" };
   const employee = await findByEmail(email);
   if (!employee) return { ok: false, error: "notFound" };
 
@@ -48,13 +58,12 @@ export async function requestOtp(emailInput: string, ipHash: string): Promise<Ot
   const now = Date.now();
 
   const allowed = await mutate((db) => {
-    db.otpSends = db.otpSends.filter((item) => fresh(item.sentAt, now));
-    db.otps = db.otps.filter((item) => fresh(item.sentAt, now) || item.active);
+    prune(db, now);
     const emailSends = db.otpSends.filter((item) => item.bucket === `e:${email}`).length;
-    const ipSends = db.otpSends.filter((item) => item.bucket === `i:${ipHash}`).length;
+    const globalSends = db.otpSends.filter((item) => item.bucket === "g").length;
     const guard = db.otpGuards.find((item) => item.email === email);
-    const locked = Boolean(guard && fresh(guard.windowStart, now) && guard.failures >= MAX_ATTEMPTS);
-    if (emailSends >= MAX_SENDS || ipSends >= MAX_SENDS_PER_IP || locked) return false;
+    const locked = Boolean(guard && guard.failures >= MAX_ATTEMPTS);
+    if (emailSends >= MAX_SENDS || globalSends >= MAX_GLOBAL_SENDS || locked) return false;
     for (const challenge of db.otps) {
       if (challenge.email === email) challenge.active = false;
     }
@@ -66,7 +75,7 @@ export async function requestOtp(emailInput: string, ipHash: string): Promise<Ot
       sentAt,
       active: true,
     });
-    db.otpSends.push({ bucket: `e:${email}`, sentAt }, { bucket: `i:${ipHash}`, sentAt });
+    db.otpSends.push({ bucket: `e:${email}`, sentAt }, { bucket: "g", sentAt });
     return true;
   });
   if (!allowed) return { ok: false, error: "slow" };
@@ -90,19 +99,6 @@ export async function requestOtp(emailInput: string, ipHash: string): Promise<Ot
     return { ok: false, error: "mailFailed" };
   }
 
-  await mutate((db) => {
-    db.outbox.push({
-      id: randomUUID(),
-      to: employee.email,
-      toEmployeeId: employee.id,
-      subject: "رمز الدخول لنظام تسليم المهام",
-      body: "أُرسل رمز الدخول إلى هذا الإيميل. الرمز نفسه غير محفوظ هنا.",
-      link: null,
-      at: sentAt,
-      kind: "otp",
-      delivered: true,
-    });
-  });
   return { ok: true, maskedEmail: maskEmail(employee.email) };
 }
 
@@ -117,6 +113,7 @@ export async function verifyOtp(emailInput: string, code: string): Promise<OtpVe
   const now = Date.now();
 
   return mutate((db) => {
+    prune(db, now);
     const guard = db.otpGuards.find((item) => item.email === email);
     if (guard && !fresh(guard.windowStart, now)) {
       guard.failures = 0;
