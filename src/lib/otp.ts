@@ -91,9 +91,8 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   }
   if (!sent) {
     await mutate((db) => {
-      for (const challenge of db.otps) {
-        if (challenge.email === email && challenge.codeHash === codeHash) challenge.active = false;
-      }
+      db.otps = db.otps.filter((challenge) => !(challenge.email === email && challenge.codeHash === codeHash));
+      db.otpSends = db.otpSends.filter((item) => item.sentAt !== sentAt);
     });
     return { ok: false, error: "mailFailed" };
   }
