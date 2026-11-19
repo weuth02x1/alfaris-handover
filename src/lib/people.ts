@@ -1,7 +1,6 @@
 import "server-only";
 import { mutate, readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
-import { recipientAllowed } from "@/lib/mail";
 import { mockEmployees } from "@/lib/hr/mock-data";
 import type { Employee } from "@/lib/types";
 
@@ -92,7 +91,7 @@ export interface SignupInput {
 
 export type SignupResult =
   | { ok: true; employee: Employee }
-  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "domain" };
+  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" };
 
 const MAX_ACCOUNTS = 50;
 
@@ -106,7 +105,6 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
   if (!/^\d{3,10}$/.test(employeeNo)) return { ok: false, error: "invalid" };
   if (jobTitle.length < 2 || jobTitle.length > 80) return { ok: false, error: "invalid" };
   if (!department) return { ok: false, error: "invalid" };
-  if (!recipientAllowed(email)) return { ok: false, error: "domain" };
 
   const existing = await listPeople();
   if (existing.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };

@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { mutate, sessionKey } from "@/lib/db";
-import { deliver, recipientAllowed } from "@/lib/mail";
+import { deliver } from "@/lib/mail";
 import { findByEmail, isEmail, normalizeEmail } from "@/lib/people";
 
 const TTL_MS = 10 * 60 * 1000;
@@ -13,7 +13,7 @@ const MAX_ROWS = 50;
 
 export type OtpRequestResult =
   | { ok: true; maskedEmail: string }
-  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" | "domain" };
+  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" };
 
 export type OtpVerifyResult = { ok: true; employeeId: string } | { ok: false; error: "notFound" | "badCode" | "expired" | "slow" };
 
@@ -48,7 +48,6 @@ function prune(db: { otps: { sentAt: string; active: boolean; expiresAt: string 
 export async function requestOtp(emailInput: string): Promise<OtpRequestResult> {
   const email = normalizeEmail(emailInput);
   if (!isEmail(email)) return { ok: false, error: "invalid" };
-  if (!recipientAllowed(email)) return { ok: false, error: "domain" };
   const employee = await findByEmail(email);
   if (!employee) return { ok: false, error: "notFound" };
 
