@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { mutate, readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
 import { mockEmployees } from "@/lib/hr/mock-data";
@@ -38,34 +39,64 @@ export function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 160;
 }
 
-async function remotePeople() {
+type DirectoryResult = { ok: true; people: Employee[] } | { ok: false };
+
+/** Live HR directory. A failed HRMS call does not fall back to the sample list. */
+async function loadDirectory(): Promise<DirectoryResult> {
+  const provider = hr();
+  if (provider.name !== "menaitech") return { ok: true, people: mockEmployees };
   try {
-    return await hr().listEmployees();
+    return { ok: true, people: await provider.listEmployees() };
   } catch {
-    return mockEmployees;
+    return { ok: false };
   }
 }
 
-/** HR directory plus accounts people created with their own email. */
+/** Employees from HR only. Sign-in accounts are not part of this directory. */
 export async function listPeople(): Promise<Employee[]> {
-  const remote = await remotePeople();
-  const accounts = (await readDb()).accounts ?? [];
-  const byId = new Map<string, Employee>();
-  for (const person of remote) byId.set(person.id, person);
-  for (const account of accounts) {
-    if (byId.has(account.id)) continue;
-    byId.set(account.id, { ...account, role: "employee" });
-  }
-  return [...byId.values()];
+  const directory = await loadDirectory();
+  return directory.ok ? directory.people : [];
+}
+
+async function loginAccounts() {
+  return mutate((db) => {
+    db.accounts = db.accounts.map((account) => {
+      if (account.id.startsWith("local-")) return { ...account, role: "employee" as const, managerId: null };
+      return {
+        ...account,
+        id: `local-${account.id}`,
+        staffNumber: account.staffNumber ?? account.id,
+        role: "employee" as const,
+        managerId: null,
+      };
+    });
+    return db.accounts;
+  });
 }
 
 export async function getPerson(id: string) {
-  return (await listPeople()).find((person) => person.id === id) ?? null;
+  const directory = await loadDirectory();
+  if (!directory.ok) return null;
+  return directory.people.find((person) => person.id === id) ?? null;
+}
+
+/** Session lookup. Local accounts never resolve to an HR directory employee. */
+export async function getSessionUser(id: string) {
+  if (id.startsWith("local-")) {
+    const account = (await readDb()).accounts.find((item) => item.id === id);
+    return account ? { ...account, role: "employee" as const, managerId: null } : null;
+  }
+  return getPerson(id);
 }
 
 export async function findByEmail(email: string) {
   const target = normalizeEmail(email);
-  return (await listPeople()).find((person) => person.email.toLowerCase() === target) ?? null;
+  const directory = await loadDirectory();
+  if (directory.ok) {
+    const person = directory.people.find((item) => item.email.toLowerCase() === target);
+    if (person) return person;
+  }
+  return (await loginAccounts()).find((item) => item.email.toLowerCase() === target) ?? null;
 }
 
 export function colleaguesOf(me: Employee, all: Employee[]) {
@@ -91,7 +122,7 @@ export interface SignupInput {
 
 export type SignupResult =
   | { ok: true; employee: Employee }
-  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" };
+  | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "unavailable" };
 
 const MAX_ACCOUNTS = 50;
 
@@ -106,13 +137,18 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
   if (jobTitle.length < 2 || jobTitle.length > 80) return { ok: false, error: "invalid" };
   if (!department) return { ok: false, error: "invalid" };
 
-  const existing = await listPeople();
-  if (existing.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
-  if (existing.some((person) => person.id === employeeNo)) return { ok: false, error: "idTaken" };
+  const directory = await loadDirectory();
+  if (!directory.ok) return { ok: false, error: "unavailable" };
+  const accounts = await loginAccounts();
+  const known = [...directory.people, ...accounts];
+  if (known.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
+  if (known.some((person) => person.id === employeeNo || person.staffNumber === employeeNo)) {
+    return { ok: false, error: "idTaken" };
+  }
 
-  const manager = existing.find((person) => person.departmentId === department.id && person.managerId === null);
   const employee: Employee = {
-    id: employeeNo,
+    id: `local-${randomUUID()}`,
+    staffNumber: employeeNo,
     nameAr: name,
     nameEn: name,
     jobTitleAr: jobTitle,
@@ -123,7 +159,7 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
     sectionAr: department.sectionAr,
     sectionEn: department.sectionEn,
     branchId: "B-RUH",
-    managerId: manager && manager.id !== employeeNo ? manager.id : null,
+    managerId: null,
     email,
     role: "employee",
   };

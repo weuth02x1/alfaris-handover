@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionKey } from "@/lib/db";
-import { getPerson } from "@/lib/people";
+import { getSessionUser } from "@/lib/people";
 import type { Employee } from "@/lib/types";
 
 const COOKIE = "hs_session";
@@ -39,7 +39,7 @@ export async function currentUser(): Promise<Employee | null> {
   const given = Buffer.from(sig);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
   if (Number(exp) < Date.now() / 1000) return null;
-  return getPerson(id);
+  return getSessionUser(id);
 }
 
 export async function requireUser(next?: string): Promise<Employee> {

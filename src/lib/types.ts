@@ -15,6 +15,8 @@ export interface Employee {
   managerId: string | null;
   email: string;
   role: Role;
+  /** Typed employee number for a sign-in account. Directory ids stay on `id`. */
+  staffNumber?: string;
 }
 
 export const EXIT_REASONS = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"] as const;
