@@ -23,7 +23,7 @@ npm run dev        # http://localhost:4317
 
 Without any configuration the app runs on built-in sample employees and requests, a demo sign-in screen (pick any employee), and a demo mail outbox at `/outbox` where every notification and its secure link can be opened.
 
-Suggested demo: sign in as **Hind Alghamdi (HR)** → HR console → *Start clearance* for Sarah → open the link from the outbox as Sarah → add tasks → sign in as each recipient to accept/decline → approve as Fahad (manager) → approve as Hind (HR) → view report.
+Sign in with your own email. Create an account if it is new, then type the code that arrives in that inbox. The code is never shown on the page.
 
 ## Configuration
 
@@ -33,8 +33,8 @@ Suggested demo: sign in as **Hind Alghamdi (HR)** → HR console → *Start clea
 | `MENAITECH_PATH_EMPLOYEES`, `MENAITECH_PATH_EMPLOYEE`, `MENAITECH_PATH_APPROVED_REQUESTS`, `MENAITECH_PATH_DOCUMENTS` | Override endpoint paths once the Menaitech API contract is confirmed (`{id}` is substituted). |
 | `INTEGRATION_API_KEY` | Shared secret for `POST /api/integrations/menaitech/clearance` (header `x-api-key`). |
 | `SESSION_SECRET` | Signs the session cookie. Set it in any shared environment. |
-| `ALLOW_DEMO_LOGIN` | Set to `false` to hide the demo sign-in once HRMS authentication is wired in. |
-| `APP_BASE_URL` | Base URL used in email links. Defaults to the request host. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Company mailbox that sends sign-in codes and task emails. |
+| `APP_BASE_URL` | Base URL used in email links. Forwarded host headers are ignored. |
 | `LINK_TTL_HOURS` | Lifetime of secure links (default 72). |
 | `DATA_FILE` | JSON data store location (default `data/db.json`). |
 

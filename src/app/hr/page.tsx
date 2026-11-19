@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
+import { mockApprovedRequests } from "@/lib/hr/mock-data";
+import { listPeople } from "@/lib/people";
 import { fmt } from "@/lib/i18n/dict";
 import { EXIT_REASONS } from "@/lib/types";
 import { getI18n } from "@/lib/i18n/server";
@@ -19,11 +21,17 @@ export default async function HrPage() {
   if (user.role !== "hr") redirect("/");
   const { t, name, date } = await getI18n();
   const provider = hr();
-  const [requests, employees, db] = await Promise.all([
-    provider.listApprovedRequests(),
-    provider.listEmployees(),
-    readDb(),
-  ]);
+  let requests = mockApprovedRequests;
+  let sourceName = "mock";
+  if (provider.name === "menaitech") {
+    try {
+      requests = await provider.listApprovedRequests();
+      sourceName = provider.name;
+    } catch {
+      requests = mockApprovedRequests;
+    }
+  }
+  const [employees, db] = await Promise.all([listPeople(), readDb()]);
   const byId = new Map(employees.map((e) => [e.id, e]));
   const started = new Set(db.handovers.map((h) => h.requestRef));
   const handovers = [...db.handovers].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -39,7 +47,7 @@ export default async function HrPage() {
           </div>
           <Badge variant="outline" className="gap-1.5">
             <Database className="size-3.5" />
-            {t.hr.source}: {provider.name === "mock" ? t.hr.sourceMock : t.hr.sourceLive}
+            {t.hr.source}: {sourceName === "mock" ? t.hr.sourceMock : t.hr.sourceLive}
           </Badge>
         </div>
 

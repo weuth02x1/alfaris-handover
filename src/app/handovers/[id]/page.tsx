@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { hr } from "@/lib/hr";
+import { colleaguesFor, listPeople } from "@/lib/people";
 import { fmt } from "@/lib/i18n/dict";
 import { getI18n } from "@/lib/i18n/server";
 import { getHandoverFor } from "@/lib/queries";
@@ -26,11 +26,11 @@ export default async function HandoverPage({ params }: PageProps<"/handovers/[id
   const { handover: h, access, audit } = data;
   const { t, name, pick, date } = await getI18n();
 
-  const employees = await hr().listEmployees();
+  const employees = await listPeople();
   const byId = new Map(employees.map((e) => [e.id, e]));
   const editable = access.isOwner && (h.status === "draft" || h.status === "returned");
   const colleagues: PersonOption[] = access.isOwner
-    ? (await hr().listColleagues(user.id)).map((c) => ({
+    ? (await colleaguesFor(user.id)).map((c) => ({
         id: c.id,
         label: name(c),
         sub: `${pick(c.jobTitleAr, c.jobTitleEn)} · ${pick(c.sectionAr, c.sectionEn)}`,

@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import { mutate } from "@/lib/db";
 import { hr } from "@/lib/hr";
+import { colleaguesFor, getPerson, listPeople } from "@/lib/people";
 import { EXIT_REASONS, type AuditAction, type Database, type Employee, type ExitReason, type Handover, type HandoverTask } from "@/lib/types";
 
 export type WorkflowErrorCode =
@@ -67,13 +68,13 @@ function find(db: Database, id: string) {
 }
 
 async function mustEmployee(id: string) {
-  const e = await hr().getEmployee(id);
+  const e = await getPerson(id);
   if (!e) throw new WorkflowError("notFound");
   return e;
 }
 
 async function listHr() {
-  return (await hr().listEmployees()).filter((e) => e.role === "hr");
+  return (await listPeople()).filter((e) => e.role === "hr");
 }
 
 /** HR starts clearance for an approved request: creates the form and emails the employee. */
@@ -82,7 +83,7 @@ export async function initiateClearance(actor: Employee, requestRef: string, bas
   const req = (await hr().listApprovedRequests()).find((r) => r.ref === requestRef);
   if (!req) throw new WorkflowError("notFound");
   const emp = await mustEmployee(req.employeeId);
-  const manager = emp.managerId ? await hr().getEmployee(emp.managerId) : null;
+  const manager = emp.managerId ? await getPerson(emp.managerId) : null;
 
   return mutate((db) => {
     const existing = db.handovers.find((h) => h.requestRef === req.ref);
@@ -153,9 +154,9 @@ export async function saveForm(
   submit: boolean,
   baseUrl: string,
 ) {
-  const colleagues = await hr().listColleagues(actor.id);
+  const colleagues = await colleaguesFor(actor.id);
   const colleagueIds = new Set(colleagues.map((c) => c.id));
-  const manager = actor.managerId ? await hr().getEmployee(actor.managerId) : null;
+  const manager = actor.managerId ? await getPerson(actor.managerId) : null;
   const hrUsers = await listHr();
 
   for (const task of input.tasks) {
@@ -277,7 +278,7 @@ function moveToHr(db: Database, baseUrl: string, h: Handover, hrUsers: Employee[
 
 export async function acceptTask(actor: Employee, id: string, taskId: string, note: string, baseUrl: string) {
   const owner = await mutatePeek(id);
-  const manager = owner.employee.managerId ? await hr().getEmployee(owner.employee.managerId) : null;
+  const manager = owner.employee.managerId ? await getPerson(owner.employee.managerId) : null;
   const hrUsers = await listHr();
   return mutate((db) => {
     const h = find(db, id);
@@ -319,7 +320,7 @@ export async function rejectTask(actor: Employee, id: string, taskId: string, co
 }
 
 export async function reassignTask(actor: Employee, id: string, taskId: string, newAssigneeId: string, baseUrl: string) {
-  const colleagues = await hr().listColleagues(actor.id);
+  const colleagues = await colleaguesFor(actor.id);
   const recipient = colleagues.find((c) => c.id === newAssigneeId);
   if (!recipient) throw new WorkflowError("assigneeRequired");
   return mutate((db) => {

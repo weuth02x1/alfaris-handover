@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readDb } from "@/lib/db";
+import { getPerson } from "@/lib/people";
 import { currentUser } from "@/lib/session";
 
 /** Secure, time-bound link from the notification email. The user still has to be signed in as the addressee. */
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/h/[token]">)
   if (user?.id === entry.employeeId) return NextResponse.redirect(new URL(target, request.url));
   const login = new URL("/login", request.url);
   login.searchParams.set("next", target);
-  login.searchParams.set("for", entry.employeeId);
+  const person = await getPerson(entry.employeeId);
+  if (person) login.searchParams.set("email", person.email);
   return NextResponse.redirect(login);
 }

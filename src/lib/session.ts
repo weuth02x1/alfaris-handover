@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionKey } from "@/lib/db";
-import { hr } from "@/lib/hr";
+import { getPerson } from "@/lib/people";
 import type { Employee } from "@/lib/types";
 
 const COOKIE = "hs_session";
@@ -11,10 +11,6 @@ const MAX_AGE = 60 * 60 * 8;
 
 async function sign(value: string) {
   return createHmac("sha256", await sessionKey()).update(value).digest("base64url");
-}
-
-export function demoLoginEnabled() {
-  return process.env.ALLOW_DEMO_LOGIN !== "false";
 }
 
 export async function startSession(employeeId: string) {
@@ -43,7 +39,7 @@ export async function currentUser(): Promise<Employee | null> {
   const given = Buffer.from(sig);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
   if (Number(exp) < Date.now() / 1000) return null;
-  return hr().getEmployee(id);
+  return getPerson(id);
 }
 
 export async function requireUser(next?: string): Promise<Employee> {

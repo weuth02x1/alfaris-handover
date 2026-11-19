@@ -5,7 +5,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { PrintButton } from "@/components/print-button";
 import { buttonVariants } from "@/components/ui/button";
 import { dictionaries } from "@/lib/i18n/dict";
-import { hr } from "@/lib/hr";
+import { listPeople } from "@/lib/people";
 import { getI18n } from "@/lib/i18n/server";
 import { getHandoverFor } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
@@ -28,7 +28,7 @@ export default async function ReportPage({ params }: PageProps<"/handovers/[id]/
   const { t } = await getI18n();
   if (!(access.isOwner || access.isManager || access.isHr)) notFound();
 
-  const employees = await hr().listEmployees();
+  const employees = await listPeople();
   const byId = new Map(employees.map((e) => [e.id, e]));
   const both = (id: string | null | undefined) => {
     const e = id ? byId.get(id) : undefined;

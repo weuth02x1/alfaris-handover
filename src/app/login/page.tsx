@@ -9,9 +9,9 @@ import { currentUser } from "@/lib/session";
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
   const next = typeof sp.next === "string" ? sp.next : "/";
-  const forId = typeof sp.for === "string" ? sp.for : null;
+  const initialEmail = typeof sp.email === "string" ? sp.email : "";
   const user = await currentUser();
-  if (user && (!forId || forId === user.id)) redirect(next);
+  if (user && (!initialEmail || initialEmail.toLowerCase() === user.email.toLowerCase())) redirect(next);
 
   const { t, locale } = await getI18n();
 
@@ -40,12 +40,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <h2 className="text-xl font-semibold">{t.login.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{t.login.subtitle}</p>
           </div>
-            {forId && (
+            {initialEmail && (
               <p className="text-sm text-muted-foreground">
-                {t.login.linkFor} <span className="font-mono">{forId}</span>
+                {t.login.linkFor} <span dir="ltr">{initialEmail}</span>
               </p>
             )}
-            <LoginForm t={t} next={next} initialId={forId ?? undefined} />
+            <LoginForm t={t} next={next} initialEmail={initialEmail || undefined} />
         </div>
       </section>
     </main>

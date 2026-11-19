@@ -146,9 +146,22 @@ export interface EmailMessage {
 
 export interface OtpChallenge {
   employeeId: string;
+  email: string;
   codeHash: string;
   expiresAt: string;
-  attempts: number;
+  sentAt: string;
+  active: boolean;
+}
+
+/** Failed guesses stay counted even when a new code is issued. */
+export interface OtpGuard {
+  email: string;
+  failures: number;
+  windowStart: string;
+}
+
+export interface OtpSend {
+  bucket: string;
   sentAt: string;
 }
 
@@ -165,6 +178,9 @@ export interface Database {
   outbox: EmailMessage[];
   tokens: AccessToken[];
   otps: OtpChallenge[];
+  otpGuards: OtpGuard[];
+  otpSends: OtpSend[];
+  accounts: Employee[];
   counter: number;
   sessionKey: string;
 }

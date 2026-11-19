@@ -1,10 +1,14 @@
 "use server";
 
+import { createHash } from "crypto";
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { sessionKey } from "@/lib/db";
 import { flushOutbox } from "@/lib/mail";
+import { appOrigin } from "@/lib/origin";
 import { requestOtp, verifyOtp } from "@/lib/otp";
+import { registerAccount, type SignupInput } from "@/lib/people";
 import { currentUser, endSession, startSession } from "@/lib/session";
 import { EXIT_REASONS, type ExitReason } from "@/lib/types";
 import {
@@ -23,11 +27,13 @@ import {
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: WorkflowErrorCode };
 
 async function baseUrl() {
-  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/$/, "");
+  return appOrigin();
+}
+
+async function clientBucket() {
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
-  return `${proto}://${host}`;
+  const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "local").split(",")[0]?.trim().slice(0, 80) || "local";
+  return createHash("sha256").update(`${ip}.${await sessionKey()}`).digest("hex").slice(0, 32);
 }
 
 async function run(fn: () => Promise<unknown>): Promise<ActionResult> {
@@ -50,14 +56,18 @@ async function actor() {
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
-export async function requestOtpAction(identifier: string) {
-  const result = await requestOtp(identifier);
-  if (result.ok) await flushOutbox();
-  return result;
+export async function requestOtpAction(email: string) {
+  return requestOtp(email, await clientBucket());
 }
 
-export async function verifyOtpAction(identifier: string, code: string, next: string) {
-  const result = await verifyOtp(identifier, code);
+export async function registerAction(input: SignupInput) {
+  const created = await registerAccount(input);
+  if (!created.ok) return created;
+  return requestOtp(created.employee.email, await clientBucket());
+}
+
+export async function verifyOtpAction(email: string, code: string, next: string) {
+  const result = await verifyOtp(email, code);
   if (!result.ok) return result;
   await startSession(result.employeeId);
   const target = /^\/(?![/\\])/.test(next) && !next.includes("\\") ? next : "/";

@@ -13,6 +13,9 @@ const empty = (): Database => ({
   outbox: [],
   tokens: [],
   otps: [],
+  otpGuards: [],
+  otpSends: [],
+  accounts: [],
   counter: 0,
   sessionKey: randomBytes(32).toString("base64url"),
 });
@@ -21,6 +24,14 @@ const normalize = (raw: Partial<Database> | null): Database => {
   const base = empty();
   const merged = { ...base, ...(raw ?? {}), sessionKey: raw?.sessionKey || base.sessionKey };
   merged.otps ??= [];
+  merged.otpGuards ??= [];
+  merged.otpSends ??= [];
+  merged.accounts ??= [];
+  for (const challenge of merged.otps) {
+    challenge.email ??= "";
+    challenge.active ??= false;
+    if (!challenge.email) challenge.active = false;
+  }
   for (const message of merged.outbox) {
     message.kind ??= "workflow";
     message.delivered ??= false;
