@@ -7,22 +7,15 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 const TTL_MS = 10 * 60 * 1000;
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_SENDS = 3;
+const MAX_SENDS = 5;
 const MAX_ATTEMPTS = 5;
-const MAX_GLOBAL_SENDS = 10;
-const MAX_ROWS = 50;
+const MAX_ROWS = 500;
 
 export type OtpRequestResult =
-  | { ok: true; maskedEmail: string }
-  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" };
+  | { ok: true }
+  | { ok: false; error: "invalid" | "slow" | "mailFailed" };
 
 export type OtpVerifyResult = { ok: true; employeeId: string } | { ok: false; error: "notFound" | "badCode" | "expired" | "slow" };
-
-function maskEmail(email: string) {
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  return `${name.slice(0, 1)}***@${domain}`;
-}
 
 async function hashCode(code: string) {
   return createHash("sha256").update(`${code}.${await sessionKey()}`).digest("hex");
@@ -50,7 +43,6 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   const email = normalizeEmail(emailInput);
   if (!isEmail(email)) return { ok: false, error: "invalid" };
   const employee = await findByEmail(email);
-  if (!employee) return { ok: false, error: "notFound" };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const codeHash = await hashCode(code);
@@ -60,12 +52,11 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   const allowed = await mutate((db) => {
     prune(db, now);
     const emailSends = db.otpSends.filter((item) => item.bucket === `e:${email}`).length;
-    const globalSends = db.otpSends.filter((item) => item.bucket === "g").length;
     const guard = db.otpGuards.find((item) => item.email === email);
     const locked = Boolean(guard && guard.failures >= MAX_ATTEMPTS);
-    if (emailSends >= MAX_SENDS || globalSends >= MAX_GLOBAL_SENDS || locked) return false;
-    db.otpSends.push({ bucket: `e:${email}`, sentAt }, { bucket: "g", sentAt });
-    if (!supabaseConfigured()) {
+    if (emailSends >= MAX_SENDS || locked) return false;
+    db.otpSends.push({ bucket: `e:${email}`, sentAt });
+    if (employee && !supabaseConfigured()) {
       db.otps.push({
         employeeId: employee.id,
         email,
@@ -78,6 +69,8 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
     return true;
   });
   if (!allowed) return { ok: false, error: "slow" };
+  // Same answer whether or not this email belongs to a staff account.
+  if (!employee) return { ok: true };
 
   if (supabaseConfigured()) {
     const client = supabase();
@@ -86,12 +79,10 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
       options: { shouldCreateUser: true },
     });
     if (error) {
-      await mutate((db) => {
-        db.otpSends = db.otpSends.filter((item) => item.sentAt !== sentAt);
-      });
-      return { ok: false, error: /rate|too many|429/i.test(error.message) ? "slow" : "mailFailed" };
+      console.error("Sign-in code was not sent");
+      return { ok: true };
     }
-    return { ok: true, maskedEmail: maskEmail(employee.email) };
+    return { ok: true };
   }
 
   let sent = false;
@@ -107,19 +98,19 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   if (!sent) {
     await mutate((db) => {
       db.otps = db.otps.filter((challenge) => !(challenge.email === email && challenge.codeHash === codeHash));
-      db.otpSends = db.otpSends.filter((item) => item.sentAt !== sentAt);
     });
-    return { ok: false, error: "mailFailed" };
+    console.error("Sign-in code was not sent");
+    return { ok: true };
   }
 
-  return { ok: true, maskedEmail: maskEmail(employee.email) };
+  return { ok: true };
 }
 
 export async function verifyOtp(emailInput: string, code: string): Promise<OtpVerifyResult> {
   const email = normalizeEmail(emailInput);
-  if (!isEmail(email)) return { ok: false, error: "notFound" };
+  if (!isEmail(email)) return { ok: false, error: "badCode" };
   const employee = await findByEmail(email);
-  if (!employee) return { ok: false, error: "notFound" };
+  if (!employee) return { ok: false, error: "badCode" };
   const given = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(given)) return { ok: false, error: "badCode" };
   if (supabaseConfigured()) {

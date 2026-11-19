@@ -20,7 +20,7 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
   const [jobTitle, setJobTitle] = useState("");
   const [departmentId, setDepartmentId] = useState("D-HR");
   const [code, setCode] = useState("");
-  const [masked, setMasked] = useState<string | null>(null);
+  const [codeStep, setCodeStep] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -30,15 +30,13 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
     { id: "D-ITD", label: t.login.deptIt },
   ];
 
-  const sent = (result: { ok: true; maskedEmail: string } | { ok: false; error: string }) => {
+  const sent = (result: { ok: true } | { ok: false; error: string }) => {
     if (!result.ok) {
       const key = result.error as keyof typeof t.login;
       setError(typeof t.login[key] === "string" ? (t.login[key] as string) : t.login.invalid);
-      if (result.error === "notFound") setMode("signup");
       return;
     }
-    setMasked(result.maskedEmail);
-    setMode("signin");
+    setCodeStep(true);
   };
 
   const send = () => {
@@ -92,7 +90,7 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
         />
       </div>
 
-      {mode === "signup" && !masked && (
+      {mode === "signup" && !codeStep && (
         <div className="space-y-3 rounded-xl border bg-card p-4">
           <div>
             <h3 className="font-medium">{t.login.signupTitle}</h3>
@@ -136,11 +134,9 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
         </div>
       )}
 
-      {masked && (
+      {codeStep && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {t.login.codeSent} <span dir="ltr">{masked}</span>
-          </p>
+          <p className="text-sm text-muted-foreground">{t.login.codeSent}</p>
           <p className="text-sm">{t.login.checkInbox}</p>
           <div className="space-y-1.5">
             <Label htmlFor="otp">{t.login.code}</Label>
@@ -161,7 +157,7 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {masked ? (
+        {codeStep ? (
           <>
             <Button type="button" disabled={pending || code.trim().length < 6} onClick={confirm}>
               {pending && <Loader2 className="size-4 animate-spin" />}
@@ -184,7 +180,7 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
         )}
       </div>
 
-      {!masked && (
+      {!codeStep && (
         <button
           type="button"
           className="text-sm text-primary underline-offset-4 hover:underline"

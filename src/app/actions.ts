@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { flushOutbox } from "@/lib/mail";
 import { appOrigin } from "@/lib/origin";
 import { requestOtp, verifyOtp } from "@/lib/otp";
@@ -65,7 +66,10 @@ export async function registerAction(input: SignupInput) {
       jobTitle: input.jobTitle,
       departmentId: input.departmentId,
     });
-    if (!created.ok) return created;
+    if (!created.ok) {
+      if (created.error === "emailTaken") return await requestOtp(input.email);
+      return created;
+    }
     return await requestOtp(created.employee.email);
   } catch {
     return { ok: false as const, error: "mailFailed" as const };
@@ -76,7 +80,7 @@ export async function verifyOtpAction(email: string, code: string, next: string)
   const result = await verifyOtp(email, code);
   if (!result.ok) return result;
   await startSession(result.employeeId);
-  const target = /^\/(?![/\\])/.test(next) && !next.includes("\\") ? next : "/";
+  const target = safeNext(next);
   return { ok: true as const, next: target };
 }
 

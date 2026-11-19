@@ -5,10 +5,11 @@ import { LoginForm } from "@/components/login-form";
 import { Button } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
 import { currentUser } from "@/lib/session";
+import { safeNext } from "@/lib/safe-next";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" ? sp.next : "/";
+  const next = safeNext(typeof sp.next === "string" ? sp.next : "/");
   const initialEmail = typeof sp.email === "string" ? sp.email : "";
   const user = await currentUser();
   if (user && (!initialEmail || initialEmail.toLowerCase() === user.email.toLowerCase())) redirect(next);

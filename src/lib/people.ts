@@ -124,7 +124,7 @@ export type SignupResult =
   | { ok: true; employee: Employee }
   | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "unavailable" };
 
-const MAX_ACCOUNTS = 50;
+const SIGNUPS_PER_HOUR = 30;
 
 export async function registerAccount(input: SignupInput): Promise<SignupResult> {
   const email = normalizeEmail(input.email);
@@ -165,9 +165,14 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
   };
 
   const stored = await mutate((db) => {
-    if (db.accounts.length >= MAX_ACCOUNTS) return false;
+    const hourAgo = Date.now() - 60 * 60 * 1000;
+    const recentSignups = db.otpSends.filter(
+      (item) => item.bucket === "signup" && new Date(item.sentAt).getTime() >= hourAgo,
+    ).length;
+    if (recentSignups >= SIGNUPS_PER_HOUR) return false;
     db.accounts = db.accounts.filter((account) => account.id !== employee.id && account.email.toLowerCase() !== email);
     db.accounts.push(employee);
+    db.otpSends.push({ bucket: "signup", sentAt: new Date().toISOString() });
     return true;
   });
   if (!stored) return { ok: false, error: "slow" };

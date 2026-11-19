@@ -17,7 +17,7 @@ const empty = (): Database => ({
   otpSends: [],
   accounts: [],
   counter: 0,
-  sessionKey: randomBytes(32).toString("base64url"),
+  sessionKey: "",
 });
 
 const normalize = (raw: Partial<Database> | string | null): Database => {
@@ -32,7 +32,7 @@ const normalize = (raw: Partial<Database> | string | null): Database => {
     parsed = raw;
   }
   const base = empty();
-  const merged = { ...base, ...(parsed ?? {}), sessionKey: parsed?.sessionKey || base.sessionKey };
+  const merged = { ...base, ...(parsed ?? {}), sessionKey: "" };
   if (!Array.isArray(merged.otps)) merged.otps = [];
   if (!Array.isArray(merged.otpGuards)) merged.otpGuards = [];
   if (!Array.isArray(merged.otpSends)) merged.otpSends = [];
@@ -146,10 +146,11 @@ function getStore() {
 export const readDb = () => getStore().read();
 export const mutate = <T>(fn: (db: Database) => T | Promise<T>) => getStore().mutate(fn);
 
-let cachedKey: string | null = null;
-/** Signing key for sessions: SESSION_SECRET when set, otherwise one generated and persisted on first use. */
+let memoryKey: string | null = null;
+/** Signing key for sessions. Comes from SESSION_SECRET, never from the database. */
 export async function sessionKey() {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  cachedKey ??= await mutate((d) => d.sessionKey);
-  return cachedKey;
+  const secret = process.env.SESSION_SECRET;
+  if (secret && secret.length >= 16) return secret;
+  memoryKey ??= randomBytes(32).toString("base64url");
+  return memoryKey;
 }

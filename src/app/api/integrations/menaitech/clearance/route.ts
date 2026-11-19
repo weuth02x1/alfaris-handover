@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { hr } from "@/lib/hr";
 import { initiateClearance, WorkflowError } from "@/lib/workflow";
+import { appOrigin } from "@/lib/origin";
 
 /**
  * Called by Menaitech HRMS when HR starts the clearance process.
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
   const actor = await hr().getEmployee(body.initiatedBy);
   if (!actor) return NextResponse.json({ error: "unknown initiatedBy" }, { status: 400 });
 
-  const base = process.env.APP_BASE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
+  const base = await appOrigin();
   try {
     const handoverId = await initiateClearance(actor, body.requestRef, base);
     return NextResponse.json({ handoverId, url: `${base}/handovers/${handoverId}` }, { status: 201 });
