@@ -3,6 +3,7 @@ import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { mutate, sessionKey } from "@/lib/db";
 import { deliver } from "@/lib/mail";
 import { findByEmail, isEmail, normalizeEmail } from "@/lib/people";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 const TTL_MS = 10 * 60 * 1000;
 const WINDOW_MS = 15 * 60 * 1000;
@@ -63,21 +64,35 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
     const guard = db.otpGuards.find((item) => item.email === email);
     const locked = Boolean(guard && guard.failures >= MAX_ATTEMPTS);
     if (emailSends >= MAX_SENDS || globalSends >= MAX_GLOBAL_SENDS || locked) return false;
-    for (const challenge of db.otps) {
-      if (challenge.email === email) challenge.active = false;
-    }
-    db.otps.push({
-      employeeId: employee.id,
-      email,
-      codeHash,
-      expiresAt: new Date(now + TTL_MS).toISOString(),
-      sentAt,
-      active: true,
-    });
     db.otpSends.push({ bucket: `e:${email}`, sentAt }, { bucket: "g", sentAt });
+    if (!supabaseConfigured()) {
+      db.otps.push({
+        employeeId: employee.id,
+        email,
+        codeHash,
+        expiresAt: new Date(now + TTL_MS).toISOString(),
+        sentAt,
+        active: true,
+      });
+    }
     return true;
   });
   if (!allowed) return { ok: false, error: "slow" };
+
+  if (supabaseConfigured()) {
+    const client = supabase();
+    const { error } = await client!.auth.signInWithOtp({
+      email: employee.email,
+      options: { shouldCreateUser: true },
+    });
+    if (error) {
+      await mutate((db) => {
+        db.otpSends = db.otpSends.filter((item) => item.sentAt !== sentAt);
+      });
+      return { ok: false, error: /rate|too many|429/i.test(error.message) ? "slow" : "mailFailed" };
+    }
+    return { ok: true, maskedEmail: maskEmail(employee.email) };
+  }
 
   let sent = false;
   try {
@@ -107,6 +122,12 @@ export async function verifyOtp(emailInput: string, code: string): Promise<OtpVe
   if (!employee) return { ok: false, error: "notFound" };
   const given = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(given)) return { ok: false, error: "badCode" };
+  if (supabaseConfigured()) {
+    const client = supabase();
+    const { error } = await client!.auth.verifyOtp({ email: employee.email, token: given, type: "email" });
+    if (error) return { ok: false, error: /expired/i.test(error.message) ? "expired" : "badCode" };
+    return { ok: true, employeeId: employee.id };
+  }
   const givenHash = await hashCode(given);
   const now = Date.now();
 
