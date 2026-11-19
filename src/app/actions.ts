@@ -49,19 +49,27 @@ async function actor() {
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
 export async function requestOtpAction(email: string) {
-  return requestOtp(email);
+  try {
+    return await requestOtp(email);
+  } catch {
+    return { ok: false as const, error: "mailFailed" as const };
+  }
 }
 
 export async function registerAction(input: SignupInput) {
-  const created = await registerAccount({
-    email: input.email,
-    name: input.name,
-    employeeNo: input.employeeNo,
-    jobTitle: input.jobTitle,
-    departmentId: input.departmentId,
-  });
-  if (!created.ok) return created;
-  return requestOtp(created.employee.email);
+  try {
+    const created = await registerAccount({
+      email: input.email,
+      name: input.name,
+      employeeNo: input.employeeNo,
+      jobTitle: input.jobTitle,
+      departmentId: input.departmentId,
+    });
+    if (!created.ok) return created;
+    return await requestOtp(created.employee.email);
+  } catch {
+    return { ok: false as const, error: "mailFailed" as const };
+  }
 }
 
 export async function verifyOtpAction(email: string, code: string, next: string) {

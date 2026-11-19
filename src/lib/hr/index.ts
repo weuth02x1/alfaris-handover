@@ -76,6 +76,7 @@ class MenaitechHrProvider implements HrProvider {
     const res = await fetch(url, {
       ...init,
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
       headers: {
         Authorization: `Bearer ${this.key}`,
         Accept: "application/json",

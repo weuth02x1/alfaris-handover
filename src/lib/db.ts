@@ -20,13 +20,27 @@ const empty = (): Database => ({
   sessionKey: randomBytes(32).toString("base64url"),
 });
 
-const normalize = (raw: Partial<Database> | null): Database => {
+const normalize = (raw: Partial<Database> | string | null): Database => {
+  let parsed: Partial<Database> | null = null;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw) as Partial<Database>;
+    } catch {
+      parsed = null;
+    }
+  } else {
+    parsed = raw;
+  }
   const base = empty();
-  const merged = { ...base, ...(raw ?? {}), sessionKey: raw?.sessionKey || base.sessionKey };
-  merged.otps ??= [];
-  merged.otpGuards ??= [];
-  merged.otpSends ??= [];
-  merged.accounts ??= [];
+  const merged = { ...base, ...(parsed ?? {}), sessionKey: parsed?.sessionKey || base.sessionKey };
+  if (!Array.isArray(merged.otps)) merged.otps = [];
+  if (!Array.isArray(merged.otpGuards)) merged.otpGuards = [];
+  if (!Array.isArray(merged.otpSends)) merged.otpSends = [];
+  if (!Array.isArray(merged.accounts)) merged.accounts = [];
+  if (!Array.isArray(merged.handovers)) merged.handovers = [];
+  if (!Array.isArray(merged.audit)) merged.audit = [];
+  if (!Array.isArray(merged.outbox)) merged.outbox = [];
+  if (!Array.isArray(merged.tokens)) merged.tokens = [];
   for (const challenge of merged.otps) {
     challenge.email ??= "";
     challenge.active ??= false;
@@ -86,13 +100,15 @@ class PgStore implements Store {
   private ready: Promise<void>;
 
   constructor(url: string) {
-    this.pool = new Pool({ connectionString: url, max: 5 });
-    this.ready = this.pool
-      .query(
-        `CREATE TABLE IF NOT EXISTS app_state (id int PRIMARY KEY, data jsonb NOT NULL);
-         INSERT INTO app_state (id, data) VALUES (1, '{}'::jsonb) ON CONFLICT (id) DO NOTHING;`,
-      )
-      .then(() => undefined);
+    this.pool = new Pool({ connectionString: url, max: 5, connectionTimeoutMillis: 8_000 });
+    this.ready = this.prepare();
+  }
+
+  private async prepare() {
+    await this.pool.query("CREATE TABLE IF NOT EXISTS app_state (id int PRIMARY KEY, data jsonb NOT NULL)");
+    await this.pool.query(
+      "INSERT INTO app_state (id, data) VALUES (1, '{}'::jsonb) ON CONFLICT (id) DO NOTHING",
+    );
   }
 
   async read() {
@@ -109,7 +125,7 @@ class PgStore implements Store {
       const { rows } = await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE");
       const db = normalize(rows[0]?.data ?? null);
       const result = await fn(db);
-      await client.query("UPDATE app_state SET data = $1 WHERE id = 1", [JSON.stringify(db)]);
+      await client.query("UPDATE app_state SET data = $1::jsonb WHERE id = 1", [JSON.stringify(db)]);
       await client.query("COMMIT");
       return result;
     } catch (e) {
