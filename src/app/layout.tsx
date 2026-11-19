@@ -20,6 +20,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { locale, dir } = await getI18n();
   return (
     <html lang={locale} dir={dir} className={`${font.variable} h-full antialiased`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(()=>{var p=performance,m=p.measure.bind(p);p.measure=function(){try{return m.apply(p,arguments)}catch(e){if(!String(e&&e.message||e).includes("negative time stamp"))throw e}}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster position="top-center" richColors />

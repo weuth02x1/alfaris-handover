@@ -3,8 +3,10 @@
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hr } from "@/lib/hr";
-import { currentUser, demoLoginEnabled, endSession, startSession } from "@/lib/session";
+import { flushOutbox } from "@/lib/mail";
+import { requestOtp, verifyOtp } from "@/lib/otp";
+import { currentUser, endSession, startSession } from "@/lib/session";
+import { EXIT_REASONS, type ExitReason } from "@/lib/types";
 import {
   acceptTask,
   hrDecision,
@@ -31,6 +33,7 @@ async function baseUrl() {
 async function run(fn: () => Promise<unknown>): Promise<ActionResult> {
   try {
     await fn();
+    await flushOutbox();
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (e) {
@@ -47,13 +50,18 @@ async function actor() {
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
-export async function loginAs(formData: FormData) {
-  if (!demoLoginEnabled()) throw new Error("Demo login disabled");
-  const id = str(formData, "employeeId");
-  const next = str(formData, "next");
-  if (!(await hr().getEmployee(id))) throw new Error("Unknown employee");
-  await startSession(id);
-  redirect(/^\/(?![/\\])/.test(next) && !next.includes("\\") ? next : "/");
+export async function requestOtpAction(identifier: string) {
+  const result = await requestOtp(identifier);
+  if (result.ok) await flushOutbox();
+  return result;
+}
+
+export async function verifyOtpAction(identifier: string, code: string, next: string) {
+  const result = await verifyOtp(identifier, code);
+  if (!result.ok) return result;
+  await startSession(result.employeeId);
+  const target = /^\/(?![/\\])/.test(next) && !next.includes("\\") ? next : "/";
+  return { ok: true as const, next: target };
 }
 
 export async function logout() {
@@ -67,8 +75,11 @@ export async function setLanguage(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
-export async function startClearanceAction(ref: string) {
-  return run(async () => initiateClearance(await actor(), ref, await baseUrl()));
+export async function startClearanceAction(ref: string, reason: string) {
+  const exitReason: ExitReason | undefined = (EXIT_REASONS as readonly string[]).includes(reason)
+    ? (reason as ExitReason)
+    : undefined;
+  return run(async () => initiateClearance(await actor(), ref, await baseUrl(), exitReason));
 }
 
 export async function saveHandoverAction(

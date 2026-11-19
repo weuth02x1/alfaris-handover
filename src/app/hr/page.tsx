@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
 import { fmt } from "@/lib/i18n/dict";
+import { EXIT_REASONS } from "@/lib/types";
 import { getI18n } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/session";
 
@@ -76,6 +77,8 @@ export default async function HrPage() {
                         ) : (
                           <StartClearanceButton
                             requestRef={r.ref}
+                            defaultReason={r.type}
+                            reasons={EXIT_REASONS.map((reason) => ({ value: reason, label: t.type[reason] }))}
                             label={t.hr.startClearance}
                             errorLabel={t.errors.notAllowed}
                             doneLabel={t.audit.link_sent}

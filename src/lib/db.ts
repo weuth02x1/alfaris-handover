@@ -12,13 +12,20 @@ const empty = (): Database => ({
   audit: [],
   outbox: [],
   tokens: [],
+  otps: [],
   counter: 0,
   sessionKey: randomBytes(32).toString("base64url"),
 });
 
 const normalize = (raw: Partial<Database> | null): Database => {
   const base = empty();
-  return { ...base, ...(raw ?? {}), sessionKey: raw?.sessionKey || base.sessionKey };
+  const merged = { ...base, ...(raw ?? {}), sessionKey: raw?.sessionKey || base.sessionKey };
+  merged.otps ??= [];
+  for (const message of merged.outbox) {
+    message.kind ??= "workflow";
+    message.delivered ??= false;
+  }
+  return merged;
 };
 
 interface Store {

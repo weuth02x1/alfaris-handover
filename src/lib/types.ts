@@ -17,13 +17,14 @@ export interface Employee {
   role: Role;
 }
 
-export type ClearanceType = "vacation" | "termination";
+export const EXIT_REASONS = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"] as const;
+export type ExitReason = (typeof EXIT_REASONS)[number];
 
 /** A request already approved in the HRMS, waiting for HR to start clearance. */
 export interface ApprovedRequest {
   ref: string;
   employeeId: string;
-  type: ClearanceType;
+  type: ExitReason;
   startDate: string;
   endDate: string | null;
 }
@@ -88,7 +89,7 @@ export interface Handover {
   id: string;
   number: string;
   requestRef: string;
-  type: ClearanceType;
+  type: ExitReason;
   lastWorkingDay: string;
   returnDate: string | null;
   employee: EmployeeSnapshot;
@@ -139,6 +140,16 @@ export interface EmailMessage {
   body: string;
   link: string | null;
   at: string;
+  kind: "workflow" | "otp";
+  delivered: boolean;
+}
+
+export interface OtpChallenge {
+  employeeId: string;
+  codeHash: string;
+  expiresAt: string;
+  attempts: number;
+  sentAt: string;
 }
 
 export interface AccessToken {
@@ -153,6 +164,7 @@ export interface Database {
   audit: AuditEntry[];
   outbox: EmailMessage[];
   tokens: AccessToken[];
+  otps: OtpChallenge[];
   counter: number;
   sessionKey: string;
 }

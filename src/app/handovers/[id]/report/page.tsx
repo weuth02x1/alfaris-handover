@@ -4,6 +4,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { BrandLockup } from "@/components/brand-lockup";
 import { PrintButton } from "@/components/print-button";
 import { buttonVariants } from "@/components/ui/button";
+import { dictionaries } from "@/lib/i18n/dict";
 import { hr } from "@/lib/hr";
 import { getI18n } from "@/lib/i18n/server";
 import { getHandoverFor } from "@/lib/queries";
@@ -96,10 +97,10 @@ export default async function ReportPage({ params }: PageProps<"/handovers/[id]/
               <Row ar="الإدارة" en="Department" valueAr={h.employee.departmentAr} valueEn={h.employee.departmentEn} />
               <Row ar="القسم" en="Section" valueAr={h.employee.sectionAr} valueEn={h.employee.sectionEn} />
               <Row
-                ar="نوع الطلب"
-                en="Request type"
-                valueAr={h.type === "vacation" ? "إجازة" : "إنهاء خدمة"}
-                valueEn={h.type === "vacation" ? "Vacation" : "Termination"}
+                ar="سبب الخروج"
+                en="Reason for leaving"
+                valueAr={dictionaries.ar.type[h.type]}
+                valueEn={dictionaries.en.type[h.type]}
               />
               <Row ar="آخر يوم عمل" en="Last working day" valueAr={fmtDate(h.lastWorkingDay, "ar")} />
               {h.returnDate && <Row ar="تاريخ العودة" en="Return date" valueAr={fmtDate(h.returnDate, "ar")} />}

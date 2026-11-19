@@ -40,7 +40,9 @@ export default async function OutboxPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="whitespace-pre-line text-sm text-muted-foreground">{m.body}</p>
+                  <p className="whitespace-pre-line text-sm text-muted-foreground">
+                    {m.kind === "otp" && m.toEmployeeId !== user.id ? t.outbox.otpHidden : m.body}
+                  </p>
                   {m.link && (
                     <a
                       href={m.link}

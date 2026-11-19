@@ -1,4 +1,4 @@
-import type { AuditAction, ClearanceType, HandoverStatus, TaskStatus } from "@/lib/types";
+import type { AuditAction, ExitReason, HandoverStatus, TaskStatus } from "@/lib/types";
 
 export type Locale = "ar" | "en";
 
@@ -14,12 +14,20 @@ const ar = {
   },
   login: {
     title: "تسجيل الدخول",
-    subtitle: "سجّل الدخول بحسابك في نظام الموارد البشرية للمتابعة.",
-    demoNote:
-      "وضع تجريبي: اختر الموظف الذي تريد الدخول بحسابه. عند الربط الفعلي يتم الدخول عبر مصادقة نظام Menaitech.",
-    signInAs: "الدخول باسم",
-    linkFor: "هذا الرابط مخصص لـ",
-    hrBadge: "موارد بشرية",
+    subtitle: "أدخل رقمك الوظيفي، ويوصلك رمز الدخول على الإيميل. الإيميل مجاني وما يحتاج رسالة جوال.",
+    employeeNo: "الرقم الوظيفي",
+    employeeNoPh: "مثال: 30115",
+    sendCode: "أرسل الرمز على الإيميل",
+    codeSent: "أرسلنا رمز الدخول إلى",
+    code: "رمز الدخول",
+    confirm: "دخول",
+    resend: "إرسال رمز جديد",
+    devCode: "الإيميل غير مربوط بعد، وهذا الرمز للتجربة فقط. بعد ربط بريد الشركة يوصل الرمز للإيميل ولا يظهر هنا.",
+    badCode: "الرمز غير صحيح.",
+    expired: "انتهت صلاحية الرمز. اطلب رمزاً جديداً.",
+    notFound: "ما لقينا هذا الرقم الوظيفي.",
+    slow: "طلبت رموز كثيرة. انتظر قليلاً ثم أعد المحاولة.",
+    linkFor: "هذا الرابط مخصص للرقم الوظيفي",
   },
   status: {
     draft: "بانتظار تعبئة الموظف",
@@ -36,9 +44,12 @@ const ar = {
     rejected: "مرفوضة - تحتاج مستلم آخر",
   } satisfies Record<TaskStatus, string>,
   type: {
-    vacation: "إجازة",
-    termination: "إنهاء خدمة",
-  } satisfies Record<ClearanceType, string>,
+    annual_leave: "إجازة سنوية",
+    clearance: "إخلاء طرف",
+    resignation: "استقالة",
+    transfer: "نقل",
+    contract_end: "انتهاء العقد",
+  } satisfies Record<ExitReason, string>,
   audit: {
     clearance_initiated: "بدء إخلاء الطرف",
     link_sent: "إرسال رابط آمن",
@@ -81,7 +92,7 @@ const ar = {
     noHandovers: "لم يتم إنشاء أي نموذج بعد.",
     ref: "رقم الطلب",
     employee: "الموظف",
-    type: "النوع",
+    type: "سبب الخروج",
     from: "من",
     to: "إلى",
     status: "الحالة",
@@ -98,6 +109,7 @@ const ar = {
     empty: "لم تُرسل أي رسالة بعد.",
     to: "إلى",
     openLink: "فتح الرابط الآمن",
+    otpHidden: "رمز دخول أُرسل لصاحب الإيميل",
   },
   form: {
     employeeInfo: "بيانات الموظف (من نظام الموارد البشرية)",
@@ -109,7 +121,7 @@ const ar = {
     section: "القسم",
     clearanceInfo: "بيانات إخلاء الطرف",
     requestRef: "رقم الطلب",
-    type: "نوع الطلب",
+    type: "سبب الخروج",
     lastWorkingDay: "آخر يوم عمل",
     returnDate: "تاريخ العودة",
     tasks: "المهام المُسلَّمة",
@@ -204,12 +216,20 @@ const en: Dict = {
   },
   login: {
     title: "Sign in",
-    subtitle: "Sign in with your HR system account to continue.",
-    demoNote:
-      "Demo mode: pick the employee to sign in as. In production, sign-in goes through Menaitech authentication.",
-    signInAs: "Sign in as",
-    linkFor: "This link belongs to",
-    hrBadge: "HR",
+    subtitle: "Enter your employee number. We email you a code. Email is free, unlike a text message.",
+    employeeNo: "Employee number",
+    employeeNoPh: "e.g. 30115",
+    sendCode: "Email me the code",
+    codeSent: "We sent a sign-in code to",
+    code: "Sign-in code",
+    confirm: "Sign in",
+    resend: "Send a new code",
+    devCode: "Company email is not connected yet, so the code is shown here for the trial only. Once mail is connected it arrives by email and is not shown here.",
+    badCode: "That code is not correct.",
+    expired: "This code has expired. Request a new one.",
+    notFound: "We could not find that employee number.",
+    slow: "Too many codes were requested. Wait a moment and try again.",
+    linkFor: "This link belongs to employee number",
   },
   status: {
     draft: "Waiting for employee",
@@ -225,7 +245,13 @@ const en: Dict = {
     accepted: "Accepted",
     rejected: "Rejected - needs new recipient",
   },
-  type: { vacation: "Vacation", termination: "Termination" },
+  type: {
+    annual_leave: "Annual leave",
+    clearance: "Clearance",
+    resignation: "Resignation",
+    transfer: "Transfer",
+    contract_end: "End of contract",
+  },
   audit: {
     clearance_initiated: "Clearance initiated",
     link_sent: "Secure link sent",
@@ -268,7 +294,7 @@ const en: Dict = {
     noHandovers: "No handover forms yet.",
     ref: "Request",
     employee: "Employee",
-    type: "Type",
+    type: "Reason for leaving",
     from: "From",
     to: "To",
     status: "Status",
@@ -284,6 +310,7 @@ const en: Dict = {
     empty: "No messages sent yet.",
     to: "To",
     openLink: "Open secure link",
+    otpHidden: "A sign-in code was emailed to its owner",
   },
   form: {
     employeeInfo: "Employee details (from HR system)",
@@ -295,7 +322,7 @@ const en: Dict = {
     section: "Section",
     clearanceInfo: "Clearance details",
     requestRef: "Request",
-    type: "Type",
+    type: "Reason for leaving",
     lastWorkingDay: "Last working day",
     returnDate: "Return date",
     tasks: "Handed-over tasks",

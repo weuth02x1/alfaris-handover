@@ -2,13 +2,7 @@ import "server-only";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import { mutate } from "@/lib/db";
 import { hr } from "@/lib/hr";
-import type {
-  AuditAction,
-  Database,
-  Employee,
-  Handover,
-  HandoverTask,
-} from "@/lib/types";
+import { EXIT_REASONS, type AuditAction, type Database, type Employee, type ExitReason, type Handover, type HandoverTask } from "@/lib/types";
 
 export type WorkflowErrorCode =
   | "notAllowed"
@@ -61,6 +55,8 @@ function notify(
     body,
     link,
     at: now(),
+    kind: "workflow",
+    delivered: false,
   });
 }
 
@@ -81,7 +77,7 @@ async function listHr() {
 }
 
 /** HR starts clearance for an approved request: creates the form and emails the employee. */
-export async function initiateClearance(actor: Employee, requestRef: string, baseUrl: string) {
+export async function initiateClearance(actor: Employee, requestRef: string, baseUrl: string, reason?: ExitReason) {
   if (actor.role !== "hr") throw new WorkflowError("notAllowed");
   const req = (await hr().listApprovedRequests()).find((r) => r.ref === requestRef);
   if (!req) throw new WorkflowError("notFound");
@@ -96,7 +92,7 @@ export async function initiateClearance(actor: Employee, requestRef: string, bas
       id: randomUUID(),
       number: `HO-${new Date().getFullYear()}-${String(db.counter).padStart(4, "0")}`,
       requestRef: req.ref,
-      type: req.type,
+      type: reason && (EXIT_REASONS as readonly string[]).includes(reason) ? reason : req.type,
       lastWorkingDay: req.startDate,
       returnDate: req.endDate,
       employee: {
@@ -234,8 +230,8 @@ function notifyRecipient(
     baseUrl,
     h,
     recipient,
-    `مهمة مُسندة إليك من ${from.nameAr} | Task assigned to you by ${from.nameEn}`,
-    `أسند إليك ${from.nameAr} المهمة "${task.title}" ضمن نموذج التسليم ${h.number}. سجّل الدخول لقبولها أو رفضها مع ذكر السبب.\n\n${from.nameEn} assigned you "${task.title}" (${h.number}). Sign in to accept or decline with a reason.`,
+    `${from.nameAr} أسند لك مهام، ادخل للموافقة`,
+    `${from.nameAr} أسند لك مهام وتحتاج موافقتك.\nالمهمة: ${task.title}${task.details ? `\n${task.details}` : ""}\n\nادخل عبر الرابط للموافقة أو الرفض. الموقع ما يرسل إشعارات داخل المتصفح، والاعتماد يصير من الرابط في هذا الإيميل.\n\n${from.nameEn} assigned you a task and needs your approval: ${task.title}`,
   );
 }
 

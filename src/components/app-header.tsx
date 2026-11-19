@@ -43,7 +43,7 @@ export async function AppHeader({ user }: { user: Employee | null }) {
               <div className="hidden text-end leading-tight sm:block">
                 <div className="text-sm font-medium text-[var(--cream)]">{name(user)}</div>
                 <div className="text-xs text-[var(--gold)]">
-                  {pick(user.jobTitleAr, user.jobTitleEn)}
+                  {pick(user.jobTitleAr, user.jobTitleEn)} · {pick(user.departmentAr, user.departmentEn)} · {user.id}
                 </div>
               </div>
               <form action={logout}>
