@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { mutate, sessionKey } from "@/lib/db";
-import { deliver } from "@/lib/mail";
+import { deliver, mailConfigured } from "@/lib/mail";
 import { findByEmail, isEmail, normalizeEmail } from "@/lib/people";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
@@ -13,7 +13,7 @@ const MAX_ROWS = 500;
 
 export type OtpRequestResult =
   | { ok: true }
-  | { ok: false; error: "invalid" | "slow" | "mailFailed" };
+  | { ok: false; error: "notFound" | "invalid" | "slow" | "mailFailed" };
 
 export type OtpVerifyResult = { ok: true; employeeId: string } | { ok: false; error: "notFound" | "badCode" | "expired" | "slow" };
 
@@ -42,7 +42,6 @@ function prune(db: { otps: { sentAt: string; active: boolean; expiresAt: string 
 export async function requestOtp(emailInput: string): Promise<OtpRequestResult> {
   const email = normalizeEmail(emailInput);
   if (!isEmail(email)) return { ok: false, error: "invalid" };
-  const employee = await findByEmail(email);
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const codeHash = await hashCode(code);
@@ -55,55 +54,68 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
     const guard = db.otpGuards.find((item) => item.email === email);
     const locked = Boolean(guard && guard.failures >= MAX_ATTEMPTS);
     if (emailSends >= MAX_SENDS || locked) return false;
-    db.otpSends.push({ bucket: `e:${email}`, sentAt });
-    if (employee && !supabaseConfigured()) {
+    return true;
+  });
+  if (!allowed) return { ok: false, error: "slow" };
+
+  const employee = await findByEmail(email);
+  if (!employee) return { ok: false, error: "notFound" };
+
+  const text = `رمز الدخول: ${code}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.\n\nYour sign-in code: ${code}\nIt expires in 10 minutes.`;
+  let sent = false;
+  if (mailConfigured()) {
+    await rememberCode();
+    try {
+      sent = await deliver({ to: employee.email, subject: "رمز الدخول لنظام تسليم المهام", text });
+    } catch {
+      sent = false;
+    }
+    if (sent) return { ok: true };
+    await forgetCode();
+  }
+
+  if (supabaseConfigured()) {
+    try {
+      const client = supabase();
+      const { error } = await client!.auth.signInWithOtp({
+        email: employee.email,
+        options: { shouldCreateUser: true },
+      });
+      sent = !error;
+    } catch {
+      sent = false;
+    }
+    if (sent) {
+      await mutate((db) => {
+        db.otpSends.push({ bucket: `e:${email}`, sentAt });
+      });
+      return { ok: true };
+    }
+  }
+
+  return { ok: false, error: "mailFailed" };
+
+  async function rememberCode() {
+    await mutate((db) => {
+      db.otpSends.push({ bucket: `e:${email}`, sentAt });
+      for (const challenge of db.otps) if (challenge.email === email) challenge.active = false;
       db.otps.push({
-        employeeId: employee.id,
+        employeeId: employee!.id,
         email,
         codeHash,
         expiresAt: new Date(now + TTL_MS).toISOString(),
         sentAt,
         active: true,
       });
-    }
-    return true;
-  });
-  if (!allowed) return { ok: false, error: "slow" };
-  // Same answer whether or not this email belongs to a staff account.
-  if (!employee) return { ok: true };
-
-  if (supabaseConfigured()) {
-    const client = supabase();
-    const { error } = await client!.auth.signInWithOtp({
-      email: employee.email,
-      options: { shouldCreateUser: true },
     });
-    if (error) {
-      console.error("Sign-in code was not sent");
-      return { ok: true };
-    }
-    return { ok: true };
   }
 
-  let sent = false;
-  try {
-    sent = await deliver({
-      to: employee.email,
-      subject: "رمز الدخول لنظام تسليم المهام",
-      text: `رمز الدخول الخاص بك: ${code}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.\n\nYour sign-in code: ${code}\nIt expires in 10 minutes.`,
-    });
-  } catch {
-    sent = false;
-  }
-  if (!sent) {
+  async function forgetCode() {
     await mutate((db) => {
       db.otps = db.otps.filter((challenge) => !(challenge.email === email && challenge.codeHash === codeHash));
+      db.otpSends = db.otpSends.filter((item) => item.sentAt !== sentAt);
     });
-    console.error("Sign-in code was not sent");
-    return { ok: true };
   }
-
-  return { ok: true };
 }
 
 export async function verifyOtp(emailInput: string, code: string): Promise<OtpVerifyResult> {
@@ -113,16 +125,10 @@ export async function verifyOtp(emailInput: string, code: string): Promise<OtpVe
   if (!employee) return { ok: false, error: "badCode" };
   const given = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(given)) return { ok: false, error: "badCode" };
-  if (supabaseConfigured()) {
-    const client = supabase();
-    const { error } = await client!.auth.verifyOtp({ email: employee.email, token: given, type: "email" });
-    if (error) return { ok: false, error: /expired/i.test(error.message) ? "expired" : "badCode" };
-    return { ok: true, employeeId: employee.id };
-  }
   const givenHash = await hashCode(given);
   const now = Date.now();
 
-  return mutate((db) => {
+  const local = await mutate((db) => {
     prune(db, now);
     const guard = db.otpGuards.find((item) => item.email === email);
     if (guard && !fresh(guard.windowStart, now)) {
@@ -150,4 +156,14 @@ export async function verifyOtp(emailInput: string, code: string): Promise<OtpVe
     if (current) current.failures = 0;
     return { ok: true, employeeId: employee.id } as const;
   });
+  if (local.ok || local.error !== "expired") return local;
+  if (!supabaseConfigured()) return local;
+  try {
+    const client = supabase();
+    const { error } = await client!.auth.verifyOtp({ email: employee.email, token: given, type: "email" });
+    if (error) return { ok: false, error: /expired/i.test(error.message) ? "expired" : "badCode" };
+    return { ok: true, employeeId: employee.id };
+  } catch {
+    return { ok: false, error: "badCode" };
+  }
 }

@@ -89,14 +89,27 @@ export async function getSessionUser(id: string) {
   return getPerson(id);
 }
 
+function asLoginAccount(account: Employee): Employee {
+  return {
+    ...account,
+    id: account.id.startsWith("local-") ? account.id : `local-${account.id}`,
+    staffNumber: account.staffNumber ?? account.id,
+    role: "employee",
+    managerId: null,
+  };
+}
+
+/** Local accounts first, so sign-in does not wait on the HR directory. */
 export async function findByEmail(email: string) {
   const target = normalizeEmail(email);
-  const directory = await loadDirectory();
-  if (directory.ok) {
-    const person = directory.people.find((item) => item.email.toLowerCase() === target);
-    if (person) return person;
-  }
-  return (await loginAccounts()).find((item) => item.email.toLowerCase() === target) ?? null;
+  const local = (await readDb()).accounts.find((item) => item.email.toLowerCase() === target);
+  if (local) return asLoginAccount(local);
+  const directory = await Promise.race([
+    loadDirectory(),
+    new Promise<DirectoryResult>((resolve) => setTimeout(() => resolve({ ok: false }), 4_000)),
+  ]);
+  if (!directory.ok) return null;
+  return directory.people.find((item) => item.email.toLowerCase() === target) ?? null;
 }
 
 export function colleaguesOf(me: Employee, all: Employee[]) {

@@ -32,46 +32,63 @@ export function LoginForm({ t, next, initialEmail }: { t: Dict; next: string; in
 
   const sent = (result: { ok: true } | { ok: false; error: string }) => {
     if (!result.ok) {
+      setCodeStep(false);
       const key = result.error as keyof typeof t.login;
       setError(typeof t.login[key] === "string" ? (t.login[key] as string) : t.login.invalid);
+      if (result.error === "notFound") setMode("signup");
       return;
     }
+    setError(null);
     setCodeStep(true);
   };
 
   const send = () => {
     setError(null);
     start(async () => {
-      sent(await requestOtpAction(email));
+      try {
+        sent(await requestOtpAction(email));
+      } catch {
+        setCodeStep(false);
+        setError(t.login.mailFailed);
+      }
     });
   };
 
   const create = () => {
     setError(null);
     start(async () => {
-      sent(
-        await registerAction({
-          email,
-          name,
-          employeeNo,
-          jobTitle,
-          departmentId,
-        }),
-      );
+      try {
+        sent(
+          await registerAction({
+            email,
+            name,
+            employeeNo,
+            jobTitle,
+            departmentId,
+          }),
+        );
+      } catch {
+        setCodeStep(false);
+        setError(t.login.mailFailed);
+      }
     });
   };
 
   const confirm = () => {
     setError(null);
     start(async () => {
-      const result = await verifyOtpAction(email, code, next);
-      if (!result.ok) {
-        const key = result.error;
-        setError(t.login[key]);
-        return;
+      try {
+        const result = await verifyOtpAction(email, code, next);
+        if (!result.ok) {
+          const key = result.error;
+          setError(typeof t.login[key] === "string" ? t.login[key] : t.login.badCode);
+          return;
+        }
+        router.push(result.next);
+        router.refresh();
+      } catch {
+        setError(t.login.mailFailed);
       }
-      router.push(result.next);
-      router.refresh();
     });
   };
 

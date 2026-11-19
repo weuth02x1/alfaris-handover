@@ -77,11 +77,14 @@ export async function registerAction(input: SignupInput) {
 }
 
 export async function verifyOtpAction(email: string, code: string, next: string) {
-  const result = await verifyOtp(email, code);
-  if (!result.ok) return result;
-  await startSession(result.employeeId);
-  const target = safeNext(next);
-  return { ok: true as const, next: target };
+  try {
+    const result = await verifyOtp(email, code);
+    if (!result.ok) return result;
+    await startSession(result.employeeId);
+    return { ok: true as const, next: safeNext(next) };
+  } catch {
+    return { ok: false as const, error: "badCode" as const };
+  }
 }
 
 export async function logout() {
