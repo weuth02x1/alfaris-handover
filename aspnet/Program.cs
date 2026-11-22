@@ -1,5 +1,6 @@
 using Alfaris.Handover.Data;
 using Alfaris.Handover.Services;
+using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,23 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = false;
+    options.Preload = false;
+});
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
+    options.HttpsPort = 443;
+});
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.HttpOnly = HttpOnlyPolicy.Always;
+    options.Secure = CookieSecurePolicy.SameAsRequest;
+    options.MinimumSameSitePolicy = SameSiteMode.Lax;
+});
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton<HandoverStore>();
 builder.Services.AddSingleton<OtpBox>();
@@ -29,7 +47,27 @@ app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
+    app.UseHsts();
+    app.UseHttpsRedirection();
 }
+app.UseCookiePolicy();
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.OnStarting(() =>
+    {
+        var headers = ctx.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "SAMEORIGIN";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        headers["Content-Security-Policy"] =
+            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'";
+        if (ctx.Request.IsHttps)
+            headers["Strict-Transport-Security"] = "max-age=31536000";
+        return Task.CompletedTask;
+    });
+    await next();
+});
 app.UseStaticFiles();
 app.UseRouting();
 app.Use(async (ctx, next) =>

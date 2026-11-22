@@ -43,9 +43,17 @@ dotnet run
 
 من غير مفاتيح البريد يظهر دخول تجريبي للتطوير فقط. مع المفاتيح، الرمز يجي على الإيميل.
 
-## نشر IIS
+## لماذا المتصفح يقول «غير آمن»
 
-cPanel / Apache على `192.185.30.74` لا يشغّل ASP.NET. انشر على ويندوز + Hosting Bundle 8، واربط HTTPS للاسم `handover.alfarisgrp.com`. في DNS احذف A القديم لذلك الاسم ووجّهه لسيرفر IIS.
+`handover.alfarisgrp.com` ما زال يشير إلى `192.185.30.74` (cPanel / Apache). شهادة HTTPS هناك اسمها `*.websitewelcome.com`، مو `handover.alfarisgrp.com`. كروم يرفضها ويقول Not Secure / الاتصال غير خاص.
+
+هذا مو التطبيق. أصلحه كالتالي:
+
+1. انشر ASP.NET على ويندوز IIS (Hosting Bundle 8). cPanel ما يشغّله.
+2. في GoDaddy احذف سجل A للاسم `handover` الذي قيمته `192.185.30.74`. أضف A (أو CNAME) إلى IP سيرفر IIS.
+3. في IIS اربط الموقع على المنفذ 443 مع SNI: Host name = `handover.alfarisgrp.com`.
+4. أصدر شهادة **لهذا الاسم** بـ [win-acme](https://www.win-acme.com/) (Let's Encrypt). لا تستخدم شهادة `websitewelcome`.
+5. بعد انتشار DNS المفروض القفل يصير آمن على `https://handover.alfarisgrp.com`.
 
 ```bash
 cd aspnet
