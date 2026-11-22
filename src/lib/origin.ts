@@ -1,7 +1,7 @@
 import "server-only";
 
 /** This site's own address. Email links never trust the request Host header. */
-const SITE_ORIGIN = "https://employee-handover-ac0d.apps.grok.bot";
+const SITE_ORIGIN = "https://handover.alfarisgrp.com";
 
 export async function appOrigin() {
   const configured = process.env.APP_BASE_URL;

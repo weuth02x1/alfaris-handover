@@ -69,7 +69,7 @@ export default {
       const code = randomCode();
       const exp = Date.now() + TTL_MS;
       const challenge = `${exp}.${await hmac(secret, `${email}:${code}:${exp}`)}`;
-      const from = env.RESEND_FROM || "Alfaris Group <onboarding@resend.dev>";
+      const from = env.RESEND_FROM || "Alfaris Group <noreply@alfarisgrp.com>";
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },

@@ -31,7 +31,7 @@ export async function deliver(message: { to: string; subject: string; text: stri
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.RESEND_FROM || "AlfarisHandOver <alfarishandover@gmail.com>",
+    from: process.env.SMTP_FROM || process.env.RESEND_FROM || "Alfaris Group <noreply@alfarisgrp.com>",
     to,
     subject: message.subject,
     text: message.text,
@@ -40,7 +40,7 @@ export async function deliver(message: { to: string; subject: string; text: stri
 }
 
 async function deliverWithResend(message: { to: string; subject: string; text: string }) {
-  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || "AlfarisHandOver <alfarishandover@gmail.com>";
+  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || "Alfaris Group <noreply@alfarisgrp.com>";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     signal: AbortSignal.timeout(8_000),

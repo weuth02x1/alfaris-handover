@@ -39,8 +39,10 @@ jobs:
           if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
             DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
           fi
-          flutter build web --release --base-href /alfaris-handover/ $DEFINES
-      - run: touch build/web/.nojekyll
+          flutter build web --release --base-href / $DEFINES
+      - run: |
+          touch build/web/.nojekyll
+          echo handover.alfarisgrp.com > build/web/CNAME
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -2,15 +2,21 @@
 
 تطبيق لإخلاء الطرف وتسليم المهام: الموظف يكتب مهامه، المستلم يوافق أو يرفض، ثم المدير والموارد البشرية يعتمدون.
 
-## الرابط العام
+## الدومين
+
+https://handover.alfarisgrp.com
+
+أضف في DNS الدومين `alfarisgrp.com` هذا السجل ثم انتظر التفعيل:
+
+| النوع | الاسم | القيمة |
+| --- | --- | --- |
+| CNAME | `handover` | `weuth02x1.github.io` |
+
+في Resend أضف الدومين `alfarisgrp.com` وألصق سجلات التحقق، وعيّن المرسل `Alfaris Group <noreply@alfarisgrp.com>`. في سوبربيس SMTP غيّر عنوان المرسل لنفس الإيميل (مو Gmail) وUsername: `resend`.
+
+رمز الدخول يُرسل عبر هذا الدومين بعد ربط DNS. قبل اكتمال الربط يمكن فتح النسخة المؤقتة:
 
 https://weuth02x1.github.io/alfaris-handover/
-
-رمز الدخول يُرسل من `AlfarisHandOver` عبر SMTP (`smtp.resend.com`) المضبوط في سوبربيس.
-
-على GitHub: أضف أسرار المستودع `SUPABASE_URL` و`SUPABASE_ANON_KEY` (مفتاح anon العام من إعدادات سوبربيس) ثم أعد تشغيل GitHub Pages. بدونها يظهر الرمز على الشاشة للتجربة.
-
-حسابات الدليل التجريبي: `sarah.alqahtani@alfaris.example`، `hind.alghamdi@alfaris.example`، `fahad.alotaibi@alfaris.example`.
 
 ## تشغيل محلي
 
