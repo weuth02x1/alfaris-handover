@@ -8,7 +8,9 @@
 
 https://weuth02x1.github.io/alfaris-handover/
 
-ادخل بأي إيميل من الدليل التجريبي، مثل `sarah.alqahtani@alfaris.example` أو `hind.alghamdi@alfaris.example`.
+ادخل بإيميلك ثم اكتب رمز الدخول (6 أرقام). في هذا الإصدار على GitHub يظهر الرمز على صفحة الدخول بعد الإرسال لأن الإرسال الحقيقي يحتاج خادماً.
+
+حسابات الدليل التجريبي: `sarah.alqahtani@alfaris.example`، `hind.alghamdi@alfaris.example`، `fahad.alotaibi@alfaris.example`.
 
 ## التشغيل على جهازك
 

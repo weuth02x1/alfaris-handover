@@ -1,120 +1,168 @@
 import "models.dart";
 
-const hrId = "D-HR";
-const hrName = "الموارد البشرية";
-const talentId = "D-TA";
-const talentName = "استقطاب المواهب";
-const itDevId = "D-ITD";
-const itDevName = "تطوير تقنية المعلومات";
+const hrDept = {
+  "departmentId": "D-HR",
+  "departmentAr": "الموارد البشرية",
+  "departmentEn": "Human Resources",
+  "sectionAr": "شؤون الموظفين",
+  "sectionEn": "Personnel Affairs",
+  "branchId": "B-RUH",
+};
+const talent = {
+  "departmentId": "D-TA",
+  "departmentAr": "استقطاب المواهب",
+  "departmentEn": "Talent Acquisition",
+  "sectionAr": "استقطاب المواهب",
+  "sectionEn": "Talent Acquisition",
+  "branchId": "B-RUH",
+};
+const itDev = {
+  "departmentId": "D-ITD",
+  "departmentAr": "تطوير تقنية المعلومات",
+  "departmentEn": "IT Development",
+  "sectionAr": "تطوير الأنظمة",
+  "sectionEn": "Systems Development",
+  "branchId": "B-RUH",
+};
 
-const employees = <Employee>[
-  Employee(
+Employee _e({
+  required String id,
+  required String nameAr,
+  required String nameEn,
+  required String jobTitleAr,
+  required String jobTitleEn,
+  required Map<String, String> dept,
+  required String email,
+  required String role,
+  String? managerId,
+  String? sectionAr,
+  String? sectionEn,
+}) {
+  return Employee(
+    id: id,
+    nameAr: nameAr,
+    nameEn: nameEn,
+    jobTitleAr: jobTitleAr,
+    jobTitleEn: jobTitleEn,
+    departmentId: dept["departmentId"]!,
+    departmentAr: dept["departmentAr"]!,
+    departmentEn: dept["departmentEn"]!,
+    sectionAr: sectionAr ?? dept["sectionAr"]!,
+    sectionEn: sectionEn ?? dept["sectionEn"]!,
+    branchId: dept["branchId"]!,
+    managerId: managerId,
+    email: email,
+    role: role,
+  );
+}
+
+final mockEmployees = <Employee>[
+  _e(
     id: "30102",
     nameAr: "منيرة السبيعي",
+    nameEn: "Munira Alsubaie",
     jobTitleAr: "مديرة الموارد البشرية",
-    departmentId: hrId,
-    departmentAr: hrName,
+    jobTitleEn: "HR Manager",
+    dept: hrDept,
+    managerId: null,
     email: "munira.alsubaie@alfaris.example",
-    role: Role.hr,
+    role: "hr",
   ),
-  Employee(
+  _e(
     id: "30115",
     nameAr: "هند الغامدي",
+    nameEn: "Hind Alghamdi",
     jobTitleAr: "أخصائية موارد بشرية",
-    departmentId: hrId,
-    departmentAr: hrName,
-    email: "hind.alghamdi@alfaris.example",
-    role: Role.hr,
+    jobTitleEn: "HR Specialist",
+    dept: hrDept,
     managerId: "30102",
+    email: "hind.alghamdi@alfaris.example",
+    role: "hr",
   ),
-  Employee(
+  _e(
     id: "40210",
     nameAr: "سلطان القحطاني",
+    nameEn: "Sultan Alqahtani",
     jobTitleAr: "مدير استقطاب المواهب",
-    departmentId: talentId,
-    departmentAr: talentName,
+    jobTitleEn: "Talent Acquisition Manager",
+    dept: talent,
     email: "sultan.alqahtani@alfaris.example",
-    role: Role.employee,
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "40221",
     nameAr: "لمى الحربي",
+    nameEn: "Lama Alharbi",
     jobTitleAr: "أخصائية استقطاب مواهب",
-    departmentId: talentId,
-    departmentAr: talentName,
-    email: "lama.alharbi@alfaris.example",
-    role: Role.employee,
+    jobTitleEn: "Talent Acquisition Specialist",
+    dept: talent,
     managerId: "40210",
+    email: "lama.alharbi@alfaris.example",
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "40233",
     nameAr: "فيصل الشمري",
+    nameEn: "Faisal Alshammari",
     jobTitleAr: "أخصائي استقطاب مواهب",
-    departmentId: talentId,
-    departmentAr: talentName,
-    email: "faisal.alshammari@alfaris.example",
-    role: Role.employee,
+    jobTitleEn: "Talent Acquisition Specialist",
+    dept: talent,
     managerId: "40210",
+    email: "faisal.alshammari@alfaris.example",
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "10501",
     nameAr: "فهد العتيبي",
+    nameEn: "Fahad Alotaibi",
     jobTitleAr: "مدير تطوير تقنية المعلومات",
-    departmentId: itDevId,
-    departmentAr: itDevName,
+    jobTitleEn: "IT Development Manager",
+    dept: itDev,
+    sectionAr: "إدارة التطوير",
+    sectionEn: "Development Management",
     email: "fahad.alotaibi@alfaris.example",
-    role: Role.employee,
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "10518",
     nameAr: "سارة القحطاني",
+    nameEn: "Sarah Alqahtani",
     jobTitleAr: "مطورة أنظمة أولى",
-    departmentId: itDevId,
-    departmentAr: itDevName,
-    email: "sarah.alqahtani@alfaris.example",
-    role: Role.employee,
+    jobTitleEn: "Senior Systems Developer",
+    dept: itDev,
     managerId: "10501",
+    email: "sarah.alqahtani@alfaris.example",
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "10524",
     nameAr: "خالد الشهري",
+    nameEn: "Khalid Alshehri",
     jobTitleAr: "مطور برمجيات",
-    departmentId: itDevId,
-    departmentAr: itDevName,
-    email: "khalid.alshehri@alfaris.example",
-    role: Role.employee,
+    jobTitleEn: "Software Developer",
+    dept: itDev,
     managerId: "10501",
+    email: "khalid.alshehri@alfaris.example",
+    role: "employee",
   ),
-  Employee(
+  _e(
     id: "10530",
     nameAr: "عبدالله الحربي",
+    nameEn: "Abdullah Alharbi",
     jobTitleAr: "مطور واجهات",
-    departmentId: itDevId,
-    departmentAr: itDevName,
-    email: "abdullah.alharbi@alfaris.example",
-    role: Role.employee,
+    jobTitleEn: "Frontend Developer",
+    dept: itDev,
     managerId: "10501",
+    email: "abdullah.alharbi@alfaris.example",
+    role: "employee",
   ),
 ];
 
-const approvedRequests = <ApprovedRequest>[
-  ApprovedRequest(ref: "ANN-2026-0412", employeeId: "10518", type: ExitReason.annualLeave, startDate: "2026-12-01"),
-  ApprovedRequest(ref: "CLR-2026-0087", employeeId: "10524", type: ExitReason.clearance, startDate: "2026-12-15"),
-  ApprovedRequest(ref: "ANN-2026-0419", employeeId: "40221", type: ExitReason.annualLeave, startDate: "2026-12-05"),
-  ApprovedRequest(ref: "RES-2026-0014", employeeId: "40233", type: ExitReason.resignation, startDate: "2026-12-31"),
+const mockApprovedRequests = [
+  ApprovedRequest(ref: "ANN-2026-0412", employeeId: "10518", type: "annual_leave", startDate: "2026-12-01", endDate: "2026-12-28"),
+  ApprovedRequest(ref: "CLR-2026-0087", employeeId: "10524", type: "clearance", startDate: "2026-12-15"),
+  ApprovedRequest(ref: "ANN-2026-0419", employeeId: "40221", type: "annual_leave", startDate: "2026-12-05", endDate: "2026-12-19"),
+  ApprovedRequest(ref: "RES-2026-0014", employeeId: "40233", type: "resignation", startDate: "2026-12-31"),
 ];
 
-Employee? byId(String id) {
-  for (final person in employees) {
-    if (person.id == id) return person;
-  }
-  return null;
-}
-
-Employee? byEmail(String email) {
-  final target = email.trim().toLowerCase();
-  for (final person in employees) {
-    if (person.email == target) return person;
-  }
-  return null;
-}
+const exitReasons = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"];

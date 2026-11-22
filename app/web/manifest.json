@@ -1,11 +1,11 @@
 {
-    "name": "alfaris_handover",
-    "short_name": "alfaris_handover",
+    "name": "نظام تسليم العهد والمهام",
+    "short_name": "تسليم المهام",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0b114f",
+    "theme_color": "#0b114f",
+    "description": "أتمتة إيصال تسليم المهام عند الإجازة أو إنهاء الخدمة — مجموعة الفارس",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

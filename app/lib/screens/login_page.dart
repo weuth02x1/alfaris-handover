@@ -1,9 +1,8 @@
 import "package:material_ui/material_ui.dart";
 
-import "../directory.dart";
-import "../models.dart";
-import "../main.dart";
+import "../store.dart";
 import "../theme.dart";
+import "../widgets/brand.dart";
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,95 +12,288 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final email = TextEditingController(text: "sarah.alqahtani@alfaris.example");
+  final email = TextEditingController();
+  final name = TextEditingController();
+  final employeeNo = TextEditingController();
+  final jobTitle = TextEditingController();
+  final code = TextEditingController();
+  String departmentId = "D-HR";
+  bool signup = false;
+  bool codeStep = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    email.addListener(() => setState(() {}));
+    code.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     email.dispose();
+    name.dispose();
+    employeeNo.dispose();
+    jobTitle.dispose();
+    code.dispose();
     super.dispose();
-  }
-
-  void submit() {
-    setState(() => error = null);
-    try {
-      StoreScope.of(context).signIn(email.text);
-    } catch (e) {
-      setState(() => error = e.toString());
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, box) {
-          final wide = box.maxWidth >= 880;
-          final brand = Container(
-            color: navy,
-            padding: const EdgeInsets.all(32),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final store = StoreScope.of(context);
+    final t = store.t;
+    return Directionality(
+      textDirection: t.dir,
+      child: Scaffold(
+        body: LayoutBuilder(
+          builder: (context, box) {
+            final wide = box.maxWidth >= 880;
+            final brand = Stack(
               children: [
-                Text("ALFARIS GROUP", style: TextStyle(color: gold, fontSize: 18, letterSpacing: 3)),
-                SizedBox(height: 24),
-                Text("نظام تسليم العهد والمهام", style: TextStyle(color: cream, fontSize: 28, fontWeight: FontWeight.w600)),
-                SizedBox(height: 12),
-                Text("أتمتة إيصال تسليم المهام عند الإجازة أو إنهاء الخدمة", style: TextStyle(color: gold)),
-              ],
-            ),
-          );
-          final form = Padding(
-            padding: const EdgeInsets.all(28),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    const Text("تسجيل الدخول", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
-                    const Text("هذا إصدار GitHub التجريبي. ادخل بإيميل أحد الموظفين في الدليل."),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: "الإيميل"),
-                      onSubmitted: (_) => submit(),
-                    ),
-                    if (error != null) ...[
+                const Positioned.fill(child: ColoredBox(color: navy)),
+                const Positioned(left: -64, bottom: -64, child: BrandWatermark(size: 320)),
+                const Positioned(right: -80, top: -80, child: BrandWatermark(size: 280, angle: 0.2)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const BrandLockup(height: 72),
+                      const Spacer(),
+                      Container(width: 64, height: 1, color: gold),
+                      const SizedBox(height: 16),
+                      Text(t.appName, style: const TextStyle(color: cream, fontSize: 34, fontWeight: FontWeight.w600, height: 1.3)),
                       const SizedBox(height: 12),
-                      Text(error!, style: const TextStyle(color: Colors.red)),
+                      Text(t.appTagline, style: const TextStyle(color: gold, fontSize: 14, height: 1.6)),
+                      const Spacer(),
+                      const Text("ALFARIS GROUP", style: TextStyle(color: gold, letterSpacing: 3.5, fontSize: 12)),
                     ],
-                    const SizedBox(height: 16),
-                    FilledButton(onPressed: submit, child: const Text("دخول")),
-                    const SizedBox(height: 24),
-                    const Text("حسابات للتجربة", style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final person in employees)
-                          ActionChip(
-                            label: Text("${person.nameAr} · ${person.role == Role.hr ? "موارد بشرية" : person.jobTitleAr}"),
-                            onPressed: () {
-                              email.text = person.email;
-                              submit();
-                            },
+                  ),
+                ),
+              ],
+            );
+            final form = Padding(
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: ListView(
+                    children: [
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton(onPressed: store.toggleLocale, child: Text(t.navLanguage)),
+                      ),
+                      Text(t.loginTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: navy)),
+                      const SizedBox(height: 6),
+                      Text(t.loginSubtitle, style: const TextStyle(color: mutedFg, fontSize: 14)),
+                      const SizedBox(height: 20),
+                      Text(t.email, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: email,
+                        keyboardType: TextInputType.emailAddress,
+                        textDirection: TextDirection.ltr,
+                        decoration: InputDecoration(hintText: t.emailPh),
+                      ),
+                      if (signup && !codeStep) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            border: Border.all(color: line),
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(t.signupTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              Text(t.signupHint, style: const TextStyle(color: mutedFg, fontSize: 13)),
+                              const SizedBox(height: 12),
+                              Text(t.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 6),
+                              TextField(controller: name, decoration: InputDecoration(hintText: t.namePh)),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(t.employeeNo, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 6),
+                                        TextField(controller: employeeNo, decoration: InputDecoration(hintText: t.employeeNoPh)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(t.jobTitle, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 6),
+                                        TextField(controller: jobTitle, decoration: InputDecoration(hintText: t.jobTitlePh)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(t.department, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 6),
+                              DropdownMenu<String>(
+                                initialSelection: departmentId,
+                                expandedInsets: EdgeInsets.zero,
+                                dropdownMenuEntries: [
+                                  DropdownMenuEntry(value: "D-HR", label: t.deptHr),
+                                  DropdownMenuEntry(value: "D-TA", label: t.deptTalent),
+                                  DropdownMenuEntry(value: "D-ITD", label: t.deptIt),
+                                ],
+                                onSelected: (v) => setState(() => departmentId = v ?? "D-HR"),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
-                  ],
+                      if (codeStep) ...[
+                        const SizedBox(height: 16),
+                        Text(t.codeSent, style: const TextStyle(color: mutedFg, fontSize: 14)),
+                        const SizedBox(height: 6),
+                        Text(t.checkInbox, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: muted,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: line),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(t.demoMail, style: const TextStyle(fontSize: 12, color: mutedFg)),
+                              const SizedBox(height: 8),
+                              SelectableText(
+                                store.lastOtpCode ?? "",
+                                style: const TextStyle(fontSize: 28, letterSpacing: 8, fontWeight: FontWeight.w700, color: navy),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(t.code, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: code,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 20, letterSpacing: 10, fontWeight: FontWeight.w700),
+                          decoration: const InputDecoration(counterText: ""),
+                        ),
+                      ],
+                      if (error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(error!, style: const TextStyle(color: Color(0xFFBE123C), fontSize: 13)),
+                      ],
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (codeStep) ...[
+                            FilledButton(
+                              onPressed: code.text.trim().length < 6
+                                  ? null
+                                  : () {
+                                      setState(() => error = null);
+                                      try {
+                                        store.verifyOtp(email.text, code.text);
+                                      } catch (e) {
+                                        setState(() => error = t.error(e.toString()));
+                                      }
+                                    },
+                              child: Text(t.confirm),
+                            ),
+                            OutlinedButton(
+                              onPressed: () {
+                                setState(() => error = null);
+                                try {
+                                  store.requestOtp(email.text);
+                                } catch (e) {
+                                  setState(() => error = t.error(e.toString()));
+                                }
+                              },
+                              child: Text(t.resend),
+                            ),
+                          ] else if (signup)
+                            FilledButton(
+                              onPressed: email.text.trim().isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() => error = null);
+                                      try {
+                                        store.register(
+                                          email: email.text,
+                                          name: name.text,
+                                          employeeNo: employeeNo.text,
+                                          jobTitle: jobTitle.text,
+                                          departmentId: departmentId,
+                                        );
+                                        setState(() => codeStep = true);
+                                      } catch (e) {
+                                        setState(() {
+                                          error = t.error(e.toString());
+                                          if (e.toString() == "notFoundEmail") signup = true;
+                                        });
+                                      }
+                                    },
+                              child: Text(t.createAndSend),
+                            )
+                          else
+                            FilledButton(
+                              onPressed: email.text.trim().isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() => error = null);
+                                      try {
+                                        store.requestOtp(email.text);
+                                        setState(() => codeStep = true);
+                                      } catch (e) {
+                                        setState(() {
+                                          error = t.error(e.toString());
+                                          if (e.toString() == "notFoundEmail") signup = true;
+                                        });
+                                      }
+                                    },
+                              child: Text(t.sendCode),
+                            ),
+                        ],
+                      ),
+                      if (!codeStep)
+                        TextButton(
+                          onPressed: () => setState(() {
+                            signup = !signup;
+                            error = null;
+                          }),
+                          child: Text(signup ? t.haveAccount : t.createAccount),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-          if (!wide) {
-            return ListView(children: [SizedBox(height: 220, child: brand), form]);
-          }
-          return Row(children: [Expanded(child: brand), Expanded(child: form)]);
-        },
+            );
+            if (!wide) {
+              return ListView(children: [SizedBox(height: 280, child: brand), form]);
+            }
+            return Row(children: [Expanded(child: brand), Expanded(child: form)]);
+          },
+        ),
       ),
     );
   }

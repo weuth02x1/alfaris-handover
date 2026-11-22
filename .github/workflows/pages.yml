@@ -27,7 +27,11 @@ jobs:
           channel: stable
       - run: flutter pub get
         working-directory: app
+      - run: flutter test
+        working-directory: app
       - run: flutter build web --release --base-href /alfaris-handover/
+        working-directory: app
+      - run: touch build/web/.nojekyll
         working-directory: app
       - uses: actions/upload-pages-artifact@v3
         with:

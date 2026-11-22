@@ -9,5 +9,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(HandoverApp(store: AppStore()));
     expect(find.text("تسجيل الدخول"), findsOneWidget);
+    expect(find.text("أرسل الرمز على الإيميل"), findsOneWidget);
+    expect(find.text("نظام تسليم العهد والمهام"), findsWidgets);
   });
 }
