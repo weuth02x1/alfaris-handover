@@ -32,7 +32,7 @@ public class OtpBox
     }
 }
 
-public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogger<AuthMail> log)
+public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogger<AuthMail> log, SiteSettings settings)
 {
     public const string ProjectUrl = "https://sfshhcfjowiptefesqgp.supabase.co";
     public const string SiteUrl = "https://handover.alfarisgrp.com";
@@ -50,6 +50,7 @@ public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogg
         get
         {
             var url = Env("SUPABASE_URL", "Supabase:Url");
+            if (string.IsNullOrWhiteSpace(url)) url = settings.Current.SupabaseUrl;
             if (string.IsNullOrWhiteSpace(url)) url = ProjectUrl;
             url = url.Trim().TrimEnd('/');
             return url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? url : ProjectUrl;
@@ -60,8 +61,8 @@ public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogg
     string SmtpUser => Env("SMTP_USER");
     string SmtpPass => Env("SMTP_PASS");
     string From =>
-        First(Env("RESEND_FROM"), Env("SMTP_FROM"), config["Mail:From"], "Alfaris Group <noreply@alfarisgrp.com>");
-    string Redirect => First(config["Mail:SiteUrl"], SiteUrl);
+        First(Env("RESEND_FROM"), Env("SMTP_FROM"), settings.Current.MailFrom, config["Mail:From"], "Alfaris Group <noreply@alfarisgrp.com>");
+    string Redirect => First(settings.Current.SiteUrl, config["Mail:SiteUrl"], SiteUrl);
 
     public async Task SendAsync(string email, CancellationToken ct = default)
     {

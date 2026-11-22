@@ -1,5 +1,6 @@
 using Alfaris.Handover.Data;
 using Alfaris.Handover.Models;
+using Alfaris.Handover.Services;
 using Xunit;
 
 namespace Alfaris.Handover.Tests;
@@ -60,6 +61,20 @@ public class WorkflowTests
         Assert.False(box.Match("a@b.co", "abc"));
         box.Remember("a@b.co", "xyz", DateTimeOffset.UtcNow.AddMinutes(-1));
         Assert.Throws<WorkflowException>(() => box.Match("a@b.co", "xyz"));
+    }
+
+    [Fact]
+    public void SettingsStayOnCompanyDomain()
+    {
+        var saved = SiteSettings.Normalize(new SiteOptions
+        {
+            SiteUrl = "http://apps.grok.bot/nope",
+            MailFrom = "me@gmail.com",
+            SupabaseUrl = "not-a-url"
+        });
+        Assert.Equal("https://handover.alfarisgrp.com", saved.SiteUrl);
+        Assert.Contains("alfarisgrp.com", saved.MailFrom);
+        Assert.Equal(AuthMail.ProjectUrl, saved.SupabaseUrl);
     }
 
     [Fact]

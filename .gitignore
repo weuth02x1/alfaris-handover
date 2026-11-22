@@ -46,3 +46,4 @@ next-env.d.ts
 **/bin/
 **/obj/
 aspnet/wwwroot/lib/
+aspnet/App_Data/

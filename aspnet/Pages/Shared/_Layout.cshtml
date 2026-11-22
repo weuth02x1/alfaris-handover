@@ -26,6 +26,7 @@
             @if (user.IsHr)
             {
                 <a asp-page="/Hr">@t.NavHr</a>
+                <a asp-page="/Settings">@t.NavSettings</a>
             }
             <a asp-page="/Outbox">@t.NavOutbox</a>
             <form method="post" asp-page="/Index" asp-page-handler="Lang" style="display:inline">
