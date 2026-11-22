@@ -95,6 +95,30 @@ public class WorkflowTests
     }
 
     [Fact]
+    public void SaveFormAllowsNullTaskTextThenSubmit()
+    {
+        var store = new HandoverStore();
+        var hr = store.Person("30115")!;
+        var employee = store.Person("10524")!;
+        var recipient = store.Person("10530")!;
+        var id = store.InitiateClearance(hr, "CLR-2026-0087");
+        store.SaveForm(employee, id, "",
+        [
+            new HandoverTask { Id = null!, Title = null!, Details = null!, AssigneeId = recipient.Id }
+        ], false);
+        store.SaveForm(employee, id, "",
+        [
+            new HandoverTask { Title = "متابعة تطوير نظام الموارد البشرية", Details = "المشروع في المرحلة الأخيرة", AssigneeId = recipient.Id }
+        ], true);
+        var saved = store.Handover(id)!;
+        Assert.Equal("pending_acceptance", saved.Status);
+        Assert.NotNull(saved.Tasks);
+        Assert.Equal("pending", saved.Tasks[0].Status);
+        Assert.Equal(recipient.Id, saved.Tasks[0].AssigneeId);
+        Assert.Equal(1, saved.Tasks.Count(x => x.Status == "accepted") + saved.Tasks.Count(x => x.Status == "pending"));
+    }
+
+    [Fact]
     public void EmployeeCannotStartClearance()
     {
         var store = new HandoverStore();

@@ -3,11 +3,12 @@
 @{
     ViewData["PageModel"] = Model;
     var t = Model.T;
-    var h = Model.Item!;
-    var user = Model.CurrentUser!;
-    var accepted = h.Tasks.Count(x => x.Status == "accepted");
+    var h = Model.Item;
+    var user = Model.CurrentUser;
+    var accepted = h?.Tasks?.Count(x => x.Status == "accepted") ?? 0;
     string StepClass(string key)
     {
+        if (h is null) return "step";
         var current = h.Status == "returned" ? "draft" : h.Status;
         var order = Model.Steps.ToList();
         var ci = order.IndexOf(current);
@@ -16,6 +17,11 @@
         if (key == current || (h.Status == "returned" && key == "draft")) return "step on";
         return si < ci ? "step done" : "step";
     }
+}
+@if (h is null || user is null)
+{
+    <div class="wrap"><p class="error">@t.Error("notFound")</p></div>
+    return;
 }
 <div class="wrap">
     <p class="muted mono">@h.Number · @h.RequestRef</p>

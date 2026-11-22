@@ -153,16 +153,19 @@ public class HandoverStore
             h.GeneralNotes = generalNotes;
             h.Tasks = tasks.Select(ti =>
             {
+                var title = (ti.Title ?? "").Trim();
+                var details = (ti.Details ?? "").Trim();
+                var assignee = ti.AssigneeId ?? "";
                 previous.TryGetValue(ti.Id ?? "", out var prev);
-                if (prev is not null && prev.Title == ti.Title && prev.Details == ti.Details && prev.DueDate == ti.DueDate && prev.AssigneeId == ti.AssigneeId && prev.Status == "accepted")
+                if (prev is not null && prev.Title == title && prev.Details == details && prev.DueDate == ti.DueDate && prev.AssigneeId == assignee && prev.Status == "accepted")
                     return prev;
                 return new HandoverTask
                 {
                     Id = prev?.Id ?? (string.IsNullOrEmpty(ti.Id) ? Id() : ti.Id),
-                    Title = ti.Title.Trim(),
-                    Details = ti.Details.Trim(),
+                    Title = title,
+                    Details = details,
                     DueDate = string.IsNullOrEmpty(ti.DueDate) ? null : ti.DueDate,
-                    AssigneeId = ti.AssigneeId,
+                    AssigneeId = assignee,
                     Status = "draft",
                     Rejections = prev?.Rejections ?? []
                 };

@@ -2,6 +2,7 @@ using Alfaris.Handover.Data;
 using Alfaris.Handover.Models;
 using Alfaris.Handover.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Alfaris.Handover.Pages.Handovers;
 
@@ -26,6 +27,14 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     [BindProperty] public string? Comment { get; set; }
     [BindProperty] public string NewAssigneeId { get; set; } = "";
 
+    public override void OnPageHandlerExecuting(PageHandlerExecutingContext context)
+    {
+        if (!HttpMethods.IsGet(Request.Method)) return;
+        var id = RouteData.Values["id"]?.ToString();
+        if (CurrentUser is null || string.IsNullOrEmpty(id) || Item is not null) return;
+        Load(id);
+    }
+
     public IActionResult OnGet(string id)
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
@@ -36,19 +45,23 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
         return Page();
     }
 
+    public IActionResult OnPost(string id) => OnGet(id);
+
     public IActionResult OnPostSave(string id, bool submit)
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try
         {
-            Store.SaveForm(CurrentUser, id, GeneralNotes, PostedTasks(), submit);
+            Store.SaveForm(CurrentUser, id, GeneralNotes ?? "", PostedTasks(), submit);
             return RedirectToPage(new { id });
         }
         catch (WorkflowException ex)
         {
-            Error = T.Error(ex.Code);
-            Load(id);
-            return Page();
+            return Reload(id, T.Error(ex.Code));
+        }
+        catch
+        {
+            return Reload(id, T.Error("invalid"));
         }
     }
 
@@ -59,14 +72,16 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
         {
             var tasks = PostedTasks();
             tasks.Add(new HandoverTask());
-            Store.SaveForm(CurrentUser, id, GeneralNotes, tasks, false);
+            Store.SaveForm(CurrentUser, id, GeneralNotes ?? "", tasks, false);
             return RedirectToPage(new { id });
         }
         catch (WorkflowException ex)
         {
-            Error = T.Error(ex.Code);
-            Load(id);
-            return Page();
+            return Reload(id, T.Error(ex.Code));
+        }
+        catch
+        {
+            return Reload(id, T.Error("invalid"));
         }
     }
 
@@ -77,14 +92,16 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
         {
             var tasks = PostedTasks();
             if (index >= 0 && index < tasks.Count) tasks.RemoveAt(index);
-            Store.SaveForm(CurrentUser, id, GeneralNotes, tasks, false);
+            Store.SaveForm(CurrentUser, id, GeneralNotes ?? "", tasks, false);
             return RedirectToPage(new { id });
         }
         catch (WorkflowException ex)
         {
-            Error = T.Error(ex.Code);
-            Load(id);
-            return Page();
+            return Reload(id, T.Error(ex.Code));
+        }
+        catch
+        {
+            return Reload(id, T.Error("invalid"));
         }
     }
 
@@ -92,7 +109,8 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try { Store.AcceptTask(CurrentUser, id, taskId, Note); }
-        catch (WorkflowException ex) { Error = T.Error(ex.Code); Load(id); return Page(); }
+        catch (WorkflowException ex) { return Reload(id, T.Error(ex.Code)); }
+        catch { return Reload(id, T.Error("invalid")); }
         return RedirectToPage(new { id });
     }
 
@@ -100,7 +118,8 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try { Store.RejectTask(CurrentUser, id, taskId, Comment); }
-        catch (WorkflowException ex) { Error = T.Error(ex.Code); Load(id); return Page(); }
+        catch (WorkflowException ex) { return Reload(id, T.Error(ex.Code)); }
+        catch { return Reload(id, T.Error("invalid")); }
         return RedirectToPage(new { id });
     }
 
@@ -108,7 +127,8 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try { Store.ReassignTask(CurrentUser, id, taskId, NewAssigneeId); }
-        catch (WorkflowException ex) { Error = T.Error(ex.Code); Load(id); return Page(); }
+        catch (WorkflowException ex) { return Reload(id, T.Error(ex.Code)); }
+        catch { return Reload(id, T.Error("invalid")); }
         return RedirectToPage(new { id });
     }
 
@@ -116,7 +136,8 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try { Store.ManagerDecision(CurrentUser, id, approve, Comment); }
-        catch (WorkflowException ex) { Error = T.Error(ex.Code); Load(id); return Page(); }
+        catch (WorkflowException ex) { return Reload(id, T.Error(ex.Code)); }
+        catch { return Reload(id, T.Error("invalid")); }
         return RedirectToPage(new { id });
     }
 
@@ -124,25 +145,35 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         try { Store.HrDecision(CurrentUser, id, approve, Comment); }
-        catch (WorkflowException ex) { Error = T.Error(ex.Code); Load(id); return Page(); }
+        catch (WorkflowException ex) { return Reload(id, T.Error(ex.Code)); }
+        catch { return Reload(id, T.Error("invalid")); }
         return RedirectToPage(new { id });
     }
 
     List<HandoverTask> PostedTasks()
     {
         var tasks = new List<HandoverTask>();
-        for (var i = 0; i < Titles.Count; i++)
+        var n = Math.Max(Titles.Count, Math.Max(TaskIds.Count, Assignees.Count));
+        for (var i = 0; i < n; i++)
         {
             tasks.Add(new HandoverTask
             {
-                Id = i < TaskIds.Count ? TaskIds[i] : "",
-                Title = Titles[i],
-                Details = i < DetailsText.Count ? DetailsText[i] : "",
-                AssigneeId = i < Assignees.Count ? Assignees[i] : "",
+                Id = i < TaskIds.Count ? TaskIds[i] ?? "" : "",
+                Title = i < Titles.Count ? Titles[i] ?? "" : "",
+                Details = i < DetailsText.Count ? DetailsText[i] ?? "" : "",
+                AssigneeId = i < Assignees.Count ? Assignees[i] ?? "" : "",
                 DueDate = i < DueDates.Count && !string.IsNullOrWhiteSpace(DueDates[i]) ? DueDates[i] : null
             });
         }
         return tasks;
+    }
+
+    IActionResult Reload(string id, string? error = null)
+    {
+        Error = error;
+        Load(id);
+        if (Item is null) return NotFound();
+        return Page();
     }
 
     void Load(string id)
