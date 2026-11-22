@@ -13,6 +13,10 @@ export async function appOrigin() {
       /* a bad setting falls through to the site address */
     }
   }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   if (process.env.NODE_ENV !== "production") return "http://127.0.0.1:4317";
   return SITE_ORIGIN;
 }
