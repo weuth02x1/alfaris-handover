@@ -7,7 +7,9 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 const TTL_MS = 10 * 60 * 1000;
 const WINDOW_MS = 15 * 60 * 1000;
+const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
 const MAX_SENDS = 5;
+const MAX_CALLER_SENDS = 20;
 const MAX_ATTEMPTS = 5;
 const MAX_ROWS = 500;
 
@@ -31,29 +33,42 @@ function fresh(sentAt: string, now: number) {
   return now - new Date(sentAt).getTime() < WINDOW_MS;
 }
 
-function prune(db: { otps: { sentAt: string; active: boolean; expiresAt: string }[]; otpSends: { sentAt: string }[]; otpGuards: { windowStart: string }[] }, now: number) {
-  db.otpSends = db.otpSends.filter((item) => fresh(item.sentAt, now)).slice(-MAX_ROWS);
+function prune(
+  db: {
+    otps: { sentAt: string; active: boolean; expiresAt: string }[];
+    otpSends: { bucket?: string; sentAt: string }[];
+    otpGuards: { windowStart: string }[];
+  },
+  now: number,
+) {
+  const signups = db.otpSends
+    .filter((item) => item.bucket === "signup" && now - new Date(item.sentAt).getTime() < SIGNUP_WINDOW_MS)
+    .slice(-200);
+  const rest = db.otpSends.filter((item) => item.bucket !== "signup" && fresh(item.sentAt, now)).slice(-MAX_ROWS);
+  db.otpSends = [...signups, ...rest];
   db.otps = db.otps
     .filter((item) => fresh(item.sentAt, now) || (item.active && new Date(item.expiresAt).getTime() > now))
     .slice(-MAX_ROWS);
   db.otpGuards = db.otpGuards.filter((item) => fresh(item.windowStart, now)).slice(-MAX_ROWS);
 }
 
-export async function requestOtp(emailInput: string): Promise<OtpRequestResult> {
+export async function requestOtp(emailInput: string, callerId: string): Promise<OtpRequestResult> {
   const email = normalizeEmail(emailInput);
-  if (!isEmail(email)) return { ok: false, error: "invalid" };
+  if (!isEmail(email) || !callerId.trim()) return { ok: false, error: "invalid" };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const codeHash = await hashCode(code);
   const sentAt = new Date().toISOString();
   const now = Date.now();
+  const caller = callerId.trim();
 
   const allowed = await mutate((db) => {
     prune(db, now);
     const emailSends = db.otpSends.filter((item) => item.bucket === `e:${email}`).length;
+    const callerSends = db.otpSends.filter((item) => item.bucket === `c:${caller}`).length;
     const guard = db.otpGuards.find((item) => item.email === email);
     const locked = Boolean(guard && guard.failures >= MAX_ATTEMPTS);
-    if (emailSends >= MAX_SENDS || locked) return false;
+    if (emailSends >= MAX_SENDS || callerSends >= MAX_CALLER_SENDS || locked) return false;
     return true;
   });
   if (!allowed) return { ok: false, error: "slow" };
@@ -77,6 +92,7 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   if (supabaseConfigured()) {
     await mutate((db) => {
       db.otpSends.push({ bucket: `e:${email}`, sentAt });
+      db.otpSends.push({ bucket: `c:${caller}`, sentAt });
     });
     try {
       const client = supabase();
@@ -96,6 +112,7 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   async function rememberCode() {
     await mutate((db) => {
       db.otpSends.push({ bucket: `e:${email}`, sentAt });
+      db.otpSends.push({ bucket: `c:${caller}`, sentAt });
       for (const challenge of db.otps) if (challenge.email === email) challenge.active = false;
       db.otps.push({
         employeeId: employee!.id,

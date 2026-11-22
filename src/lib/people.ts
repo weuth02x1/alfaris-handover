@@ -43,6 +43,7 @@ type DirectoryResult = { ok: true; people: Employee[] } | { ok: false };
 
 const DIRECTORY_TTL_MS = 60_000;
 const SIGNUPS_PER_HOUR = 8;
+const MAX_LOCAL_ACCOUNTS = 80;
 let directoryCache: { at: number; value: DirectoryResult } | null = null;
 
 /** Live HR directory. A failed HRMS call does not fall back to the sample list. */
@@ -193,6 +194,7 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
     const recentSignups = db.otpSends.filter(
       (item) => item.bucket === "signup" && new Date(item.sentAt).getTime() >= hourAgo,
     ).length;
+    if (db.accounts.length >= MAX_LOCAL_ACCOUNTS) return false;
     if (recentSignups >= SIGNUPS_PER_HOUR) return false;
     db.accounts = db.accounts.filter((account) => account.id !== employee.id && account.email.toLowerCase() !== email);
     db.accounts.push(employee);

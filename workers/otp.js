@@ -14,16 +14,25 @@ function rate(key, max) {
   return true;
 }
 
-function cors(origin) {
-  const allowed = origin && /^https:\/\/weuth02x1\.github\.io$|^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
-    ? origin
-    : "https://weuth02x1.github.io";
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
+function equal(a, b) {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i += 1) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
+
+function authorized(request, env) {
+  const expected = env.OTP_API_KEY || "";
+  const header = request.headers.get("Authorization") || "";
+  const given = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!expected || given.length !== expected.length) return false;
+  return equal(given, expected);
+}
+
+function randomCode() {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return String(buf[0] % 1_000_000).padStart(6, "0");
 }
 
 async function hmac(secret, value) {
@@ -32,22 +41,15 @@ async function hmac(secret, value) {
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function equal(a, b) {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i += 1) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
-}
-
 export default {
   async fetch(request, env) {
-    const headers = cors(request.headers.get("Origin"));
+    const headers = { "Cache-Control": "private, no-store" };
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     if (request.method !== "POST") return Response.json({ ok: false, error: "invalid" }, { status: 405, headers });
-    const secret = env.OTP_SECRET || env.SESSION_SECRET || env.RESEND_API_KEY;
-    if (!secret || !env.RESEND_API_KEY) {
-      return Response.json({ ok: false, error: "mailFailed" }, { status: 503, headers });
+    if (!authorized(request, env) || !env.RESEND_API_KEY) {
+      return Response.json({ ok: false, error: "unauthorized" }, { status: 401, headers });
     }
+    const secret = env.OTP_SECRET || env.SESSION_SECRET || env.OTP_API_KEY;
     let body;
     try {
       body = await request.json();
@@ -64,7 +66,7 @@ export default {
       if (!rate(`e:${email}`, 5) || !rate(`ip:${ip}`, 20)) {
         return Response.json({ ok: false, error: "slow" }, { status: 429, headers });
       }
-      const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+      const code = randomCode();
       const exp = Date.now() + TTL_MS;
       const challenge = `${exp}.${await hmac(secret, `${email}:${code}:${exp}`)}`;
       const from = env.RESEND_FROM || "Alfaris Group <onboarding@resend.dev>";

@@ -23,13 +23,15 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          OTP_API_KEY: ${{ secrets.OTP_API_KEY }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$RESEND_API_KEY" ]; then
-            echo "Skip worker deploy until RESEND_API_KEY and CLOUDFLARE_API_TOKEN are set as GitHub secrets."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$RESEND_API_KEY" ] || [ -z "$OTP_API_KEY" ]; then
+            echo "Skip worker deploy until RESEND_API_KEY, OTP_API_KEY and CLOUDFLARE_API_TOKEN are set as GitHub secrets."
             exit 0
           fi
           npm install --no-save wrangler
           npx wrangler secret put RESEND_API_KEY --name alfaris-handover-otp <<< "$RESEND_API_KEY"
+          npx wrangler secret put OTP_API_KEY --name alfaris-handover-otp <<< "$OTP_API_KEY"
           if [ -n "$RESEND_FROM" ]; then
             npx wrangler secret put RESEND_FROM --name alfaris-handover-otp <<< "$RESEND_FROM"
           fi
