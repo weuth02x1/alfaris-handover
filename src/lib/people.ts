@@ -41,12 +41,22 @@ export function isEmail(value: string) {
 
 type DirectoryResult = { ok: true; people: Employee[] } | { ok: false };
 
+const DIRECTORY_TTL_MS = 60_000;
+const SIGNUPS_PER_HOUR = 8;
+let directoryCache: { at: number; value: DirectoryResult } | null = null;
+
 /** Live HR directory. A failed HRMS call does not fall back to the sample list. */
 async function loadDirectory(): Promise<DirectoryResult> {
+  if (directoryCache && Date.now() - directoryCache.at < DIRECTORY_TTL_MS) return directoryCache.value;
   const provider = hr();
-  if (provider.name !== "menaitech") return { ok: true, people: mockEmployees };
+  if (provider.name !== "menaitech") {
+    directoryCache = { at: Date.now(), value: { ok: true, people: mockEmployees } };
+    return directoryCache.value;
+  }
   try {
-    return { ok: true, people: await provider.listEmployees() };
+    const value: DirectoryResult = { ok: true, people: await provider.listEmployees() };
+    directoryCache = { at: Date.now(), value };
+    return value;
   } catch {
     return { ok: false };
   }
@@ -137,8 +147,6 @@ export type SignupResult =
   | { ok: true; employee: Employee }
   | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "unavailable" };
 
-const SIGNUPS_PER_HOUR = 30;
-
 export async function registerAccount(input: SignupInput): Promise<SignupResult> {
   const email = normalizeEmail(input.email);
   const name = input.name.trim();
@@ -150,9 +158,12 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
   if (jobTitle.length < 2 || jobTitle.length > 80) return { ok: false, error: "invalid" };
   if (!department) return { ok: false, error: "invalid" };
 
+  const accounts = await loginAccounts();
+  if (accounts.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
+  if (accounts.some((person) => person.staffNumber === employeeNo)) return { ok: false, error: "idTaken" };
+
   const directory = await loadDirectory();
   if (!directory.ok) return { ok: false, error: "unavailable" };
-  const accounts = await loginAccounts();
   const known = [...directory.people, ...accounts];
   if (known.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
   if (known.some((person) => person.id === employeeNo || person.staffNumber === employeeNo)) {

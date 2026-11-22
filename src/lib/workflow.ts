@@ -160,7 +160,10 @@ export async function saveForm(
   const manager = actor.managerId ? await getPerson(actor.managerId) : null;
   const hrUsers = await listHr();
 
+  if (input.tasks.length > 40) throw new WorkflowError("notAllowed");
+  if (input.generalNotes.length > 4_000) throw new WorkflowError("notAllowed");
   for (const task of input.tasks) {
+    if (task.title.length > 160 || task.details.length > 2_000) throw new WorkflowError("notAllowed");
     if (submit && !task.title.trim()) throw new WorkflowError("titleRequired");
     if (submit && !task.assigneeId) throw new WorkflowError("assigneeRequired");
     if (task.assigneeId && !colleagueIds.has(task.assigneeId)) throw new WorkflowError("notAllowed");
@@ -347,6 +350,7 @@ export async function managerDecision(
 ) {
   if (!approve && !comment.trim()) throw new WorkflowError("commentRequired");
   const snapshot = await mutatePeek(id);
+  if (snapshot.employee.id === actor.id) throw new WorkflowError("notAllowed");
   const owner = await mustEmployee(snapshot.employee.id);
   const hrUsers = await listHr();
   return mutate((db) => {
@@ -412,6 +416,7 @@ export async function hrDecision(actor: Employee, id: string, approve: boolean, 
   if (actor.role !== "hr") throw new WorkflowError("notAllowed");
   if (!approve && !comment.trim()) throw new WorkflowError("commentRequired");
   const snapshot = await mutatePeek(id);
+  if (snapshot.employee.id === actor.id) throw new WorkflowError("notAllowed");
   const owner = await mustEmployee(snapshot.employee.id);
 
   const finalized = await mutate((db) => {

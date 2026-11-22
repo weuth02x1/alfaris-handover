@@ -75,6 +75,9 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
   }
 
   if (supabaseConfigured()) {
+    await mutate((db) => {
+      db.otpSends.push({ bucket: `e:${email}`, sentAt });
+    });
     try {
       const client = supabase();
       const { error } = await client!.auth.signInWithOtp({
@@ -85,12 +88,7 @@ export async function requestOtp(emailInput: string): Promise<OtpRequestResult> 
     } catch {
       sent = false;
     }
-    if (sent) {
-      await mutate((db) => {
-        db.otpSends.push({ bucket: `e:${email}`, sentAt });
-      });
-      return { ok: true };
-    }
+    if (sent) return { ok: true };
   }
 
   return { ok: false, error: "mailFailed" };
@@ -156,13 +154,26 @@ export async function verifyOtp(emailInput: string, code: string): Promise<OtpVe
     if (current) current.failures = 0;
     return { ok: true, employeeId: employee.id } as const;
   });
-  if (local.ok || local.error !== "expired") return local;
-  if (!supabaseConfigured()) return local;
+  if (local.ok) return local;
+  if (local.error !== "expired" || !supabaseConfigured()) return local;
   try {
     const client = supabase();
     const { error } = await client!.auth.verifyOtp({ email: employee.email, token: given, type: "email" });
-    if (error) return { ok: false, error: /expired/i.test(error.message) ? "expired" : "badCode" };
-    return { ok: true, employeeId: employee.id };
+    if (!error) {
+      await mutate((db) => {
+        const current = db.otpGuards.find((item) => item.email === email);
+        if (current) current.failures = 0;
+      });
+      return { ok: true, employeeId: employee.id };
+    }
+    const counted = await mutate((db) => {
+      const current = db.otpGuards.find((item) => item.email === email);
+      if (current) current.failures += 1;
+      else db.otpGuards.push({ email, failures: 1, windowStart: new Date(now).toISOString() });
+      return db.otpGuards.find((item) => item.email === email)?.failures ?? 1;
+    });
+    if (counted >= MAX_ATTEMPTS) return { ok: false, error: "slow" };
+    return { ok: false, error: /expired/i.test(error.message) ? "expired" : "badCode" };
   } catch {
     return { ok: false, error: "badCode" };
   }
