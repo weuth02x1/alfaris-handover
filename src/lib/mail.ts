@@ -4,14 +4,21 @@ import { mutate, readDb } from "@/lib/db";
 import type { EmailMessage } from "@/lib/types";
 
 export function mailConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS));
 }
 
-/** Sends one message. Returns false when company mail is not configured yet. */
+/** Sends one message. Resend first, then company SMTP. Returns false when neither is configured. */
 export async function deliver(message: { to: string; subject: string; text: string }) {
   const to = message.to.trim();
   if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return false;
-  if (!mailConfigured()) return false;
+  if (process.env.RESEND_API_KEY) {
+    try {
+      if (await deliverWithResend({ ...message, to })) return true;
+    } catch {
+      /* fall through to SMTP */
+    }
+  }
+  if (!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)) return false;
   const port = Number(process.env.SMTP_PORT || 587);
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -28,6 +35,29 @@ export async function deliver(message: { to: string; subject: string; text: stri
     subject: message.subject,
     text: message.text,
   });
+  return true;
+}
+
+async function deliverWithResend(message: { to: string; subject: string; text: string }) {
+  const from = process.env.RESEND_FROM || "Alfaris Group <onboarding@resend.dev>";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    signal: AbortSignal.timeout(8_000),
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [message.to],
+      subject: message.subject,
+      text: message.text,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Resend rejected the message", response.status);
+    return false;
+  }
   return true;
 }
 
