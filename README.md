@@ -6,7 +6,9 @@
 
 https://weuth02x1.github.io/alfaris-handover/
 
-هذا هو الموقع العام. اطلب رمز الدخول فيظهر على الشاشة (تجربة بدون خادم بريد).
+رمز الدخول يُرسل من `AlfarisHandOver` عبر SMTP (`smtp.resend.com`) المضبوط في سوبربيس.
+
+على GitHub: أضف أسرار المستودع `SUPABASE_URL` و`SUPABASE_ANON_KEY` (مفتاح anon العام من إعدادات سوبربيس) ثم أعد تشغيل GitHub Pages. بدونها يظهر الرمز على الشاشة للتجربة.
 
 حسابات الدليل التجريبي: `sarah.alqahtani@alfaris.example`، `hind.alghamdi@alfaris.example`، `fahad.alotaibi@alfaris.example`.
 

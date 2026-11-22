@@ -19,9 +19,10 @@ export async function deliver(message: { to: string; subject: string; text: stri
     }
   }
   if (!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)) return false;
-  const port = Number(process.env.SMTP_PORT || 587);
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || (host.includes("resend.com") ? 465 : 587));
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host,
     port,
     secure: port === 465,
     connectionTimeout: 5_000,
@@ -30,7 +31,7 @@ export async function deliver(message: { to: string; subject: string; text: stri
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: process.env.SMTP_FROM || process.env.RESEND_FROM || "AlfarisHandOver <alfarishandover@gmail.com>",
     to,
     subject: message.subject,
     text: message.text,
@@ -39,7 +40,7 @@ export async function deliver(message: { to: string; subject: string; text: stri
 }
 
 async function deliverWithResend(message: { to: string; subject: string; text: string }) {
-  const from = process.env.RESEND_FROM || "Alfaris Group <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || "AlfarisHandOver <alfarishandover@gmail.com>";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     signal: AbortSignal.timeout(8_000),

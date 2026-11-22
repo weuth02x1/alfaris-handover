@@ -31,7 +31,15 @@ jobs:
         working-directory: flutter
       - name: Build web
         working-directory: flutter
-        run: flutter build web --release --base-href /alfaris-handover/
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          DEFINES=""
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          fi
+          flutter build web --release --base-href /alfaris-handover/ $DEFINES
       - run: touch build/web/.nojekyll
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3

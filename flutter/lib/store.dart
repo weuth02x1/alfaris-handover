@@ -4,6 +4,7 @@ import "dart:math";
 import "package:crypto/crypto.dart";
 import "package:material_ui/material_ui.dart";
 
+import "auth_mail.dart";
 import "directory.dart";
 import "i18n.dart";
 import "models.dart";
@@ -114,6 +115,14 @@ class AppStore extends ChangeNotifier {
   Future<void> requestOtp(String email) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
+    if (AuthMail.enabled) {
+      await AuthMail.send(emp.email);
+      lastOtpEmail = emp.email;
+      lastOtpCode = null;
+      otpDelivered = true;
+      notifyListeners();
+      return;
+    }
     _issueOtp(emp);
   }
 
@@ -198,6 +207,13 @@ class AppStore extends ChangeNotifier {
   Future<void> verifyOtp(String email, String code) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
+    if (AuthMail.enabled) {
+      await AuthMail.verify(emp.email, code);
+      user = emp;
+      lastOtpCode = null;
+      notifyListeners();
+      return;
+    }
     OtpChallenge? otp;
     for (final o in otps) {
       if (o.email == emp.email.toLowerCase()) otp = o;

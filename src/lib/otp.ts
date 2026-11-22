@@ -79,17 +79,6 @@ export async function requestOtp(emailInput: string, viewer: Viewer): Promise<Ot
 
   const text = `رمز الدخول: ${code}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.\n\nYour sign-in code: ${code}\nIt expires in 10 minutes.`;
   let sent = false;
-  if (mailConfigured()) {
-    await rememberCode();
-    try {
-      sent = await deliver({ to: employee.email, subject: "رمز الدخول لنظام تسليم المهام", text });
-    } catch {
-      sent = false;
-    }
-    if (sent) return { ok: true };
-    await forgetCode();
-  }
-
   if (supabaseConfigured()) {
     await mutate((db) => {
       db.otpSends.push({ bucket: `e:${email}`, sentAt });
@@ -106,6 +95,17 @@ export async function requestOtp(emailInput: string, viewer: Viewer): Promise<Ot
       sent = false;
     }
     if (sent) return { ok: true };
+  }
+
+  if (mailConfigured()) {
+    await rememberCode();
+    try {
+      sent = await deliver({ to: employee.email, subject: "رمز الدخول لنظام تسليم المهام", text });
+    } catch {
+      sent = false;
+    }
+    if (sent) return { ok: true };
+    await forgetCode();
   }
 
   return { ok: false, error: "mailFailed" };
