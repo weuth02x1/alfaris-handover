@@ -17,6 +17,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton<HandoverStore>();
+builder.Services.AddSingleton<OtpBox>();
 builder.Services.AddHttpClient<AuthMail>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(20);

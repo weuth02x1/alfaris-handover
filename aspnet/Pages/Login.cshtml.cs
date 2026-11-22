@@ -16,6 +16,8 @@ public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail
     [BindProperty] public bool Signup { get; set; }
     [BindProperty] public bool CodeStep { get; set; }
     public string? Error { get; set; }
+    public bool MailReady => mail.Enabled;
+    public string MailChannel => mail.Channel;
     public bool AllowSampleLogin => env.IsDevelopment() && !mail.Enabled;
     public IReadOnlyList<Employee> SampleStaff => Store.People;
 

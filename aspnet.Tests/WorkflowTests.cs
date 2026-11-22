@@ -52,6 +52,17 @@ public class WorkflowTests
     }
 
     [Fact]
+    public void LocalOtpMatchesThenExpires()
+    {
+        var box = new Alfaris.Handover.Services.OtpBox();
+        box.Remember("a@b.co", "abc", DateTimeOffset.UtcNow.AddMinutes(5));
+        Assert.True(box.Match("a@b.co", "abc"));
+        Assert.False(box.Match("a@b.co", "abc"));
+        box.Remember("a@b.co", "xyz", DateTimeOffset.UtcNow.AddMinutes(-1));
+        Assert.Throws<WorkflowException>(() => box.Match("a@b.co", "xyz"));
+    }
+
+    [Fact]
     public void EmployeeCannotStartClearance()
     {
         var store = new HandoverStore();

@@ -26,7 +26,9 @@ public class LocaleService
     public string NavLogout => Pick("تسجيل الخروج", "Sign out");
     public string NavLanguage => Pick("English", "العربية");
     public string LoginTitle => Pick("تسجيل الدخول", "Sign in");
-    public string LoginSubtitle => Pick("أدخل إيميلك. نرسل رمز الدخول إلى صندوق الوارد عبر بريد المجموعة.", "Enter your email. We send the sign-in code to that inbox through company mail.");
+    public string LoginSubtitle => Pick("أدخل إيميلك. نرسل رمز الدخول عبر مشروع Supabase وبريد Resend على دومين المجموعة. الرمز ما يظهر في الصفحة.", "Enter your email. We send the sign-in code through the company Supabase project and Resend. The code never appears on this page.");
+    public string MailLive => Pick("البريد مربوط: الرمز يطلع على إيميلك من Supabase / Resend.", "Mail is connected: the code is emailed through Supabase / Resend.");
+    public string MailOffline => Pick("البريد غير مربوط على هذا السيرفر. عيّن SUPABASE_ANON_KEY أو RESEND_API_KEY.", "Mail is not connected on this server. Set SUPABASE_ANON_KEY or RESEND_API_KEY.");
     public string Email => Pick("الإيميل", "Email");
     public string SendCode => Pick("أرسل الرمز على الإيميل", "Email me the code");
     public string CodeSent => Pick("أرسلنا رمز الدخول إلى إيميلك.", "We emailed the sign-in code.");

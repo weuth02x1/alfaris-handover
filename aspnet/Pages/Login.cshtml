@@ -20,6 +20,7 @@
         </form>
         <h2>@Model.T.LoginTitle</h2>
         <p class="muted">@Model.T.LoginSubtitle</p>
+        <p class="@(Model.MailReady ? "ok" : "error")" title="@Model.MailChannel">@(Model.MailReady ? Model.T.MailLive : Model.T.MailOffline)</p>
         <form method="post">
             <input type="hidden" asp-for="Signup" />
             <input type="hidden" asp-for="CodeStep" />
