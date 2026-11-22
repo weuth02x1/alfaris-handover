@@ -2,21 +2,17 @@
 
 تطبيق لإخلاء الطرف وتسليم المهام: الموظف يكتب مهامه، المستلم يوافق أو يرفض، ثم المدير والموارد البشرية يعتمدون.
 
-## الدومين
+## الرابط الذي يعمل الآن
 
-https://handover.alfarisgrp.com
+https://weuth02x1.github.io/alfaris-handover/
 
-أضف في DNS الدومين `alfarisgrp.com` هذا السجل ثم انتظر التفعيل:
+`handover.alfarisgrp.com` ما يفتح لأن الـ DNS يحوّله لاستضافة cPanel (`websitewelcome.com`) مو لـ GitHub. في GoDaddy احذف أي سجل A للاسم `handover`، ولا تنشئ ساب دومين من cPanel، ثم أضف:
 
 | النوع | الاسم | القيمة |
 | --- | --- | --- |
 | CNAME | `handover` | `weuth02x1.github.io` |
 
-في Resend أضف الدومين `alfarisgrp.com` وألصق سجلات التحقق، وعيّن المرسل `Alfaris Group <noreply@alfarisgrp.com>`. في سوبربيس SMTP غيّر عنوان المرسل لنفس الإيميل (مو Gmail) وUsername: `resend`.
-
-رمز الدخول يُرسل عبر هذا الدومين بعد ربط DNS. قبل اكتمال الربط يمكن فتح النسخة المؤقتة:
-
-https://weuth02x1.github.io/alfaris-handover/
+بعد ما السجل ينتشر نرجع نفعّل HTTPS على الدومين.
 
 ## تشغيل محلي
 
