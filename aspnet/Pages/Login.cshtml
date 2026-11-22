@@ -88,13 +88,16 @@
         @if (Model.AllowSampleLogin)
         {
             <div class="card" style="margin-top:24px">
-                <strong>@Model.T.Pick("دخول تجريبي محلي", "Local sample sign-in")</strong>
-                <p class="muted">@Model.T.Pick("يظهر فقط على جهاز التطوير إذا لم يُضبط مفتاح البريد. على السيرفر الحقيقي الرمز يجي على الإيميل.", "Shown only on a development machine when mail is not configured. Production always emails the code.")</p>
+                <strong>@Model.T.SampleTitle</strong>
+                <p class="muted">@Model.T.SampleHint</p>
                 @foreach (var person in Model.SampleStaff)
                 {
                     <form method="post" asp-page-handler="Sample" style="margin:8px 0">
                         <input type="hidden" name="employeeId" value="@person.Id" />
-                        <button class="btn-ghost" type="submit" style="width:100%;text-align:start">@Model.NameOf(person) · @person.Email</button>
+                        <button class="btn-ghost" type="submit" style="width:100%;text-align:start">
+                            @Model.NameOf(person) · @person.DisplayId
+                            <span class="muted"> · @Model.T.Pick(person.JobTitleAr, person.JobTitleEn) · @person.Email</span>
+                        </button>
                     </form>
                 }
             </div>

@@ -41,7 +41,10 @@
                 @foreach (var h in inbox.ManagerQueue)
                 {
                     <a class="list-row" href="/Handovers/@h.Id">
-                        <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                        <div>
+                            <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                            <div class="muted">@h.RequestRef · @t.Type(h.Type)</div>
+                        </div>
                         <span class="badge">@t.Status(h.Status)</span>
                     </a>
                 }
@@ -54,7 +57,10 @@
                 @foreach (var h in inbox.HrQueue)
                 {
                     <a class="list-row" href="/Handovers/@h.Id">
-                        <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                        <div>
+                            <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                            <div class="muted">@h.RequestRef · @t.Type(h.Type)</div>
+                        </div>
                         <span class="badge">@t.Status(h.Status)</span>
                     </a>
                 }
@@ -67,7 +73,10 @@
                 @foreach (var h in inbox.Mine)
                 {
                     <a class="list-row" href="/Handovers/@h.Id">
-                        <div>@h.Number</div>
+                        <div>
+                            <div>@h.Number · @t.Type(h.Type)</div>
+                            <div class="muted">@h.RequestRef · @t.Date(h.LastWorkingDay)</div>
+                        </div>
                         <span class="badge">@t.Status(h.Status)</span>
                     </a>
                 }

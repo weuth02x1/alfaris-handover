@@ -10,32 +10,64 @@
     <p class="muted">@t.SourceMock</p>
     @if (Model.Error is not null) { <p class="error">@Model.Error</p> }
     <h2 class="section-title">@t.ApprovedRequests</h2>
-    @foreach (var req in Model.Requests)
-    {
-        var emp = Model.Store.Person(req.EmployeeId);
-        var started = Model.All.Any(h => h.RequestRef == req.Ref);
-        <div class="card" style="margin-bottom:12px">
-            <div><strong>@req.Ref</strong> · @Model.NameOf(emp)</div>
-            <div class="muted">@t.Type(req.Type) · @req.StartDate</div>
-            @if (started)
+    <p class="muted">@t.ApprovedRequestsHint</p>
+    <div class="card" style="overflow:auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>@t.Ref</th>
+                    <th>@t.Employee</th>
+                    <th>@t.TypeLabel</th>
+                    <th>@t.FromDate</th>
+                    <th>@t.ToDate</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var req in Model.Requests)
             {
-                <span class="badge">@t.AlreadyStarted</span>
+                var emp = Model.Store.Person(req.EmployeeId);
+                var started = Model.All.Any(h => h.RequestRef == req.Ref);
+                <tr>
+                    <td class="mono">@req.Ref</td>
+                    <td>
+                        <strong>@Model.NameOf(emp)</strong>
+                        <div class="muted">@(emp is null ? "" : t.Pick(emp.JobTitleAr, emp.JobTitleEn)) · @(emp?.DisplayId)</div>
+                    </td>
+                    <td>@t.Type(req.Type)</td>
+                    <td>@t.Date(req.StartDate)</td>
+                    <td>@t.Date(req.EndDate)</td>
+                    <td>
+                        @if (started)
+                        {
+                            <span class="badge">@t.AlreadyStarted</span>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="Start">
+                                <input type="hidden" name="requestRef" value="@req.Ref" />
+                                <button class="btn-primary" type="submit">@t.StartClearance</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
             }
-            else
-            {
-                <form method="post" asp-page-handler="Start">
-                    <input type="hidden" name="requestRef" value="@req.Ref" />
-                    <button class="btn-primary" type="submit">@t.StartClearance</button>
-                </form>
-            }
-        </div>
-    }
+            </tbody>
+        </table>
+    </div>
     <h2 class="section-title">@t.AllHandovers</h2>
     <div class="card">
+        @if (Model.All.Count == 0)
+        {
+            <p class="muted">@t.Nothing</p>
+        }
         @foreach (var h in Model.All)
         {
             <a class="list-row" href="/Handovers/@h.Id">
-                <div>@h.Number · @Model.NameSnap(h.Employee)</div>
+                <div>
+                    <div>@h.Number · @Model.NameSnap(h.Employee)</div>
+                    <div class="muted">@h.RequestRef · @t.Type(h.Type) · @t.Date(h.LastWorkingDay)</div>
+                </div>
                 <span class="badge">@t.Status(h.Status)</span>
             </a>
         }

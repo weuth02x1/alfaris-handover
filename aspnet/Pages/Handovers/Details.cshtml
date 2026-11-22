@@ -5,30 +5,62 @@
     var t = Model.T;
     var h = Model.Item!;
     var user = Model.CurrentUser!;
+    var accepted = h.Tasks.Count(x => x.Status == "accepted");
+    string StepClass(string key)
+    {
+        var current = h.Status == "returned" ? "draft" : h.Status;
+        var order = Model.Steps.ToList();
+        var ci = order.IndexOf(current);
+        var si = order.IndexOf(key);
+        if (si < 0) return "step";
+        if (key == current || (h.Status == "returned" && key == "draft")) return "step on";
+        return si < ci ? "step done" : "step";
+    }
 }
 <div class="wrap">
-    <p class="muted">@h.Number · @t.Status(h.Status)</p>
+    <p class="muted mono">@h.Number · @h.RequestRef</p>
     <h1>@Model.NameSnap(h.Employee)</h1>
+    <p class="muted">@t.Type(h.Type) · @t.Status(h.Status)</p>
+    <div class="card" style="margin:12px 0">
+        <div class="steps">
+            @foreach (var s in Model.Steps)
+            {
+                <span class="@StepClass(s)">@t.Status(s)</span>
+            }
+        </div>
+    </div>
     @if (Model.Error is not null) { <p class="error">@Model.Error</p> }
     @if (h.LastReturn is not null && h.Status == "returned")
     {
-        <div class="flash">@h.LastReturn.Comment</div>
+        <div class="flash">@t.ReturnedBanner @t.ReturnedBy @Model.NameOf(Model.Store.Person(h.LastReturn.ById)): @h.LastReturn.Comment</div>
     }
-    <div class="card">
-        <h3>@t.EmployeeInfo</h3>
-        <p>@t.Pick("الاسم", "Name"): @Model.NameSnap(h.Employee)</p>
-        <p>@t.Pick("المسمى", "Title"): @t.Pick(h.Employee.JobTitleAr, h.Employee.JobTitleEn)</p>
-        <p>@t.Pick("الإدارة", "Department"): @t.Pick(h.Employee.DepartmentAr, h.Employee.DepartmentEn)</p>
-        <p>@t.Pick("المدير المباشر", "Manager"): @t.Pick(h.Employee.ManagerNameAr, h.Employee.ManagerNameEn)</p>
-    </div>
-    <div class="card" style="margin-top:12px">
-        <h3>@t.ClearanceInfo</h3>
-        <p>@h.RequestRef · @t.Type(h.Type)</p>
-        <p>@h.LastWorkingDay @(h.ReturnDate is null ? "" : "→ " + h.ReturnDate)</p>
+    <div class="cards-2">
+        <div class="card">
+            <h3>@t.EmployeeInfo</h3>
+            <div class="kv">
+                <div class="k">@t.FormName</div><div class="v">@Model.NameSnap(h.Employee)</div>
+                <div class="k">@t.FormId</div><div class="v mono">@h.Employee.Id</div>
+                <div class="k">@t.FormJobTitle</div><div class="v">@t.Pick(h.Employee.JobTitleAr, h.Employee.JobTitleEn)</div>
+                <div class="k">@t.FormManager</div><div class="v">@Model.OrDash(t.Pick(h.Employee.ManagerNameAr, h.Employee.ManagerNameEn))</div>
+                <div class="k">@t.FormDepartment</div><div class="v">@t.Pick(h.Employee.DepartmentAr, h.Employee.DepartmentEn)</div>
+                <div class="k">@t.FormSection</div><div class="v">@t.Pick(h.Employee.SectionAr, h.Employee.SectionEn)</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>@t.ClearanceInfo</h3>
+            <div class="kv">
+                <div class="k">@t.RequestRef</div><div class="v mono">@h.RequestRef</div>
+                <div class="k">@t.TypeLabel</div><div class="v">@t.Type(h.Type)</div>
+                <div class="k">@t.LastWorkingDay</div><div class="v">@t.Date(h.LastWorkingDay)</div>
+                <div class="k">@t.ReturnDate</div><div class="v">@t.Date(h.ReturnDate)</div>
+                <div class="k">@t.Progress</div><div class="v">@(h.Tasks.Count == 0 ? t.Dash : t.ProgressFmt(accepted, h.Tasks.Count))</div>
+            </div>
+        </div>
     </div>
 
     <form method="post">
         <h2 class="section-title">@t.Tasks</h2>
+        <p class="muted">@t.TasksHint</p>
         @if (Model.CanEdit)
         {
             @for (var i = 0; i < h.Tasks.Count; i++)
@@ -36,25 +68,33 @@
                 var task = h.Tasks[i];
                 <div class="task">
                     <input type="hidden" name="TaskIds" value="@task.Id" />
-                    <label>@t.Pick("المهمة", "Task")</label>
+                    <label>@t.TaskTitle</label>
                     <input name="Titles" value="@task.Title" />
-                    <label>@t.Pick("التفاصيل", "Details")</label>
+                    <label>@t.TaskDetails</label>
                     <textarea name="DetailsText">@task.Details</textarea>
-                    <label>@t.Pick("المستلم", "Recipient")</label>
-                    <select name="Assignees">
-                        <option value="">@t.Pick("اختر الموظف المستلم", "Choose recipient")</option>
-                        @foreach (var c in Model.Colleagues)
-                        {
-                            if (c.Id == task.AssigneeId)
-                            {
-                                <option value="@c.Id" selected>@Model.NameOf(c)</option>
-                            }
-                            else
-                            {
-                                <option value="@c.Id">@Model.NameOf(c)</option>
-                            }
-                        }
-                    </select>
+                    <div class="row row-2">
+                        <div>
+                            <label>@t.DueDate</label>
+                            <input type="date" name="DueDates" value="@task.DueDate" />
+                        </div>
+                        <div>
+                            <label>@t.Assignee</label>
+                            <select name="Assignees">
+                                <option value="">@t.ChooseAssignee</option>
+                                @foreach (var c in Model.Colleagues)
+                                {
+                                    if (c.Id == task.AssigneeId)
+                                    {
+                                        <option value="@c.Id" selected>@Model.NameOf(c) · @c.DisplayId</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@c.Id">@Model.NameOf(c) · @c.DisplayId</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
                     <span class="badge">@t.TaskStatus(task.Status)</span>
                     <p>
                         <button class="btn-ghost" asp-page-handler="RemoveTask" asp-route-index="@i">@t.RemoveTask</button>
@@ -64,7 +104,7 @@
             <p>
                 <button class="btn-ghost" asp-page-handler="AddTask">@t.AddTask</button>
             </p>
-            <label>@t.Pick("ملاحظات عامة", "General notes")</label>
+            <label>@t.GeneralNotes</label>
             <textarea asp-for="GeneralNotes"></textarea>
             <p>
                 <button class="btn-ghost" asp-page-handler="Save" asp-route-submit="false">@t.SaveDraft</button>
@@ -75,31 +115,38 @@
         {
             @foreach (var task in h.Tasks)
             {
+                var showTask = user.Id == h.Employee.Id || user.Id == h.Employee.ManagerId || user.IsHr || task.AssigneeId == user.Id;
+                if (!showTask) { continue; }
                 <div class="task">
                     <strong>@task.Title</strong>
                     <p>@task.Details</p>
+                    <p class="muted">@t.Assignee: @Model.AssigneeName(task.AssigneeId) · @task.AssigneeId @(string.IsNullOrWhiteSpace(task.DueDate) ? "" : " · " + t.DueDate + " " + t.Date(task.DueDate))</p>
                     <span class="badge">@t.TaskStatus(task.Status)</span>
+                    @if (!string.IsNullOrWhiteSpace(task.AcceptNote))
+                    {
+                        <p class="ok">@task.AcceptNote</p>
+                    }
                     @if (task.AssigneeId == user.Id && task.Status == "pending" && h.Status == "pending_acceptance")
                     {
-                        <label>@t.Pick("ملاحظة (اختياري)", "Note (optional)")</label>
+                        <label>@t.AcceptNote</label>
                         <input asp-for="Note" />
                         <p>
                             <button class="btn-primary" asp-page-handler="Accept" asp-route-taskId="@task.Id">@t.Accept</button>
                         </p>
-                        <label>@t.Pick("سبب الرفض (إلزامي)", "Reason (required)")</label>
+                        <label>@t.RejectReason</label>
                         <input asp-for="Comment" />
                         <button class="btn-danger" asp-page-handler="Reject" asp-route-taskId="@task.Id">@t.Reject</button>
                     }
                     @if (user.Id == h.Employee.Id && task.Status == "rejected")
                     {
-                        <label>@t.Pick("المستلم الجديد", "New recipient")</label>
+                        <label>@t.NewAssignee</label>
                         <select asp-for="NewAssigneeId">
                             @foreach (var c in Model.Colleagues)
                             {
-                                <option value="@c.Id">@Model.NameOf(c)</option>
+                                <option value="@c.Id">@Model.NameOf(c) · @c.DisplayId</option>
                             }
                         </select>
-                        <button class="btn-primary" asp-page-handler="Reassign" asp-route-taskId="@task.Id">@t.Pick("تحويل لموظف آخر", "Reassign")</button>
+                        <button class="btn-primary" asp-page-handler="Reassign" asp-route-taskId="@task.Id">@t.Reassign</button>
                     }
                 </div>
             }
@@ -113,7 +160,7 @@
     @if (Model.CanManage || Model.CanHr)
     {
         <form method="post" class="card" style="margin-top:16px">
-            <h3>@(Model.CanHr ? t.Pick("اعتماد الموارد البشرية", "HR approval") : t.Pick("مراجعة المدير المباشر", "Direct manager review"))</h3>
+            <h3>@(Model.CanHr ? t.HrReview : t.ManagerReview)</h3>
             <label>@t.Pick("ملاحظة", "Comment")</label>
             <textarea asp-for="Comment"></textarea>
             <p>
@@ -134,5 +181,23 @@
     @if (h.Status == "approved")
     {
         <p><a class="btn-primary" href="/Handovers/Report/@h.Id">@t.ViewReport</a></p>
+    }
+
+    @if (user.Id == h.Employee.Id || user.Id == h.Employee.ManagerId || user.IsHr)
+    {
+        <div class="card" style="margin-top:16px">
+            <h3>@t.AuditTrail</h3>
+            @foreach (var a in Model.Audit)
+            {
+                <p>
+                    <strong>@t.Audit(a.Action)</strong>
+                    <span class="muted"> · @(a.ActorId == "system" ? "System" : Model.NameOf(Model.Store.Person(a.ActorId))) · @t.Date(a.At, true)</span>
+                    @if (!string.IsNullOrWhiteSpace(a.Details))
+                    {
+                        <span class="muted"> — @a.Details</span>
+                    }
+                </p>
+            }
+        </div>
     }
 </div>

@@ -14,6 +14,7 @@ public class ReportModel(HandoverStore store, LocaleService locale) : AppPageMod
         if (CurrentUser is null) return RedirectToPage("/Login");
         Item = Store.Handover(id);
         if (Item is null) return NotFound();
+        if (!CanViewReport(Item)) return RedirectToPage("/Index");
         if (Item.Status != "approved") return Redirect($"/Handovers/{id}");
         return Page();
     }

@@ -19,6 +19,9 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
     [BindProperty] public List<string> Titles { get; set; } = [];
     [BindProperty] public List<string> DetailsText { get; set; } = [];
     [BindProperty] public List<string> Assignees { get; set; } = [];
+    [BindProperty] public List<string> DueDates { get; set; } = [];
+    public List<AuditEntry> Audit { get; set; } = [];
+    public string[] Steps { get; } = ["draft", "pending_acceptance", "pending_manager", "pending_hr", "approved"];
     [BindProperty] public string? Note { get; set; }
     [BindProperty] public string? Comment { get; set; }
     [BindProperty] public string NewAssigneeId { get; set; } = "";
@@ -28,6 +31,7 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
         if (CurrentUser is null) return RedirectToPage("/Login");
         Load(id);
         if (Item is null) return NotFound();
+        if (!CanAccess(Item)) return RedirectToPage("/Index");
         if (CanEdit && Item.Tasks.Count == 0) Item.Tasks.Add(new HandoverTask());
         return Page();
     }
@@ -134,7 +138,8 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
                 Id = i < TaskIds.Count ? TaskIds[i] : "",
                 Title = Titles[i],
                 Details = i < DetailsText.Count ? DetailsText[i] : "",
-                AssigneeId = i < Assignees.Count ? Assignees[i] : ""
+                AssigneeId = i < Assignees.Count ? Assignees[i] : "",
+                DueDate = i < DueDates.Count && !string.IsNullOrWhiteSpace(DueDates[i]) ? DueDates[i] : null
             });
         }
         return tasks;
@@ -149,6 +154,7 @@ public class DetailsModel(HandoverStore store, LocaleService locale) : AppPageMo
         CanEdit = CurrentUser.Id == Item.Employee.Id && Item.Status is "draft" or "returned";
         CanManage = CurrentUser.Id == Item.Employee.ManagerId && Item.Status == "pending_manager";
         CanHr = CurrentUser.IsHr && Item.Status == "pending_hr" && CurrentUser.Id != Item.Employee.Id;
+        Audit = Store.AuditFor(Item.Id);
         if (CanEdit && Item.Tasks.Count == 0) Item.Tasks.Add(new HandoverTask());
     }
 }

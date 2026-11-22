@@ -58,6 +58,8 @@ label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
 }
 .header a { color: var(--cream); text-decoration: none; }
 .header nav { margin-inline-start: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.header .btn-ghost { color: var(--cream); border-color: rgba(244, 239, 228, 0.35); }
+.header span { color: var(--gold); }
 @media (max-width: 720px) {
   .header { flex-direction: column; align-items: stretch; }
   .header nav { margin: 0; }
@@ -95,4 +97,25 @@ label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
 .section-title { margin: 24px 0 8px; }
 .task { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 12px 0; background: var(--card); }
 .flash { background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; padding: 12px; border-radius: 12px; }
-@media print { .no-print { display: none !important; } body { background: #fff; } }
+.cards-2 { display: grid; gap: 12px; }
+@media (min-width: 800px) { .cards-2 { grid-template-columns: 1fr 1fr; } }
+.kv { display: grid; grid-template-columns: 140px 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.kv .k, .kv .v { padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.kv .k { background: #f8f4ec; font-weight: 600; }
+.kv :nth-last-child(-n+2) { border-bottom: 0; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.step { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted-fg); }
+.step.on { background: var(--navy); color: var(--cream); border-color: var(--navy); }
+.step.done { background: var(--muted); color: var(--navy); }
+.mono { font-family: ui-monospace, Consolas, monospace; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border: 1px solid var(--line); padding: 8px 10px; text-align: start; font-size: 13px; vertical-align: top; }
+.table th { background: #f8f4ec; font-size: 12px; }
+.receipt { background: #fff; border: 1px solid var(--line); }
+.receipt-head { background: var(--navy); color: var(--cream); display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.receipt-body { padding: 20px 16px 28px; }
+.sig-grid { display: grid; gap: 8px; }
+@media (min-width: 720px) { .sig-grid { grid-template-columns: 1fr 1fr 1fr; } }
+.sig { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.ok { color: #047857; font-size: 12px; }
+@media print { .no-print { display: none !important; } body { background: #fff; } .header { display: none !important; } }
