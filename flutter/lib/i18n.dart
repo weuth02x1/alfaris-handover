@@ -39,15 +39,15 @@ class I18n {
 
   String get loginTitle => isAr ? "تسجيل الدخول" : "Sign in";
   String get loginSubtitle => isAr
-      ? "أدخل إيميلك. رمز الدخول يظهر هنا مباشرة، ويوصلك على الإيميل إذا كان الإرسال مفعّل."
-      : "Enter your email. The sign-in code appears here, and is emailed when mail is connected.";
+      ? "أدخل إيميلك. نرسل رمز الدخول إلى صندوق الوارد، ويظهر هنا أيضاً إذا تأخر الإيميل."
+      : "Enter your email. We send the sign-in code to your inbox, and show it here if the email is delayed.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
-  String get codeSent => isAr ? "رمز الدخول ظهر تحت. اكتبه للدخول." : "Your sign-in code is below. Type it to continue.";
+  String get codeSent => isAr ? "أرسلنا رمز الدخول إلى إيميلك." : "We emailed the sign-in code.";
   String get checkInbox => isAr
-      ? "إذا وصلك إيميل استخدم نفس الرمز. إذا ما وصل، الرمز الظاهر هنا يكفي."
-      : "If an email arrives, use that same code. If not, the code on this page is enough.";
+      ? "افتح الإيميل واكتب الرمز المكوّن من 6 أرقام. شيك غير المرغوب إذا تأخر. الرمز الظاهر هنا يعمل أيضاً."
+      : "Open the email and type the 6-digit code. Check spam if it is slow. The code on this page also works.";
   String get demoMail => isAr ? "رمز الدخول" : "Sign-in code";
   String get code => isAr ? "رمز الدخول" : "Sign-in code";
   String get confirm => isAr ? "دخول" : "Sign in";

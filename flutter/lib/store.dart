@@ -136,14 +136,13 @@ class AppStore extends ChangeNotifier {
       );
       accounts.add(emp);
     }
+    await AuthMail.bootstrap();
     var mailed = false;
-    if (AuthMail.enabled) {
-      try {
-        await AuthMail.send(emp.email);
-        mailed = true;
-      } catch (_) {
-        mailed = false;
-      }
+    try {
+      await AuthMail.send(emp.email);
+      mailed = true;
+    } catch (_) {
+      mailed = false;
     }
     _issueOtp(emp);
     otpDelivered = mailed;

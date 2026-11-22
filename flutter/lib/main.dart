@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "auth_mail.dart";
 import "screens/handover_page.dart";
 import "screens/home_page.dart";
 import "screens/hr_page.dart";
@@ -9,8 +10,9 @@ import "screens/report_page.dart";
 import "store.dart";
 import "theme.dart";
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AuthMail.bootstrap();
   runApp(HandoverApp(store: AppStore()));
 }
 

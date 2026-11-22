@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Generated at Pages build time from GitHub secrets
+web/supabase.json
