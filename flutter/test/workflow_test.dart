@@ -50,14 +50,7 @@ void main() {
 
   test("signup and OTP work for a new personal email", () async {
     final store = AppStore();
-    await expectLater(store.requestOtp("shahad0x66@gmail.com"), throwsA(isA<WorkflowException>()));
-    await store.register(
-      email: "shahad0x66@gmail.com",
-      name: "شهد عبدالله",
-      employeeNo: "50901",
-      jobTitle: "أخصائية موارد بشرية",
-      departmentId: "D-HR",
-    );
+    await store.requestOtp("shahad0x66@gmail.com");
     expect(store.lastOtpCode, hasLength(6));
     await store.verifyOtp("shahad0x66@gmail.com", store.lastOtpCode!);
     expect(store.user?.email, "shahad0x66@gmail.com");

@@ -39,18 +39,16 @@ class I18n {
 
   String get loginTitle => isAr ? "تسجيل الدخول" : "Sign in";
   String get loginSubtitle => isAr
-      ? "أدخل إيميلك، ويوصلك رمز الدخول على نفس الإيميل."
-      : "Enter your email. We send the sign-in code to that inbox.";
+      ? "أدخل إيميلك. رمز الدخول يظهر هنا مباشرة، ويوصلك على الإيميل إذا كان الإرسال مفعّل."
+      : "Enter your email. The sign-in code appears here, and is emailed when mail is connected.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
-  String get codeSent => isAr ? "أرسلنا رمز الدخول إلى إيميلك." : "We sent the sign-in code to your email.";
+  String get codeSent => isAr ? "رمز الدخول ظهر تحت. اكتبه للدخول." : "Your sign-in code is below. Type it to continue.";
   String get checkInbox => isAr
-      ? "افتح الإيميل واكتب الرمز المكوّن من 6 أرقام. إذا ما وصل، شيك غير المرغوب."
-      : "Open the email and type the 6-digit code. If it does not arrive, check spam.";
-  String get demoMail => isAr
-      ? "في هذا الإصدار على GitHub يظهر رمز الدخول هنا لأن الإرسال الحقيقي يحتاج خادماً."
-      : "On this GitHub demo the sign-in code appears here because real delivery needs a server.";
+      ? "إذا وصلك إيميل استخدم نفس الرمز. إذا ما وصل، الرمز الظاهر هنا يكفي."
+      : "If an email arrives, use that same code. If not, the code on this page is enough.";
+  String get demoMail => isAr ? "رمز الدخول" : "Sign-in code";
   String get code => isAr ? "رمز الدخول" : "Sign-in code";
   String get confirm => isAr ? "دخول" : "Sign in";
   String get resend => isAr ? "إرسال رمز جديد" : "Send a new code";

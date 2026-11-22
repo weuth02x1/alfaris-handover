@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../models.dart";
 import "../store.dart";
 import "../theme.dart";
 import "../widgets/brand.dart";
@@ -59,14 +60,24 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         await store.requestOtp(email.text);
       }
-      if (mounted) setState(() { codeStep = true; busy = false; });
+      if (mounted) {
+        if (store.lastOtpCode != null) code.text = store.lastOtpCode!;
+        setState(() {
+          codeStep = true;
+          busy = false;
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         busy = false;
-        error = t.error(e.toString());
-        if (e.toString() == "notFoundEmail") signup = true;
-        if (store.lastOtpCode != null || store.otpDelivered) codeStep = true;
+        final errCode = e is WorkflowException ? e.code : e.toString();
+        error = t.error(errCode);
+        if (errCode == "notFoundEmail") signup = true;
+        if (store.lastOtpCode != null || store.otpDelivered) {
+          codeStep = true;
+          if (store.lastOtpCode != null) code.text = store.lastOtpCode!;
+        }
       });
     }
   }
@@ -85,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() {
         busy = false;
-        error = t.error(e.toString());
+        error = t.error(e is WorkflowException ? e.code : e.toString());
       });
     }
   }

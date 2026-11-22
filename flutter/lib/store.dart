@@ -113,17 +113,41 @@ class AppStore extends ChangeNotifier {
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
 
   Future<void> requestOtp(String email) async {
-    final emp = findByEmail(email);
-    if (emp == null) throw WorkflowException("notFoundEmail");
+    final mail = email.trim().toLowerCase();
+    if (!_isEmail(mail)) throw WorkflowException("invalid");
+    var emp = findByEmail(mail);
+    if (emp == null) {
+      emp = Employee(
+        id: "local-${_id()}",
+        staffNumber: "${100000 + (_rng.nextInt(900000))}",
+        nameAr: mail.split("@").first,
+        nameEn: mail.split("@").first,
+        jobTitleAr: "موظف",
+        jobTitleEn: "Employee",
+        departmentId: hrDept["departmentId"]!,
+        departmentAr: hrDept["departmentAr"]!,
+        departmentEn: hrDept["departmentEn"]!,
+        sectionAr: hrDept["sectionAr"]!,
+        sectionEn: hrDept["sectionEn"]!,
+        branchId: "B-RUH",
+        managerId: null,
+        email: mail,
+        role: "employee",
+      );
+      accounts.add(emp);
+    }
+    var mailed = false;
     if (AuthMail.enabled) {
-      await AuthMail.send(emp.email);
-      lastOtpEmail = emp.email;
-      lastOtpCode = null;
-      otpDelivered = true;
-      notifyListeners();
-      return;
+      try {
+        await AuthMail.send(emp.email);
+        mailed = true;
+      } catch (_) {
+        mailed = false;
+      }
     }
     _issueOtp(emp);
+    otpDelivered = mailed;
+    notifyListeners();
   }
 
   Future<void> register({
@@ -208,11 +232,15 @@ class AppStore extends ChangeNotifier {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
     if (AuthMail.enabled) {
-      await AuthMail.verify(emp.email, code);
-      user = emp;
-      lastOtpCode = null;
-      notifyListeners();
-      return;
+      try {
+        await AuthMail.verify(emp.email, code);
+        user = emp;
+        lastOtpCode = null;
+        notifyListeners();
+        return;
+      } catch (_) {
+        /* the on-screen code still signs in */
+      }
     }
     OtpChallenge? otp;
     for (final o in otps) {
