@@ -26,11 +26,11 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-        working-directory: app
+        working-directory: flutter
       - run: flutter test
-        working-directory: app
+        working-directory: flutter
       - name: Build web
-        working-directory: app
+        working-directory: flutter
         env:
           MAIL_API_URL: ${{ vars.MAIL_API_URL }}
         run: |
@@ -40,9 +40,9 @@ jobs:
           fi
           flutter build web --release --base-href /alfaris-handover/ $DEFINES
       - run: touch build/web/.nojekyll
-        working-directory: app
+        working-directory: flutter
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/build/web
+          path: flutter/build/web
       - id: deploy
         uses: actions/deploy-pages@v4

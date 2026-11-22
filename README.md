@@ -13,7 +13,7 @@ https://weuth02x1.github.io/alfaris-handover/
 ## تشغيل الواجهة
 
 ```bash
-cd app
+cd flutter
 flutter pub get
 flutter run -d chrome
 ```
@@ -28,7 +28,7 @@ npm run dev
 ثم ابنِ الواجهة على نفس الجهاز:
 
 ```bash
-cd app
+cd flutter
 flutter run -d chrome --dart-define=MAIL_API_URL=http://127.0.0.1:4317
 ```
 

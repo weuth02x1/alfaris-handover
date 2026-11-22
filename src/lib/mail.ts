@@ -55,7 +55,8 @@ async function deliverWithResend(message: { to: string; subject: string; text: s
     }),
   });
   if (!response.ok) {
-    console.error("Resend rejected the message", response.status);
+    const detail = (await response.text()).slice(0, 300);
+    console.error("Resend rejected the message", response.status, detail);
     return false;
   }
   return true;
