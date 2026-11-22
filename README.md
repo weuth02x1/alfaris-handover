@@ -33,7 +33,8 @@ Sign in with your own email. Create an account if it is new, then type the code 
 | `MENAITECH_PATH_EMPLOYEES`, `MENAITECH_PATH_EMPLOYEE`, `MENAITECH_PATH_APPROVED_REQUESTS`, `MENAITECH_PATH_DOCUMENTS` | Override endpoint paths once the Menaitech API contract is confirmed (`{id}` is substituted). |
 | `INTEGRATION_API_KEY` | Shared secret for `POST /api/integrations/menaitech/clearance` (header `x-api-key`). |
 | `SESSION_SECRET` | Signs the session cookie. Set it in any shared environment. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Company mailbox that sends sign-in codes and task emails. |
+| `RESEND_API_KEY`, `RESEND_FROM` | Preferred mailer for sign-in codes and task emails. | |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Fallback company mailbox if Resend is not set. |
 | `APP_BASE_URL` | Base URL used in email links. Forwarded host headers are ignored. |
 | `LINK_TTL_HOURS` | Lifetime of secure links (default 72). |
 | `DATA_FILE` | JSON data store location (default `data/db.json`). |
