@@ -61,7 +61,6 @@ class _LoginPageState extends State<LoginPage> {
         await store.requestOtp(email.text);
       }
       if (mounted) {
-        if (store.lastOtpCode != null) code.text = store.lastOtpCode!;
         setState(() {
           codeStep = true;
           busy = false;
@@ -74,10 +73,6 @@ class _LoginPageState extends State<LoginPage> {
         final errCode = e is WorkflowException ? e.code : e.toString();
         error = t.error(errCode);
         if (errCode == "notFoundEmail") signup = true;
-        if (store.lastOtpCode != null || store.otpDelivered) {
-          codeStep = true;
-          if (store.lastOtpCode != null) code.text = store.lastOtpCode!;
-        }
       });
     }
   }
@@ -226,29 +221,6 @@ class _LoginPageState extends State<LoginPage> {
                         Text(t.codeSent, style: const TextStyle(color: mutedFg, fontSize: 14)),
                         const SizedBox(height: 6),
                         Text(t.checkInbox, style: const TextStyle(fontSize: 14)),
-                        if (store.lastOtpCode != null) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: muted,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: line),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(t.demoMail, style: const TextStyle(fontSize: 12, color: mutedFg)),
-                                const SizedBox(height: 8),
-                                SelectableText(
-                                  store.lastOtpCode!,
-                                  style: const TextStyle(fontSize: 28, letterSpacing: 8, fontWeight: FontWeight.w700, color: navy),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 12),
                         Text(t.code, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),

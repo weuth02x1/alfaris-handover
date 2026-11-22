@@ -35,16 +35,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          URL="${SUPABASE_URL:-https://sfshhcfjowiptefesqgp.supabase.co}"
-          DEFINES="--dart-define=SUPABASE_URL=$URL"
+          DEFINES="--dart-define=SUPABASE_URL=https://sfshhcfjowiptefesqgp.supabase.co"
           if [ -n "$SUPABASE_ANON_KEY" ]; then
             DEFINES="$DEFINES --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-            python3 -c 'import json,os; open("web/supabase.json","w").write(json.dumps({"url": os.environ.get("SUPABASE_URL") or "https://sfshhcfjowiptefesqgp.supabase.co", "anonKey": os.environ["SUPABASE_ANON_KEY"]}))'
           fi
           flutter build web --release --base-href /alfaris-handover/ $DEFINES
-          if [ -f web/supabase.json ]; then
-            cp web/supabase.json build/web/supabase.json
-          fi
       - run: touch build/web/.nojekyll
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3

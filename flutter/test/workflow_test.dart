@@ -1,14 +1,14 @@
+import "package:alfaris_handover/auth_mail.dart";
 import "package:alfaris_handover/directory.dart";
 import "package:alfaris_handover/models.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("OTP sign-in then full clearance cycle", () async {
+  test("clearance cycle after a signed-in employee", () {
     final store = AppStore();
-    await store.requestOtp("hind.alghamdi@alfaris.example");
-    expect(store.lastOtpCode, hasLength(6));
-    await store.verifyOtp("hind.alghamdi@alfaris.example", store.lastOtpCode!);
+    final hind = mockEmployees.firstWhere((e) => e.id == "30115");
+    store.signInForTest(hind);
     expect(store.user?.id, "30115");
 
     final id = store.initiateClearance(store.user!, "ANN-2026-0412");
@@ -41,18 +41,17 @@ void main() {
     store.managerDecision(fahad, id, true, "");
     expect(store.handover(id)!.status, "pending_hr");
 
-    final hind = mockEmployees.firstWhere((e) => e.id == "30115");
     store.user = hind;
     store.hrDecision(hind, id, true, "معتمد");
     expect(store.handover(id)!.status, "approved");
     expect(store.handover(id)!.documentHash, isNotNull);
   });
 
-  test("signup and OTP work for a new personal email", () async {
+  test("sign-in without mail configured does not invent a local code", () async {
     final store = AppStore();
-    await store.requestOtp("shahad0x66@gmail.com");
-    expect(store.lastOtpCode, hasLength(6));
-    await store.verifyOtp("shahad0x66@gmail.com", store.lastOtpCode!);
-    expect(store.user?.email, "shahad0x66@gmail.com");
+    expect(AuthMail.enabled, isFalse);
+    await expectLater(store.requestOtp("hind.alghamdi@alfaris.example"), throwsA(isA<WorkflowException>()));
+    expect(store.lastOtpCode, isNull);
+    expect(store.user, isNull);
   });
 }

@@ -64,7 +64,6 @@ class AppStore extends ChangeNotifier {
   final handovers = <Handover>[];
   final auditLog = <AuditEntry>[];
   final outbox = <EmailMessage>[];
-  final otps = <OtpChallenge>[];
   int counter = 0;
 
   List<Employee> get people => accounts;
@@ -92,7 +91,6 @@ class AppStore extends ChangeNotifier {
   // Bit shifts of 32 are 0 on the web (JS), so keep this under 2^31.
   String _id() =>
       "${DateTime.now().microsecondsSinceEpoch}-${_rng.nextInt(0x7fffffff)}-${_rng.nextInt(0x7fffffff)}";
-  String _code() => (_rng.nextInt(900000) + 100000).toString();
 
   Employee? findByEmail(String email) {
     final target = email.trim().toLowerCase();
@@ -136,16 +134,14 @@ class AppStore extends ChangeNotifier {
       );
       accounts.add(emp);
     }
-    await AuthMail.bootstrap();
-    var mailed = false;
     try {
       await AuthMail.send(emp.email);
-      mailed = true;
     } catch (_) {
-      mailed = false;
+      throw WorkflowException("mailFailed");
     }
-    _issueOtp(emp);
-    otpDelivered = mailed;
+    lastOtpEmail = emp.email;
+    lastOtpCode = null;
+    otpDelivered = true;
     notifyListeners();
   }
 
@@ -196,59 +192,20 @@ class AppStore extends ChangeNotifier {
 
   bool _isEmail(String value) => RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(value) && value.length <= 160;
 
-  String _issueOtp(Employee emp) {
-    final code = _code();
-    otps.removeWhere((o) => o.email == emp.email.toLowerCase());
-    otps.add(
-      OtpChallenge(
-        employeeId: emp.id,
-        email: emp.email.toLowerCase(),
-        code: code,
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 15)).toIso8601String(),
-      ),
-    );
-    lastOtpEmail = emp.email;
-    lastOtpCode = code;
-    otpChallenge = null;
-    otpDelivered = false;
-    outbox.add(
-      EmailMessage(
-        id: _id(),
-        to: emp.email,
-        toEmployeeId: emp.id,
-        subject: locale == "ar" ? "رمز الدخول | Sign-in code" : "Sign-in code | رمز الدخول",
-        body: "رمز الدخول: $code\nYour sign-in code: $code",
-        at: _now(),
-        kind: "otp",
-        otpCode: code,
-      ),
-    );
+  void signInForTest(Employee emp) {
+    user = emp;
+    lastOtpCode = null;
     notifyListeners();
-    return code;
   }
 
   Future<void> verifyOtp(String email, String code) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
-    if (AuthMail.enabled) {
-      try {
-        await AuthMail.verify(emp.email, code);
-        user = emp;
-        lastOtpCode = null;
-        notifyListeners();
-        return;
-      } catch (_) {
-        /* the on-screen code still signs in */
-      }
+    try {
+      await AuthMail.verify(emp.email, code);
+    } catch (_) {
+      throw WorkflowException("badCode");
     }
-    OtpChallenge? otp;
-    for (final o in otps) {
-      if (o.email == emp.email.toLowerCase()) otp = o;
-    }
-    if (otp == null) throw WorkflowException("expired");
-    if (DateTime.parse(otp.expiresAt).isBefore(DateTime.now().toUtc())) throw WorkflowException("expired");
-    if (otp.code != code.trim()) throw WorkflowException("badCode");
-    otps.remove(otp);
     user = emp;
     lastOtpCode = null;
     notifyListeners();
