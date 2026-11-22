@@ -1,0 +1,42 @@
+﻿@using Alfaris.Handover.Pages
+@{
+    var pageModel = ViewData["PageModel"] as AppPageModel;
+    var t = pageModel?.T;
+    var user = pageModel?.CurrentUser;
+    var dir = t?.Dir ?? "rtl";
+    var lang = t?.Locale ?? "ar";
+}
+<!DOCTYPE html>
+<html lang="@lang" dir="@dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(t?.AppName ?? "مجموعة الفارس")</title>
+    <link rel="icon" href="~/brand/alfaris-mark.png" />
+    <link rel="stylesheet" href="~/css/alfaris.css" asp-append-version="true" />
+</head>
+<body>
+@if (user is not null && t is not null && pageModel is not null)
+{
+    <header class="header no-print">
+        <a href="/"><img src="~/brand/alfaris-lockup.png" alt="Alfaris" height="40" /></a>
+        <nav>
+            <a asp-page="/Index">@t.NavInbox</a>
+            @if (user.IsHr)
+            {
+                <a asp-page="/Hr">@t.NavHr</a>
+            }
+            <a asp-page="/Outbox">@t.NavOutbox</a>
+            <form method="post" asp-page="/Index" asp-page-handler="Lang" style="display:inline">
+                <button class="btn-ghost" type="submit">@t.NavLanguage</button>
+            </form>
+            <form method="post" asp-page="/Index" asp-page-handler="Logout" style="display:inline">
+                <button class="btn-ghost" type="submit">@t.NavLogout</button>
+            </form>
+            <span>@pageModel.NameOf(user)</span>
+        </nav>
+    </header>
+}
+@RenderBody()
+</body>
+</html>

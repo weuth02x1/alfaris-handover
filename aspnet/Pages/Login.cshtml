@@ -1,0 +1,103 @@
+@page
+@model LoginModel
+@{
+    Layout = "_Layout";
+    ViewData["PageModel"] = Model;
+}
+<div class="login-grid">
+    <div class="brand-pane">
+        <img src="~/brand/alfaris-lockup.png" alt="Alfaris" height="72" />
+        <div style="flex:1"></div>
+        <div class="hairline"></div>
+        <h1>@Model.T.AppName</h1>
+        <p class="gold">@Model.T.AppTagline</p>
+        <div style="flex:1"></div>
+        <div class="gold" style="letter-spacing:3px;font-size:12px">ALFARIS GROUP</div>
+    </div>
+    <div class="form-pane">
+        <form method="post" asp-page-handler="Lang" style="text-align:end">
+            <button class="btn-ghost" type="submit">@Model.T.NavLanguage</button>
+        </form>
+        <h2>@Model.T.LoginTitle</h2>
+        <p class="muted">@Model.T.LoginSubtitle</p>
+        <form method="post">
+            <input type="hidden" asp-for="Signup" />
+            <input type="hidden" asp-for="CodeStep" />
+            <label>@Model.T.Email</label>
+            <input asp-for="Email" type="email" dir="ltr" required />
+            @if (Model.Signup && !Model.CodeStep)
+            {
+                <div class="card" style="margin-top:16px">
+                    <strong>@Model.T.SignupTitle</strong>
+                    <p class="muted">@Model.T.SignupHint</p>
+                    <label>@Model.T.Name</label>
+                    <input asp-for="Name" />
+                    <div class="row row-2">
+                        <div>
+                            <label>@Model.T.EmployeeNo</label>
+                            <input asp-for="EmployeeNo" />
+                        </div>
+                        <div>
+                            <label>@Model.T.JobTitle</label>
+                            <input asp-for="JobTitle" />
+                        </div>
+                    </div>
+                    <label>@Model.T.Department</label>
+                    <select asp-for="DepartmentId">
+                        <option value="D-HR">@Model.T.DeptHr</option>
+                        <option value="D-TA">@Model.T.DeptTalent</option>
+                        <option value="D-ITD">@Model.T.DeptIt</option>
+                    </select>
+                </div>
+            }
+            @if (Model.CodeStep)
+            {
+                <p class="muted">@Model.T.CodeSent</p>
+                <p>@Model.T.CheckInbox</p>
+                <label>@Model.T.Code</label>
+                <input asp-for="Code" maxlength="8" dir="ltr" />
+            }
+            @if (Model.Error is not null)
+            {
+                <p class="error">@Model.Error</p>
+            }
+            <p>
+                @if (Model.CodeStep)
+                {
+                    <button class="btn-primary" asp-page-handler="Verify">@Model.T.Confirm</button>
+                    <button class="btn-ghost" asp-page-handler="Send">@Model.T.Resend</button>
+                }
+                else if (Model.Signup)
+                {
+                    <button class="btn-primary" asp-page-handler="Register">@Model.T.CreateAndSend</button>
+                }
+                else
+                {
+                    <button class="btn-primary" asp-page-handler="Send">@Model.T.SendCode</button>
+                }
+            </p>
+        </form>
+        @if (!Model.CodeStep)
+        {
+            <form method="post" asp-page-handler="SignupToggle">
+                <input type="hidden" asp-for="Email" />
+                <input type="hidden" asp-for="Signup" />
+                <button class="btn-ghost" type="submit">@(Model.Signup ? Model.T.HaveAccount : Model.T.CreateAccount)</button>
+            </form>
+        }
+        @if (Model.AllowSampleLogin)
+        {
+            <div class="card" style="margin-top:24px">
+                <strong>@Model.T.Pick("دخول تجريبي محلي", "Local sample sign-in")</strong>
+                <p class="muted">@Model.T.Pick("يظهر فقط على جهاز التطوير إذا لم يُضبط مفتاح البريد. على السيرفر الحقيقي الرمز يجي على الإيميل.", "Shown only on a development machine when mail is not configured. Production always emails the code.")</p>
+                @foreach (var person in Model.SampleStaff)
+                {
+                    <form method="post" asp-page-handler="Sample" style="margin:8px 0">
+                        <input type="hidden" name="employeeId" value="@person.Id" />
+                        <button class="btn-ghost" type="submit" style="width:100%;text-align:start">@Model.NameOf(person) · @person.Email</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Alfaris.Handover": {
+      "commandName": "Project",
+      "applicationUrl": "http://127.0.0.1:4521",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

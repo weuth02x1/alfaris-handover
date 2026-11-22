@@ -1,0 +1,90 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["PageModel"] = Model;
+    var t = Model.T;
+    var inbox = Model.Inbox!;
+    var user = Model.CurrentUser!;
+}
+<div class="wrap">
+    <h1>@t.InboxTitle</h1>
+    <p class="muted">@t.InboxSubtitle</p>
+    @if (inbox.IsEmpty)
+    {
+        <div class="card" style="text-align:center;padding:48px 16px">
+            <strong>@t.Nothing</strong>
+            <p class="muted">@t.NothingHint</p>
+        </div>
+    }
+    else
+    {
+        @if (inbox.ToAccept.Count > 0)
+        {
+            <h2 class="section-title">@t.TasksToAccept</h2>
+            <div class="card">
+                @foreach (var item in inbox.ToAccept)
+                {
+                    <a class="list-row" href="/Handovers/@item.Handover.Id">
+                        <div>
+                            <div>@item.Task!.Title</div>
+                            <div class="muted">@t.From @Model.NameSnap(item.Handover.Employee) · @item.Handover.Number</div>
+                        </div>
+                        <span class="badge">@t.TaskStatus(item.Task.Status)</span>
+                    </a>
+                }
+            </div>
+        }
+        @if (inbox.ManagerQueue.Count > 0)
+        {
+            <h2 class="section-title">@t.ManagerQueue</h2>
+            <div class="card">
+                @foreach (var h in inbox.ManagerQueue)
+                {
+                    <a class="list-row" href="/Handovers/@h.Id">
+                        <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                        <span class="badge">@t.Status(h.Status)</span>
+                    </a>
+                }
+            </div>
+        }
+        @if (inbox.HrQueue.Count > 0)
+        {
+            <h2 class="section-title">@t.HrQueue</h2>
+            <div class="card">
+                @foreach (var h in inbox.HrQueue)
+                {
+                    <a class="list-row" href="/Handovers/@h.Id">
+                        <div>@Model.NameSnap(h.Employee) · @h.Number</div>
+                        <span class="badge">@t.Status(h.Status)</span>
+                    </a>
+                }
+            </div>
+        }
+        @if (inbox.Mine.Count > 0)
+        {
+            <h2 class="section-title">@t.MyHandovers</h2>
+            <div class="card">
+                @foreach (var h in inbox.Mine)
+                {
+                    <a class="list-row" href="/Handovers/@h.Id">
+                        <div>@h.Number</div>
+                        <span class="badge">@t.Status(h.Status)</span>
+                    </a>
+                }
+            </div>
+        }
+        @if (inbox.Accepted.Count > 0)
+        {
+            <h2 class="section-title">@t.AcceptedByMe</h2>
+            <div class="card">
+                @foreach (var item in inbox.Accepted)
+                {
+                    <a class="list-row" href="/Handovers/@item.Handover.Id">
+                        <div>@item.Task!.Title</div>
+                        <span class="badge">@t.TaskStatus(item.Task.Status)</span>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>

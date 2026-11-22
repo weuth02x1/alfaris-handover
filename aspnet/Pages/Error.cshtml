@@ -1,0 +1,14 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+<div class="wrap">
+    <h1>تعذر فتح الصفحة</h1>
+    <p class="muted">Something went wrong while opening this page.</p>
+    @if (Model.ShowRequestId)
+    {
+        <p class="muted">Request ID: <code>@Model.RequestId</code></p>
+    }
+    <p><a href="/">العودة</a></p>
+</div>

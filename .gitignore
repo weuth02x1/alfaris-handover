@@ -41,3 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /data
+
+# asp.net
+**/bin/
+**/obj/
+aspnet/wwwroot/lib/

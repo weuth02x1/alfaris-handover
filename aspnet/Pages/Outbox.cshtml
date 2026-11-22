@@ -1,0 +1,28 @@
+@page
+@model OutboxModel
+@{
+    ViewData["PageModel"] = Model;
+    var t = Model.T;
+}
+<div class="wrap">
+    <h1>@t.OutboxTitle</h1>
+    @if (Model.Messages.Count == 0)
+    {
+        <div class="card">@t.OutboxEmpty</div>
+    }
+    else
+    {
+        @foreach (var m in Model.Messages)
+        {
+            <div class="card" style="margin-bottom:12px">
+                <strong>@m.Subject</strong>
+                <p class="muted">@t.Date(m.At, true)</p>
+                <pre style="white-space:pre-wrap;font:inherit">@m.Body</pre>
+                @if (m.Link is not null)
+                {
+                    <p><a href="@m.Link">@t.Open</a></p>
+                }
+            </div>
+        }
+    }
+</div>

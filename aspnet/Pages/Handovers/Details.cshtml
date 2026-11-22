@@ -1,0 +1,138 @@
+@page "/Handovers/{id}"
+@model Alfaris.Handover.Pages.Handovers.DetailsModel
+@{
+    ViewData["PageModel"] = Model;
+    var t = Model.T;
+    var h = Model.Item!;
+    var user = Model.CurrentUser!;
+}
+<div class="wrap">
+    <p class="muted">@h.Number · @t.Status(h.Status)</p>
+    <h1>@Model.NameSnap(h.Employee)</h1>
+    @if (Model.Error is not null) { <p class="error">@Model.Error</p> }
+    @if (h.LastReturn is not null && h.Status == "returned")
+    {
+        <div class="flash">@h.LastReturn.Comment</div>
+    }
+    <div class="card">
+        <h3>@t.EmployeeInfo</h3>
+        <p>@t.Pick("الاسم", "Name"): @Model.NameSnap(h.Employee)</p>
+        <p>@t.Pick("المسمى", "Title"): @t.Pick(h.Employee.JobTitleAr, h.Employee.JobTitleEn)</p>
+        <p>@t.Pick("الإدارة", "Department"): @t.Pick(h.Employee.DepartmentAr, h.Employee.DepartmentEn)</p>
+        <p>@t.Pick("المدير المباشر", "Manager"): @t.Pick(h.Employee.ManagerNameAr, h.Employee.ManagerNameEn)</p>
+    </div>
+    <div class="card" style="margin-top:12px">
+        <h3>@t.ClearanceInfo</h3>
+        <p>@h.RequestRef · @t.Type(h.Type)</p>
+        <p>@h.LastWorkingDay @(h.ReturnDate is null ? "" : "→ " + h.ReturnDate)</p>
+    </div>
+
+    <form method="post">
+        <h2 class="section-title">@t.Tasks</h2>
+        @if (Model.CanEdit)
+        {
+            @for (var i = 0; i < h.Tasks.Count; i++)
+            {
+                var task = h.Tasks[i];
+                <div class="task">
+                    <input type="hidden" name="TaskIds" value="@task.Id" />
+                    <label>@t.Pick("المهمة", "Task")</label>
+                    <input name="Titles" value="@task.Title" />
+                    <label>@t.Pick("التفاصيل", "Details")</label>
+                    <textarea name="DetailsText">@task.Details</textarea>
+                    <label>@t.Pick("المستلم", "Recipient")</label>
+                    <select name="Assignees">
+                        <option value="">@t.Pick("اختر الموظف المستلم", "Choose recipient")</option>
+                        @foreach (var c in Model.Colleagues)
+                        {
+                            if (c.Id == task.AssigneeId)
+                            {
+                                <option value="@c.Id" selected>@Model.NameOf(c)</option>
+                            }
+                            else
+                            {
+                                <option value="@c.Id">@Model.NameOf(c)</option>
+                            }
+                        }
+                    </select>
+                    <span class="badge">@t.TaskStatus(task.Status)</span>
+                    <p>
+                        <button class="btn-ghost" asp-page-handler="RemoveTask" asp-route-index="@i">@t.RemoveTask</button>
+                    </p>
+                </div>
+            }
+            <p>
+                <button class="btn-ghost" asp-page-handler="AddTask">@t.AddTask</button>
+            </p>
+            <label>@t.Pick("ملاحظات عامة", "General notes")</label>
+            <textarea asp-for="GeneralNotes"></textarea>
+            <p>
+                <button class="btn-ghost" asp-page-handler="Save" asp-route-submit="false">@t.SaveDraft</button>
+                <button class="btn-primary" asp-page-handler="Save" asp-route-submit="true">@t.Submit</button>
+            </p>
+        }
+        else
+        {
+            @foreach (var task in h.Tasks)
+            {
+                <div class="task">
+                    <strong>@task.Title</strong>
+                    <p>@task.Details</p>
+                    <span class="badge">@t.TaskStatus(task.Status)</span>
+                    @if (task.AssigneeId == user.Id && task.Status == "pending" && h.Status == "pending_acceptance")
+                    {
+                        <label>@t.Pick("ملاحظة (اختياري)", "Note (optional)")</label>
+                        <input asp-for="Note" />
+                        <p>
+                            <button class="btn-primary" asp-page-handler="Accept" asp-route-taskId="@task.Id">@t.Accept</button>
+                        </p>
+                        <label>@t.Pick("سبب الرفض (إلزامي)", "Reason (required)")</label>
+                        <input asp-for="Comment" />
+                        <button class="btn-danger" asp-page-handler="Reject" asp-route-taskId="@task.Id">@t.Reject</button>
+                    }
+                    @if (user.Id == h.Employee.Id && task.Status == "rejected")
+                    {
+                        <label>@t.Pick("المستلم الجديد", "New recipient")</label>
+                        <select asp-for="NewAssigneeId">
+                            @foreach (var c in Model.Colleagues)
+                            {
+                                <option value="@c.Id">@Model.NameOf(c)</option>
+                            }
+                        </select>
+                        <button class="btn-primary" asp-page-handler="Reassign" asp-route-taskId="@task.Id">@t.Pick("تحويل لموظف آخر", "Reassign")</button>
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(h.GeneralNotes))
+            {
+                <p>@h.GeneralNotes</p>
+            }
+        }
+    </form>
+
+    @if (Model.CanManage || Model.CanHr)
+    {
+        <form method="post" class="card" style="margin-top:16px">
+            <h3>@(Model.CanHr ? t.Pick("اعتماد الموارد البشرية", "HR approval") : t.Pick("مراجعة المدير المباشر", "Direct manager review"))</h3>
+            <label>@t.Pick("ملاحظة", "Comment")</label>
+            <textarea asp-for="Comment"></textarea>
+            <p>
+                @if (Model.CanManage)
+                {
+                    <button class="btn-primary" asp-page-handler="Manager" asp-route-approve="true">@t.Approve</button>
+                    <button class="btn-danger" asp-page-handler="Manager" asp-route-approve="false">@t.RejectAndReturn</button>
+                }
+                @if (Model.CanHr)
+                {
+                    <button class="btn-primary" asp-page-handler="Hr" asp-route-approve="true">@t.Approve</button>
+                    <button class="btn-danger" asp-page-handler="Hr" asp-route-approve="false">@t.RejectAndReturn</button>
+                }
+            </p>
+        </form>
+    }
+
+    @if (h.Status == "approved")
+    {
+        <p><a class="btn-primary" href="/Handovers/Report/@h.Id">@t.ViewReport</a></p>
+    }
+</div>
