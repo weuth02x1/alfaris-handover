@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   String departmentId = "D-HR";
   bool signup = false;
   bool codeStep = false;
+  bool busy = false;
   String? error;
 
   @override
@@ -37,6 +38,56 @@ class _LoginPageState extends State<LoginPage> {
     jobTitle.dispose();
     code.dispose();
     super.dispose();
+  }
+
+  Future<void> sendCode({required bool create}) async {
+    final store = StoreScope.of(context);
+    final t = store.t;
+    setState(() {
+      error = null;
+      busy = true;
+    });
+    try {
+      if (create) {
+        await store.register(
+          email: email.text,
+          name: name.text,
+          employeeNo: employeeNo.text,
+          jobTitle: jobTitle.text,
+          departmentId: departmentId,
+        );
+      } else {
+        await store.requestOtp(email.text);
+      }
+      if (mounted) setState(() { codeStep = true; busy = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        busy = false;
+        error = t.error(e.toString());
+        if (e.toString() == "notFoundEmail") signup = true;
+        if (store.lastOtpCode != null || store.otpDelivered) codeStep = true;
+      });
+    }
+  }
+
+  Future<void> confirm() async {
+    final store = StoreScope.of(context);
+    final t = store.t;
+    setState(() {
+      error = null;
+      busy = true;
+    });
+    try {
+      await store.verifyOtp(email.text, code.text);
+      if (mounted) setState(() => busy = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        busy = false;
+        error = t.error(e.toString());
+      });
+    }
   }
 
   @override
@@ -164,27 +215,29 @@ class _LoginPageState extends State<LoginPage> {
                         Text(t.codeSent, style: const TextStyle(color: mutedFg, fontSize: 14)),
                         const SizedBox(height: 6),
                         Text(t.checkInbox, style: const TextStyle(fontSize: 14)),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: muted,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: line),
+                        if (store.lastOtpCode != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: muted,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: line),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(t.demoMail, style: const TextStyle(fontSize: 12, color: mutedFg)),
+                                const SizedBox(height: 8),
+                                SelectableText(
+                                  store.lastOtpCode!,
+                                  style: const TextStyle(fontSize: 28, letterSpacing: 8, fontWeight: FontWeight.w700, color: navy),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.demoMail, style: const TextStyle(fontSize: 12, color: mutedFg)),
-                              const SizedBox(height: 8),
-                              SelectableText(
-                                store.lastOtpCode ?? "",
-                                style: const TextStyle(fontSize: 28, letterSpacing: 8, fontWeight: FontWeight.w700, color: navy),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                         const SizedBox(height: 12),
                         Text(t.code, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
@@ -208,70 +261,22 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           if (codeStep) ...[
                             FilledButton(
-                              onPressed: code.text.trim().length < 6
-                                  ? null
-                                  : () {
-                                      setState(() => error = null);
-                                      try {
-                                        store.verifyOtp(email.text, code.text);
-                                      } catch (e) {
-                                        setState(() => error = t.error(e.toString()));
-                                      }
-                                    },
-                              child: Text(t.confirm),
+                              onPressed: busy || code.text.trim().length < 6 ? null : confirm,
+                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.confirm),
                             ),
                             OutlinedButton(
-                              onPressed: () {
-                                setState(() => error = null);
-                                try {
-                                  store.requestOtp(email.text);
-                                } catch (e) {
-                                  setState(() => error = t.error(e.toString()));
-                                }
-                              },
+                              onPressed: busy ? null : () => sendCode(create: false),
                               child: Text(t.resend),
                             ),
                           ] else if (signup)
                             FilledButton(
-                              onPressed: email.text.trim().isEmpty
-                                  ? null
-                                  : () {
-                                      setState(() => error = null);
-                                      try {
-                                        store.register(
-                                          email: email.text,
-                                          name: name.text,
-                                          employeeNo: employeeNo.text,
-                                          jobTitle: jobTitle.text,
-                                          departmentId: departmentId,
-                                        );
-                                        setState(() => codeStep = true);
-                                      } catch (e) {
-                                        setState(() {
-                                          error = t.error(e.toString());
-                                          if (e.toString() == "notFoundEmail") signup = true;
-                                        });
-                                      }
-                                    },
-                              child: Text(t.createAndSend),
+                              onPressed: busy || email.text.trim().isEmpty ? null : () => sendCode(create: true),
+                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.createAndSend),
                             )
                           else
                             FilledButton(
-                              onPressed: email.text.trim().isEmpty
-                                  ? null
-                                  : () {
-                                      setState(() => error = null);
-                                      try {
-                                        store.requestOtp(email.text);
-                                        setState(() => codeStep = true);
-                                      } catch (e) {
-                                        setState(() {
-                                          error = t.error(e.toString());
-                                          if (e.toString() == "notFoundEmail") signup = true;
-                                        });
-                                      }
-                                    },
-                              child: Text(t.sendCode),
+                              onPressed: busy || email.text.trim().isEmpty ? null : () => sendCode(create: false),
+                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.sendCode),
                             ),
                         ],
                       ),

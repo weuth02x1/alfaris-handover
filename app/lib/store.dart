@@ -6,6 +6,7 @@ import "package:material_ui/material_ui.dart";
 
 import "directory.dart";
 import "i18n.dart";
+import "mail_api.dart";
 import "models.dart";
 
 class InboxItem {
@@ -56,6 +57,8 @@ class AppStore extends ChangeNotifier {
   Employee? user;
   String? lastOtpEmail;
   String? lastOtpCode;
+  String? otpChallenge;
+  bool otpDelivered = false;
 
   late List<Employee> accounts;
   final handovers = <Handover>[];
@@ -109,19 +112,35 @@ class AppStore extends ChangeNotifier {
 
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
 
-  String requestOtp(String email) {
+  Future<void> requestOtp(String email) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
-    return _issueOtp(emp);
+    if (MailApi.enabled) {
+      try {
+        final sent = await MailApi.request(emp.email);
+        otpChallenge = sent.challenge;
+        lastOtpEmail = emp.email;
+        lastOtpCode = null;
+        otpDelivered = true;
+        notifyListeners();
+        return;
+      } catch (error) {
+        final code = error.toString().replaceFirst("Exception: ", "");
+        if (code == "slow" || code == "invalid") throw WorkflowException(code);
+        _issueOtp(emp);
+        throw WorkflowException("mailFailed");
+      }
+    }
+    _issueOtp(emp);
   }
 
-  String register({
+  Future<void> register({
     required String email,
     required String name,
     required String employeeNo,
     required String jobTitle,
     required String departmentId,
-  }) {
+  }) async {
     final mail = email.trim().toLowerCase();
     final n = name.trim();
     final no = employeeNo.trim();
@@ -157,7 +176,7 @@ class AppStore extends ChangeNotifier {
       role: "employee",
     );
     accounts.add(emp);
-    return _issueOtp(emp);
+    await requestOtp(emp.email);
   }
 
   bool _isEmail(String value) => RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(value) && value.length <= 160;
@@ -175,6 +194,8 @@ class AppStore extends ChangeNotifier {
     );
     lastOtpEmail = emp.email;
     lastOtpCode = code;
+    otpChallenge = null;
+    otpDelivered = false;
     outbox.add(
       EmailMessage(
         id: _id(),
@@ -191,9 +212,22 @@ class AppStore extends ChangeNotifier {
     return code;
   }
 
-  void verifyOtp(String email, String code) {
+  Future<void> verifyOtp(String email, String code) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
+    if (MailApi.enabled && otpChallenge != null) {
+      try {
+        await MailApi.verify(emp.email, code.trim(), otpChallenge!);
+      } catch (error) {
+        final mapped = error.toString().replaceFirst("Exception: ", "");
+        throw WorkflowException(["badCode", "expired", "slow", "mailFailed"].contains(mapped) ? mapped : "badCode");
+      }
+      user = emp;
+      lastOtpCode = null;
+      otpChallenge = null;
+      notifyListeners();
+      return;
+    }
     OtpChallenge? otp;
     for (final o in otps) {
       if (o.email == emp.email.toLowerCase()) otp = o;

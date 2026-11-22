@@ -4,11 +4,11 @@ import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("OTP sign-in then full clearance cycle", () {
+  test("OTP sign-in then full clearance cycle", () async {
     final store = AppStore();
-    store.requestOtp("hind.alghamdi@alfaris.example");
+    await store.requestOtp("hind.alghamdi@alfaris.example");
     expect(store.lastOtpCode, hasLength(6));
-    store.verifyOtp("hind.alghamdi@alfaris.example", store.lastOtpCode!);
+    await store.verifyOtp("hind.alghamdi@alfaris.example", store.lastOtpCode!);
     expect(store.user?.id, "30115");
 
     final id = store.initiateClearance(store.user!, "ANN-2026-0412");
@@ -48,21 +48,18 @@ void main() {
     expect(store.handover(id)!.documentHash, isNotNull);
   });
 
-  test("signup and OTP work for a new personal email", () {
+  test("signup and OTP work for a new personal email", () async {
     final store = AppStore();
-    expect(
-      () => store.requestOtp("shahad0x66@gmail.com"),
-      throwsA(isA<WorkflowException>()),
-    );
-    final code = store.register(
+    await expectLater(store.requestOtp("shahad0x66@gmail.com"), throwsA(isA<WorkflowException>()));
+    await store.register(
       email: "shahad0x66@gmail.com",
       name: "شهد عبدالله",
       employeeNo: "50901",
       jobTitle: "أخصائية موارد بشرية",
       departmentId: "D-HR",
     );
-    expect(code, hasLength(6));
-    store.verifyOtp("shahad0x66@gmail.com", code);
+    expect(store.lastOtpCode, hasLength(6));
+    await store.verifyOtp("shahad0x66@gmail.com", store.lastOtpCode!);
     expect(store.user?.email, "shahad0x66@gmail.com");
   });
 }
