@@ -86,7 +86,9 @@ class AppStore extends ChangeNotifier {
   }
 
   String _now() => DateTime.now().toUtc().toIso8601String();
-  String _id() => "${DateTime.now().microsecondsSinceEpoch}-${_rng.nextInt(1 << 32)}";
+  // Bit shifts of 32 are 0 on the web (JS), so keep this under 2^31.
+  String _id() =>
+      "${DateTime.now().microsecondsSinceEpoch}-${_rng.nextInt(0x7fffffff)}-${_rng.nextInt(0x7fffffff)}";
   String _code() => (_rng.nextInt(900000) + 100000).toString();
 
   Employee? findByEmail(String email) {

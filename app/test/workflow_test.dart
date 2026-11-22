@@ -47,4 +47,22 @@ void main() {
     expect(store.handover(id)!.status, "approved");
     expect(store.handover(id)!.documentHash, isNotNull);
   });
+
+  test("signup and OTP work for a new personal email", () {
+    final store = AppStore();
+    expect(
+      () => store.requestOtp("shahad0x66@gmail.com"),
+      throwsA(isA<WorkflowException>()),
+    );
+    final code = store.register(
+      email: "shahad0x66@gmail.com",
+      name: "شهد عبدالله",
+      employeeNo: "50901",
+      jobTitle: "أخصائية موارد بشرية",
+      departmentId: "D-HR",
+    );
+    expect(code, hasLength(6));
+    store.verifyOtp("shahad0x66@gmail.com", code);
+    expect(store.user?.email, "shahad0x66@gmail.com");
+  });
 }
