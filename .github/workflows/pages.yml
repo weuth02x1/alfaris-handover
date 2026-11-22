@@ -39,12 +39,7 @@ jobs:
           DEFINES="--dart-define=SUPABASE_URL=$URL"
           if [ -n "$SUPABASE_ANON_KEY" ]; then
             DEFINES="$DEFINES --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-            python3 - <<'PY'
-import json, os
-url = os.environ.get("SUPABASE_URL") or "https://sfshhcfjowiptefesqgp.supabase.co"
-key = os.environ["SUPABASE_ANON_KEY"]
-open("web/supabase.json", "w").write(json.dumps({"url": url, "anonKey": key}))
-PY
+            python3 -c 'import json,os; open("web/supabase.json","w").write(json.dumps({"url": os.environ.get("SUPABASE_URL") or "https://sfshhcfjowiptefesqgp.supabase.co", "anonKey": os.environ["SUPABASE_ANON_KEY"]}))'
           fi
           flutter build web --release --base-href /alfaris-handover/ $DEFINES
           if [ -f web/supabase.json ]; then
