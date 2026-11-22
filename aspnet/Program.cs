@@ -48,8 +48,14 @@ app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
-    app.UseHttpsRedirection();
+    // Only redirect HTTP→443 when IIS (or a TLS proxy) is terminating HTTPS.
+    // A blind redirect sends browsers to handover.alfarisgrp.com:443, which
+    // currently serves *.websitewelcome.com and Chrome flags as Not Secure.
+    if (hostedByIis)
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
 }
 app.UseCookiePolicy();
 app.Use(async (ctx, next) =>
@@ -80,5 +86,7 @@ app.Use(async (ctx, next) =>
     await next();
 });
 app.MapGet("/healthz", () => Results.Text("ok"));
+app.MapGet("/.well-known/acme-challenge/{token}", (string token, SiteSettings settings) =>
+    settings.AcmeChallenge(token));
 app.MapRazorPages();
 app.Run();

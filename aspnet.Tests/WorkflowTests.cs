@@ -72,9 +72,26 @@ public class WorkflowTests
             MailFrom = "me@gmail.com",
             SupabaseUrl = "not-a-url"
         });
-        Assert.Equal("https://handover.alfarisgrp.com", saved.SiteUrl);
+        Assert.Equal(SiteSettings.PublicUrl, saved.SiteUrl);
         Assert.Contains("alfarisgrp.com", saved.MailFrom);
         Assert.Equal(AuthMail.ProjectUrl, saved.SupabaseUrl);
+
+        var www = SiteSettings.Normalize(new SiteOptions
+        {
+            SiteUrl = "https://www.alfarisgrp.com/handover",
+            MailFrom = "Alfaris Group <noreply@alfarisgrp.com>",
+            SupabaseUrl = AuthMail.ProjectUrl
+        });
+        Assert.Equal(SiteSettings.PublicUrl, www.SiteUrl);
+    }
+
+    [Fact]
+    public void WebsiteWelcomeCertDoesNotCoverHandoverHost()
+    {
+        Assert.False(SiteSettings.DnsNameMatches("*.websitewelcome.com", "handover.alfarisgrp.com"));
+        Assert.True(SiteSettings.DnsNameMatches("*.websitewelcome.com", "foo.websitewelcome.com"));
+        Assert.True(SiteSettings.DnsNameMatches("handover.alfarisgrp.com", "handover.alfarisgrp.com"));
+        Assert.True(SiteSettings.DnsNameMatches("*.alfarisgrp.com", "handover.alfarisgrp.com"));
     }
 
     [Fact]

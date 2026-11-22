@@ -18,6 +18,13 @@ public class SettingsModel(HandoverStore store, LocaleService locale, SiteSettin
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         if (!CurrentUser.IsHr) return RedirectToPage("/Index");
+        var pinned = settings.Current;
+        settings.Save(new SiteOptions
+        {
+            SiteUrl = SiteSettings.PublicUrl,
+            MailFrom = string.IsNullOrWhiteSpace(MailFrom) ? pinned.MailFrom : MailFrom,
+            SupabaseUrl = string.IsNullOrWhiteSpace(SupabaseUrl) ? pinned.SupabaseUrl : SupabaseUrl
+        });
         var current = settings.Current;
         SiteUrl = current.SiteUrl;
         MailFrom = current.MailFrom;

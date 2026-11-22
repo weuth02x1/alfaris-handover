@@ -3,6 +3,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Alfaris.Handover.Services;
 
@@ -18,23 +19,30 @@ public class DomainReport
     public string Host { get; set; } = "";
     public string Ip { get; set; } = "";
     public string CertificateCn { get; set; } = "";
+    public string CertificateSans { get; set; } = "";
     public bool CertificateMatches { get; set; }
     public bool PointsAtLegacyCpanel { get; set; }
+    public bool Secure { get; set; }
     public string SummaryAr { get; set; } = "";
     public string SummaryEn { get; set; } = "";
 }
 
 public class SiteSettings
 {
+    public const string PublicUrl = "https://handover.alfarisgrp.com";
     static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
     readonly object _gate = new();
     readonly string _path;
+    readonly string _acmeDir;
     SiteOptions _current;
 
     public SiteSettings(IWebHostEnvironment env)
     {
         var dir = Path.Combine(env.ContentRootPath, "App_Data");
         Directory.CreateDirectory(dir);
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        _acmeDir = Path.Combine(webRoot, ".well-known", "acme-challenge");
+        Directory.CreateDirectory(_acmeDir);
         _path = Path.Combine(dir, "settings.json");
         _current = Load() ?? new SiteOptions();
         Save(_current);
@@ -57,13 +65,12 @@ public class SiteSettings
 
     public static SiteOptions Normalize(SiteOptions input)
     {
-        var site = (input.SiteUrl ?? "").Trim().TrimEnd('/');
-        if (!Uri.TryCreate(site, UriKind.Absolute, out var uri) || uri.Scheme != "https")
-            site = "https://handover.alfarisgrp.com";
-        else if (!uri.Host.EndsWith("alfarisgrp.com", StringComparison.OrdinalIgnoreCase))
-            site = "https://handover.alfarisgrp.com";
-        else
-            site = $"https://{uri.Host}";
+        var site = PublicUrl;
+        var raw = (input.SiteUrl ?? "").Trim().TrimEnd('/');
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var uri) &&
+            uri.Scheme == "https" &&
+            uri.Host.Equals("handover.alfarisgrp.com", StringComparison.OrdinalIgnoreCase))
+            site = PublicUrl;
 
         var from = (input.MailFrom ?? "").Trim();
         if (string.IsNullOrWhiteSpace(from) || !from.Contains("@alfarisgrp.com", StringComparison.OrdinalIgnoreCase))
@@ -74,6 +81,16 @@ public class SiteSettings
             supabase = AuthMail.ProjectUrl;
 
         return new SiteOptions { SiteUrl = site, MailFrom = from, SupabaseUrl = supabase };
+    }
+
+    public IResult AcmeChallenge(string token)
+    {
+        if (!Regex.IsMatch(token, "^[A-Za-z0-9_-]{1,256}$")) return Results.NotFound();
+        var path = Path.GetFullPath(Path.Combine(_acmeDir, token));
+        var root = Path.GetFullPath(_acmeDir);
+        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) || !File.Exists(path))
+            return Results.NotFound();
+        return Results.File(path, "text/plain");
     }
 
     public async Task<DomainReport> ProbeAsync(CancellationToken ct = default)
@@ -102,9 +119,10 @@ public class SiteSettings
             if (ssl.RemoteCertificate is not null)
             {
                 using var cert = new X509Certificate2(ssl.RemoteCertificate);
-                report.CertificateCn = cert.GetNameInfo(X509NameType.DnsName, false);
-                if (string.IsNullOrWhiteSpace(report.CertificateCn)) report.CertificateCn = cert.Subject;
-                report.CertificateMatches = HostMatches(cert, host);
+                var names = SubjectNames(cert);
+                report.CertificateCn = names.FirstOrDefault() ?? cert.Subject;
+                report.CertificateSans = string.Join(", ", names);
+                report.CertificateMatches = names.Any(name => DnsNameMatches(name, host));
             }
         }
         catch (Exception ex)
@@ -112,15 +130,19 @@ public class SiteSettings
             report.CertificateCn = ex.GetType().Name;
         }
 
-        if (report.CertificateMatches && !report.PointsAtLegacyCpanel)
+        report.Secure = report.CertificateMatches;
+        if (report.CertificateMatches)
         {
             report.SummaryAr = "الشهادة تطابق الدومين. HTTPS آمن.";
             report.SummaryEn = "The certificate matches the domain. HTTPS is secure.";
         }
-        else if (report.PointsAtLegacyCpanel)
+        else if (DnsNameMatches("*.websitewelcome.com", report.CertificateCn) ||
+                 report.CertificateSans.Contains("websitewelcome.com", StringComparison.OrdinalIgnoreCase))
         {
-            report.SummaryAr = $"الدومين ما زال على cPanel ({report.Ip}). الشهادة {report.CertificateCn} لذلك كروم يقول غير آمن. وجّه DNS لسيرفر IIS وأصدر Let's Encrypt للاسم {host}.";
-            report.SummaryEn = $"The domain still points at cPanel ({report.Ip}). Certificate {report.CertificateCn} so Chrome says Not Secure. Point DNS at IIS and issue Let's Encrypt for {host}.";
+            report.SummaryAr =
+                $"كروم يقول غير آمن لأن الشهادة {report.CertificateCn} لا تغطي {host}. شهادة Let's Encrypt على نفس السيرفر تغطي الموقع الرئيسي بدون اسم handover.";
+            report.SummaryEn =
+                $"Chrome says Not Secure because the certificate {report.CertificateCn} does not cover {host}. Let's Encrypt on the same server covers the main site, not handover.";
         }
         else
         {
@@ -143,10 +165,11 @@ public class SiteSettings
         }
     }
 
-    static bool HostMatches(X509Certificate2 cert, string host)
+    public static IReadOnlyList<string> SubjectNames(X509Certificate2 cert)
     {
+        var names = new List<string>();
         var cn = cert.GetNameInfo(X509NameType.DnsName, false);
-        if (DnsMatch(cn, host)) return true;
+        if (!string.IsNullOrWhiteSpace(cn)) names.Add(cn.Trim());
         foreach (var ext in cert.Extensions)
         {
             if (ext.Oid?.Value != "2.5.29.17") continue;
@@ -155,15 +178,16 @@ public class SiteSettings
                 var name = part.Replace("DNS Name:", "", StringComparison.OrdinalIgnoreCase)
                     .Replace("DNS:", "", StringComparison.OrdinalIgnoreCase)
                     .Trim();
-                if (DnsMatch(name, host)) return true;
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                if (!names.Contains(name, StringComparer.OrdinalIgnoreCase)) names.Add(name);
             }
         }
-        return false;
+        return names;
     }
 
-    static bool DnsMatch(string pattern, string host)
+    public static bool DnsNameMatches(string pattern, string host)
     {
-        if (string.IsNullOrWhiteSpace(pattern)) return false;
+        if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(host)) return false;
         if (pattern.Equals(host, StringComparison.OrdinalIgnoreCase)) return true;
         return pattern.StartsWith("*.", StringComparison.Ordinal) &&
                host.EndsWith(pattern[1..], StringComparison.OrdinalIgnoreCase) &&

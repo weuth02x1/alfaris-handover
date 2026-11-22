@@ -24,7 +24,7 @@ public class LocaleService
     public string NavHr => Pick("لوحة الموارد البشرية", "HR console");
     public string NavSettings => Pick("الإعدادات", "Settings");
     public string SettingsTitle => Pick("إعدادات الموقع والبريد", "Site and mail settings");
-    public string SettingsSubtitle => Pick("الدومين، عنوان المرسل، ومشروع Supabase. المفاتيح تبقى في بيئة السيرفر ولا تُحفظ هنا.", "Domain, From address, and the Supabase project. Keys stay in server environment variables and are not stored here.");
+    public string SettingsSubtitle => Pick("رابط الموقع ثابت على handover.alfarisgrp.com، والمرسل على دومين المجموعة، ومشروع Supabase الحالي. المفاتيح تبقى في بيئة السيرفر.", "Site URL stays on handover.alfarisgrp.com, From stays on the company domain, and the current Supabase project. Keys stay in the server environment.");
     public string SettingsSaved => Pick("تم حفظ الإعدادات.", "Settings saved.");
     public string SettingsKeysHint => Pick("على IIS عيّن SUPABASE_ANON_KEY وRESEND_API_KEY. في لوحة Supabase: Site URL هو رابط الموقع أعلاه، SMTP = Resend، From على دومين المجموعة.", "On IIS set SUPABASE_ANON_KEY and RESEND_API_KEY. In Supabase: Site URL is the address above, SMTP is Resend, From is the company domain.");
     public string NavOutbox => Pick("صندوق البريد", "Mail outbox");

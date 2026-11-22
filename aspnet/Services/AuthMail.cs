@@ -35,7 +35,7 @@ public class OtpBox
 public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogger<AuthMail> log, SiteSettings settings)
 {
     public const string ProjectUrl = "https://sfshhcfjowiptefesqgp.supabase.co";
-    public const string SiteUrl = "https://handover.alfarisgrp.com";
+    public const string SiteUrl = SiteSettings.PublicUrl;
 
     public bool Enabled => HasSupabase || HasResend || HasSmtp;
     public string Channel => HasSupabase ? "supabase" : HasResend ? "resend" : HasSmtp ? "smtp" : "none";
