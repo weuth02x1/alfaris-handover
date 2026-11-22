@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getIdentity } from "../../../cursor/identity";
 import { setLanguage } from "@/app/actions";
 import { BrandLockup } from "@/components/brand-lockup";
 import { LoginForm } from "@/components/login-form";
@@ -10,7 +12,10 @@ import { safeNext } from "@/lib/safe-next";
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
   const next = safeNext(typeof sp.next === "string" ? sp.next : "/");
-  const initialEmail = typeof sp.email === "string" ? sp.email : "";
+  const identity = await getIdentity(await headers());
+  const viewerEmail =
+    identity.verified && identity.kind !== "key" && identity.email ? identity.email : "";
+  const initialEmail = typeof sp.email === "string" ? sp.email : viewerEmail;
   const user = await currentUser();
   if (user && (!initialEmail || initialEmail.toLowerCase() === user.email.toLowerCase())) redirect(next);
 

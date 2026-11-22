@@ -6,7 +6,6 @@ import "package:material_ui/material_ui.dart";
 
 import "directory.dart";
 import "i18n.dart";
-import "mail_api.dart";
 import "models.dart";
 
 class InboxItem {
@@ -115,22 +114,6 @@ class AppStore extends ChangeNotifier {
   Future<void> requestOtp(String email) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
-    if (MailApi.enabled) {
-      try {
-        final sent = await MailApi.request(emp.email);
-        otpChallenge = sent.challenge;
-        lastOtpEmail = emp.email;
-        lastOtpCode = null;
-        otpDelivered = true;
-        notifyListeners();
-        return;
-      } catch (error) {
-        final code = error.toString().replaceFirst("Exception: ", "");
-        if (code == "slow" || code == "invalid") throw WorkflowException(code);
-        _issueOtp(emp);
-        throw WorkflowException("mailFailed");
-      }
-    }
     _issueOtp(emp);
   }
 
@@ -215,19 +198,6 @@ class AppStore extends ChangeNotifier {
   Future<void> verifyOtp(String email, String code) async {
     final emp = findByEmail(email);
     if (emp == null) throw WorkflowException("notFoundEmail");
-    if (MailApi.enabled && otpChallenge != null) {
-      try {
-        await MailApi.verify(emp.email, code.trim(), otpChallenge!);
-      } catch (error) {
-        final mapped = error.toString().replaceFirst("Exception: ", "");
-        throw WorkflowException(["badCode", "expired", "slow", "mailFailed"].contains(mapped) ? mapped : "badCode");
-      }
-      user = emp;
-      lastOtpCode = null;
-      otpChallenge = null;
-      notifyListeners();
-      return;
-    }
     OtpChallenge? otp;
     for (final o in otps) {
       if (o.email == emp.email.toLowerCase()) otp = o;

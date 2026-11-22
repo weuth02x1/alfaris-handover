@@ -1,14 +1,14 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getIdentity } from "../../cursor/identity";
 import { safeNext } from "@/lib/safe-next";
 import { flushOutbox } from "@/lib/mail";
 import { appOrigin } from "@/lib/origin";
 import { requestOtp, verifyOtp } from "@/lib/otp";
 import { registerAccount, type SignupInput } from "@/lib/people";
+import { signedInViewer } from "@/lib/viewer";
 import { currentUser, endSession, startSession } from "@/lib/session";
 import { EXIT_REASONS, type ExitReason } from "@/lib/types";
 import {
@@ -50,16 +50,11 @@ async function actor() {
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
-async function callerId() {
-  const identity = await getIdentity(await headers());
-  return identity.verified ? identity.sub : "";
-}
-
 export async function requestOtpAction(email: string) {
   try {
-    const caller = await callerId();
-    if (!caller) return { ok: false as const, error: "mailFailed" as const };
-    return await requestOtp(email, caller);
+    const viewer = await signedInViewer();
+    if (!viewer) return { ok: false as const, error: "mailFailed" as const };
+    return await requestOtp(email, viewer);
   } catch {
     return { ok: false as const, error: "mailFailed" as const };
   }
@@ -67,20 +62,23 @@ export async function requestOtpAction(email: string) {
 
 export async function registerAction(input: SignupInput) {
   try {
-    const caller = await callerId();
-    if (!caller) return { ok: false as const, error: "mailFailed" as const };
-    const created = await registerAccount({
-      email: input.email,
-      name: input.name,
-      employeeNo: input.employeeNo,
-      jobTitle: input.jobTitle,
-      departmentId: input.departmentId,
-    });
+    const viewer = await signedInViewer();
+    if (!viewer) return { ok: false as const, error: "mailFailed" as const };
+    const created = await registerAccount(
+      {
+        email: input.email,
+        name: input.name,
+        employeeNo: input.employeeNo,
+        jobTitle: input.jobTitle,
+        departmentId: input.departmentId,
+      },
+      viewer,
+    );
     if (!created.ok) {
-      if (created.error === "emailTaken") return await requestOtp(input.email, caller);
+      if (created.error === "emailTaken") return await requestOtp(input.email, viewer);
       return created;
     }
-    return await requestOtp(created.employee.email, caller);
+    return await requestOtp(created.employee.email, viewer);
   } catch {
     return { ok: false as const, error: "mailFailed" as const };
   }

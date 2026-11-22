@@ -17,6 +17,8 @@ export interface Employee {
   role: Role;
   /** Typed employee number for a sign-in account. Directory ids stay on `id`. */
   staffNumber?: string;
+  /** Cursor viewer who created this local sign-in account. */
+  viewerSub?: string;
 }
 
 export const EXIT_REASONS = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"] as const;

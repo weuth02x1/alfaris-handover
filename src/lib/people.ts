@@ -4,6 +4,7 @@ import { mutate, readDb } from "@/lib/db";
 import { hr } from "@/lib/hr";
 import { mockEmployees } from "@/lib/hr/mock-data";
 import type { Employee } from "@/lib/types";
+import type { Viewer } from "@/lib/viewer";
 
 export const DEPARTMENTS = [
   {
@@ -107,6 +108,7 @@ function asLoginAccount(account: Employee): Employee {
     staffNumber: account.staffNumber ?? account.id,
     role: "employee",
     managerId: null,
+    viewerSub: account.viewerSub,
   };
 }
 
@@ -148,18 +150,19 @@ export type SignupResult =
   | { ok: true; employee: Employee }
   | { ok: false; error: "invalid" | "emailTaken" | "idTaken" | "slow" | "unavailable" };
 
-export async function registerAccount(input: SignupInput): Promise<SignupResult> {
+export async function registerAccount(input: SignupInput, viewer: Viewer): Promise<SignupResult> {
   const email = normalizeEmail(input.email);
   const name = input.name.trim();
   const employeeNo = input.employeeNo.trim();
   const jobTitle = input.jobTitle.trim();
   const department = DEPARTMENTS.find((item) => item.id === input.departmentId);
-  if (!isEmail(email) || name.length < 2 || name.length > 80) return { ok: false, error: "invalid" };
+  if (!isEmail(email) || email !== viewer.email || name.length < 2 || name.length > 80) return { ok: false, error: "invalid" };
   if (!/^\d{3,10}$/.test(employeeNo)) return { ok: false, error: "invalid" };
   if (jobTitle.length < 2 || jobTitle.length > 80) return { ok: false, error: "invalid" };
   if (!department) return { ok: false, error: "invalid" };
 
   const accounts = await loginAccounts();
+  if (accounts.some((person) => person.viewerSub === viewer.id)) return { ok: false, error: "emailTaken" };
   if (accounts.some((person) => person.email.toLowerCase() === email)) return { ok: false, error: "emailTaken" };
   if (accounts.some((person) => person.staffNumber === employeeNo)) return { ok: false, error: "idTaken" };
 
@@ -187,6 +190,7 @@ export async function registerAccount(input: SignupInput): Promise<SignupResult>
     managerId: null,
     email,
     role: "employee",
+    viewerSub: viewer.id,
   };
 
   const stored = await mutate((db) => {

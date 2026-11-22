@@ -3,6 +3,7 @@ import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { mutate, sessionKey } from "@/lib/db";
 import { deliver, mailConfigured } from "@/lib/mail";
 import { findByEmail, isEmail, normalizeEmail } from "@/lib/people";
+import type { Viewer } from "@/lib/viewer";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 const TTL_MS = 10 * 60 * 1000;
@@ -52,15 +53,15 @@ function prune(
   db.otpGuards = db.otpGuards.filter((item) => fresh(item.windowStart, now)).slice(-MAX_ROWS);
 }
 
-export async function requestOtp(emailInput: string, callerId: string): Promise<OtpRequestResult> {
+export async function requestOtp(emailInput: string, viewer: Viewer): Promise<OtpRequestResult> {
   const email = normalizeEmail(emailInput);
-  if (!isEmail(email) || !callerId.trim()) return { ok: false, error: "invalid" };
+  if (!isEmail(email) || !viewer.id.trim() || email !== viewer.email) return { ok: false, error: "invalid" };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const codeHash = await hashCode(code);
   const sentAt = new Date().toISOString();
   const now = Date.now();
-  const caller = callerId.trim();
+  const caller = viewer.id.trim();
 
   const allowed = await mutate((db) => {
     prune(db, now);

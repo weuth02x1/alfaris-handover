@@ -31,14 +31,7 @@ jobs:
         working-directory: flutter
       - name: Build web
         working-directory: flutter
-        env:
-          MAIL_API_URL: ${{ vars.MAIL_API_URL }}
-        run: |
-          DEFINES=""
-          if [ -n "$MAIL_API_URL" ]; then
-            DEFINES="--dart-define=MAIL_API_URL=$MAIL_API_URL"
-          fi
-          flutter build web --release --base-href /alfaris-handover/ $DEFINES
+        run: flutter build web --release --base-href /alfaris-handover/
       - run: touch build/web/.nojekyll
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3
