@@ -24,9 +24,9 @@ public class LocaleService
     public string NavHr => Pick("لوحة الموارد البشرية", "HR console");
     public string NavSettings => Pick("الإعدادات", "Settings");
     public string SettingsTitle => Pick("إعدادات الموقع والبريد", "Site and mail settings");
-    public string SettingsSubtitle => Pick("رابط الموقع ثابت على handover.alfarisgrp.com، والمرسل على دومين المجموعة، ومشروع Supabase الحالي. المفاتيح تبقى في بيئة السيرفر.", "Site URL stays on handover.alfarisgrp.com, From stays on the company domain, and the current Supabase project. Keys stay in the server environment.");
+    public string SettingsSubtitle => Pick("الموقع يشتغل على HTTP من دون شهادة SSL. الرابط http://handover.alfarisgrp.com والمرسل على دومين المجموعة.", "The site runs on HTTP with no SSL certificate. The URL is http://handover.alfarisgrp.com and From stays on the company domain.");
     public string SettingsSaved => Pick("تم حفظ الإعدادات.", "Settings saved.");
-    public string SettingsKeysHint => Pick("على IIS عيّن SUPABASE_ANON_KEY وRESEND_API_KEY. في لوحة Supabase: Site URL هو رابط الموقع أعلاه، SMTP = Resend، From على دومين المجموعة.", "On IIS set SUPABASE_ANON_KEY and RESEND_API_KEY. In Supabase: Site URL is the address above, SMTP is Resend, From is the company domain.");
+    public string SettingsKeysHint => Pick("على IIS عيّن SUPABASE_ANON_KEY وRESEND_API_KEY. في لوحة Supabase: Site URL = http://handover.alfarisgrp.com وRedirect URLs لنفس الرابط.", "On IIS set SUPABASE_ANON_KEY and RESEND_API_KEY. In Supabase set Site URL to http://handover.alfarisgrp.com and the same host in Redirect URLs.");
     public string NavOutbox => Pick("صندوق البريد", "Mail outbox");
     public string NavLogout => Pick("تسجيل الخروج", "Sign out");
     public string NavLanguage => Pick("English", "العربية");

@@ -16,21 +16,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
-builder.Services.AddHsts(options =>
-{
-    options.MaxAge = TimeSpan.FromDays(365);
-    options.IncludeSubDomains = false;
-    options.Preload = false;
-});
-builder.Services.AddHttpsRedirection(options =>
-{
-    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
-    options.HttpsPort = 443;
-});
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.HttpOnly = HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.SameAsRequest;
+    options.Secure = CookieSecurePolicy.None;
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
 });
 builder.Services.AddRazorPages();
@@ -48,14 +37,6 @@ app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // Only redirect HTTP→443 when IIS (or a TLS proxy) is terminating HTTPS.
-    // A blind redirect sends browsers to handover.alfarisgrp.com:443, which
-    // currently serves *.websitewelcome.com and Chrome flags as Not Secure.
-    if (hostedByIis)
-    {
-        app.UseHsts();
-        app.UseHttpsRedirection();
-    }
 }
 app.UseCookiePolicy();
 app.Use(async (ctx, next) =>
@@ -69,8 +50,7 @@ app.Use(async (ctx, next) =>
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
         headers["Content-Security-Policy"] =
             "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'";
-        if (ctx.Request.IsHttps)
-            headers["Strict-Transport-Security"] = "max-age=31536000";
+        headers.Remove("Strict-Transport-Security");
         return Task.CompletedTask;
     });
     await next();

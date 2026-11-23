@@ -9,7 +9,7 @@ namespace Alfaris.Handover.Services;
 
 public class SiteOptions
 {
-    public string SiteUrl { get; set; } = "https://handover.alfarisgrp.com";
+    public string SiteUrl { get; set; } = "http://handover.alfarisgrp.com";
     public string MailFrom { get; set; } = "Alfaris Group <noreply@alfarisgrp.com>";
     public string SupabaseUrl { get; set; } = AuthMail.ProjectUrl;
 }
@@ -29,7 +29,8 @@ public class DomainReport
 
 public class SiteSettings
 {
-    public const string PublicUrl = "https://handover.alfarisgrp.com";
+    public const string PublicUrl = "http://handover.alfarisgrp.com";
+    public const string PublicHost = "handover.alfarisgrp.com";
     static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
     readonly object _gate = new();
     readonly string _path;
@@ -68,8 +69,8 @@ public class SiteSettings
         var site = PublicUrl;
         var raw = (input.SiteUrl ?? "").Trim().TrimEnd('/');
         if (Uri.TryCreate(raw, UriKind.Absolute, out var uri) &&
-            uri.Scheme == "https" &&
-            uri.Host.Equals("handover.alfarisgrp.com", StringComparison.OrdinalIgnoreCase))
+            uri.Host.Equals(PublicHost, StringComparison.OrdinalIgnoreCase) &&
+            (uri.Scheme == "http" || uri.Scheme == "https"))
             site = PublicUrl;
 
         var from = (input.MailFrom ?? "").Trim();
@@ -95,7 +96,8 @@ public class SiteSettings
 
     public async Task<DomainReport> ProbeAsync(CancellationToken ct = default)
     {
-        var host = new Uri(Current.SiteUrl).Host;
+        var site = new Uri(Current.SiteUrl);
+        var host = site.Host;
         var report = new DomainReport { Host = host };
         try
         {
@@ -106,6 +108,17 @@ public class SiteSettings
         catch
         {
             report.Ip = "";
+        }
+
+        if (site.Scheme == "http")
+        {
+            report.CertificateCn = "none";
+            report.CertificateSans = "";
+            report.CertificateMatches = false;
+            report.Secure = true;
+            report.SummaryAr = "الموقع يشتغل على HTTP من دون شهادة SSL. افتح http://handover.alfarisgrp.com";
+            report.SummaryEn = "The site runs on HTTP with no SSL certificate. Open http://handover.alfarisgrp.com";
+            return report;
         }
 
         try
@@ -135,14 +148,6 @@ public class SiteSettings
         {
             report.SummaryAr = "الشهادة تطابق الدومين. HTTPS آمن.";
             report.SummaryEn = "The certificate matches the domain. HTTPS is secure.";
-        }
-        else if (DnsNameMatches("*.websitewelcome.com", report.CertificateCn) ||
-                 report.CertificateSans.Contains("websitewelcome.com", StringComparison.OrdinalIgnoreCase))
-        {
-            report.SummaryAr =
-                $"كروم يقول غير آمن لأن الشهادة {report.CertificateCn} لا تغطي {host}. شهادة Let's Encrypt على نفس السيرفر تغطي الموقع الرئيسي بدون اسم handover.";
-            report.SummaryEn =
-                $"Chrome says Not Secure because the certificate {report.CertificateCn} does not cover {host}. Let's Encrypt on the same server covers the main site, not handover.";
         }
         else
         {

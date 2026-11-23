@@ -76,6 +76,14 @@ public class WorkflowTests
         Assert.Contains("alfarisgrp.com", saved.MailFrom);
         Assert.Equal(AuthMail.ProjectUrl, saved.SupabaseUrl);
 
+        var https = SiteSettings.Normalize(new SiteOptions
+        {
+            SiteUrl = "https://handover.alfarisgrp.com",
+            MailFrom = "Alfaris Group <noreply@alfarisgrp.com>",
+            SupabaseUrl = AuthMail.ProjectUrl
+        });
+        Assert.Equal("http://handover.alfarisgrp.com", https.SiteUrl);
+
         var www = SiteSettings.Normalize(new SiteOptions
         {
             SiteUrl = "https://www.alfarisgrp.com/handover",
@@ -83,6 +91,7 @@ public class WorkflowTests
             SupabaseUrl = AuthMail.ProjectUrl
         });
         Assert.Equal(SiteSettings.PublicUrl, www.SiteUrl);
+        Assert.StartsWith("http://", saved.SiteUrl);
     }
 
     [Fact]

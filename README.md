@@ -2,7 +2,7 @@
 
 نظام إخلاء الطرف وتسليم المهام. الرمز يُرسل من **سيرفر ASP.NET** إلى مشروع Supabase، وResend يوصّله على الإيميل. الرمز لا يظهر في الصفحة. التطبيق **لا يُرفع على Grok**.
 
-الدومين: `https://handover.alfarisgrp.com`
+الدومين: `http://handover.alfarisgrp.com` (من دون SSL)
 
 مشروع Auth: `https://sfshhcfjowiptefesqgp.supabase.co`
 
@@ -11,7 +11,7 @@
 المسار الوحيد للدخول الحقيقي:
 
 1. المستخدم يكتب إيميله في الموقع.
-2. السيرفر يستدعي `POST /auth/v1/otp` على مشروع Supabase مع `redirect_to=https://handover.alfarisgrp.com`.
+2. السيرفر يستدعي `POST /auth/v1/otp` على مشروع Supabase مع `redirect_to=http://handover.alfarisgrp.com`.
 3. SMTP داخل Supabase (Resend: `smtp.resend.com`) يرسل الرسالة. حقل From لازم يكون على دومين المجموعة بعد SPF/DKIM.
 4. المستخدم يكتب الرمز هنا. السيرفر يتحقق عبر `/auth/v1/verify`.
 
@@ -27,8 +27,8 @@
 
 في لوحة Supabase Authentication:
 
-- Site URL: `https://handover.alfarisgrp.com`
-- Redirect URLs: `https://handover.alfarisgrp.com/**`
+- Site URL: `http://handover.alfarisgrp.com`
+- Redirect URLs: `http://handover.alfarisgrp.com/**`
 - SMTP: Resend، ومن عنوان على `alfarisgrp.com` مو Grok.
 
 ## تشغيل محلي
@@ -43,9 +43,9 @@ dotnet run
 
 من غير مفاتيح البريد يظهر دخول تجريبي للتطوير فقط. مع المفاتيح، الرمز يجي على الإيميل.
 
-## HTTPS
+## HTTP من دون SSL
 
-التطبيق يثبت الرابط على `https://handover.alfarisgrp.com` ولا يحوّل HTTP إلى منفذ 443 إلا خلف IIS، حتى ما ينرمي المتصفح على شهادة `*.websitewelcome.com`. مسار `/.well-known/acme-challenge/` جاهز لملفات Let's Encrypt.
+الموقع يشتغل على `http://handover.alfarisgrp.com` بدون شهادة. التطبيق لا يحوّل إلى HTTPS ولا يرسل HSTS حتى ما ينرمي المتصفح على شهادة `*.websitewelcome.com`.
 
 ```bash
 cd aspnet
