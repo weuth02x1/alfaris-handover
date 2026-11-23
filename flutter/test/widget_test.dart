@@ -1,4 +1,5 @@
 import "dart:ui";
+
 import "package:alfaris_handover/main.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -12,12 +13,17 @@ void main() {
     expect(find.text("تسجيل الدخول"), findsOneWidget);
     expect(find.text("أرسل الرمز على الإيميل"), findsNothing);
     expect(find.textContaining("mailFailed"), findsNothing);
-    expect(find.text("ما قدرنا نرسل الرمز إلى هذا الإيميل. حاول مرة ثانية."), findsNothing);
-    expect(find.text("دخول تجريبي"), findsOneWidget);
+    expect(
+      find.text("ما قدرنا نرسل الرمز إلى هذا الإيميل. حاول مرة ثانية."),
+      findsNothing,
+    );
+    expect(find.text("حسابات محفوظة"), findsOneWidget);
     expect(find.text("نظام تسليم العهد والمهام"), findsWidgets);
   });
 
-  testWidgets("phone and laptop can start a request and open the calendar", (tester) async {
+  testWidgets("phone and laptop can start a request and open the calendar", (
+    tester,
+  ) async {
     for (final size in const [Size(390, 844), Size(1280, 800)]) {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));

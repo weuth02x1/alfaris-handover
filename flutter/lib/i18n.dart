@@ -51,10 +51,11 @@ class I18n {
   String get mailOffline => isAr
       ? "البريد غير مربوط على هذا الموقع حالياً. استخدم الدخول التجريبي أو أعد المحاولة لاحقاً."
       : "Mail is not connected on this site right now. Use sample sign-in or try again later.";
-  String get sampleTitle => isAr ? "دخول تجريبي" : "Sample sign-in";
+  String get sampleTitle => isAr ? "حسابات محفوظة" : "Saved accounts";
   String get sampleHint => isAr
-      ? "اختر موظفاً للدخول. إرسال الرمز على الإيميل غير متاح هنا."
-      : "Pick a staff member to sign in. Email codes are not available here.";
+      ? "اضغط الاسم وادخل مباشرة. الطلب يبقى في نفس الصفحة إذا بدّلت الحساب من هنا."
+      : "Tap a name to enter. The request stays on this page if you switch accounts here.";
+  String get switchAccount => isAr ? "تبديل الحساب" : "Switch account";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
@@ -192,7 +193,8 @@ class I18n {
       : "Waiting for your approval as direct manager";
   String get hrQueue =>
       isAr ? "نماذج بانتظار اعتماد الموارد البشرية" : "Waiting for HR approval";
-  String get raisedQueue => isAr ? "طلبات مرفوعة للموارد البشرية" : "Requests raised to HR";
+  String get raisedQueue =>
+      isAr ? "طلبات مرفوعة للموارد البشرية" : "Requests raised to HR";
   String get notices => isAr ? "إشعارات" : "Notices";
   String get acceptedByMe => isAr ? "مهام استلمتها" : "Tasks I took over";
   String get nothing => isAr

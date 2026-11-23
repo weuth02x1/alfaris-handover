@@ -54,20 +54,43 @@ class AppHeader extends StatelessWidget {
               final wide = box.maxWidth >= 1100;
               final roomy = box.maxWidth >= 1280;
               final brand = InkWell(
-                onTap: () => Navigator.of(context).pushNamedAndRemoveUntil("/", (_) => false),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil("/", (_) => false),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    BrandLockup(height: wide ? 40 : 28, markOnly: box.maxWidth < 700),
+                    BrandLockup(
+                      height: wide ? 40 : 28,
+                      markOnly: box.maxWidth < 700,
+                    ),
                     if (roomy) ...[
                       const SizedBox(width: 12),
-                      Container(width: 1, height: 28, color: gold.withValues(alpha: 0.7)),
+                      Container(
+                        width: 1,
+                        height: 28,
+                        color: gold.withValues(alpha: 0.7),
+                      ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(t.appName, style: const TextStyle(color: cream, fontWeight: FontWeight.w600, fontSize: 13)),
-                          const Text("ALFARIS HR", style: TextStyle(color: gold, fontSize: 10, letterSpacing: 1.6)),
+                          Text(
+                            t.appName,
+                            style: const TextStyle(
+                              color: cream,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const Text(
+                            "ALFARIS HR",
+                            style: TextStyle(
+                              color: gold,
+                              fontSize: 10,
+                              letterSpacing: 1.6,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -77,19 +100,48 @@ class AppHeader extends StatelessWidget {
               final nav = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _Nav(icon: Icons.inbox_outlined, label: t.navInbox, selected: current == "inbox", compact: !wide, onTap: () => Navigator.of(context).pushNamedAndRemoveUntil("/", (_) => false)),
+                  _Nav(
+                    icon: Icons.inbox_outlined,
+                    label: t.navInbox,
+                    selected: current == "inbox",
+                    compact: !wide,
+                    onTap: () =>
+                        Navigator.of(context)
+                            .pushNamedAndRemoveUntil("/", (_) => false),
+                  ),
                   if (user.isHr) ...[
                     const SizedBox(width: 4),
-                    _Nav(icon: Icons.verified_user_outlined, label: roomy ? t.navHr : t.navHrShort, selected: current == "hr", compact: !wide, onTap: () => Navigator.of(context).pushNamed("/hr")),
+                    _Nav(
+                      icon: Icons.verified_user_outlined,
+                      label: roomy ? t.navHr : t.navHrShort,
+                      selected: current == "hr",
+                      compact: !wide,
+                      onTap: () => Navigator.of(context).pushNamed("/hr"),
+                    ),
                   ],
                   const SizedBox(width: 4),
-                  _Nav(icon: Icons.mail_outline, label: t.navOutbox, selected: current == "outbox", compact: !wide, onTap: () => Navigator.of(context).pushNamed("/outbox")),
+                  _Nav(
+                    icon: Icons.mail_outline,
+                    label: t.navOutbox,
+                    selected: current == "outbox",
+                    compact: !wide,
+                    onTap: () => Navigator.of(context).pushNamed("/outbox"),
+                  ),
                 ],
               );
               final identity = Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(store.nameOf(user), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: cream, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(
+                    store.nameOf(user),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: cream,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   Text(
                     "${t.pick(user.jobTitleAr, user.jobTitleEn)} · ${t.pick(user.departmentAr, user.departmentEn)} · ${user.displayId}",
                     maxLines: 1,
@@ -107,14 +159,44 @@ class AppHeader extends StatelessWidget {
                   : TextButton.icon(
                       onPressed: store.toggleLocale,
                       icon: const Icon(Icons.language, color: cream, size: 16),
-                      label: Text(t.navLanguage, style: const TextStyle(color: cream)),
+                      label: Text(
+                        t.navLanguage,
+                        style: const TextStyle(color: cream),
+                      ),
                     );
+              final saved = store.people
+                  .where((p) => p.email.endsWith(".example"))
+                  .toList();
+              final switcher = PopupMenuButton<Employee>(
+                tooltip: t.switchAccount,
+                icon: const Icon(Icons.switch_account, color: cream, size: 20),
+                onSelected: (person) {
+                  store.signInForTest(person);
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil("/", (_) => false);
+                },
+                itemBuilder: (context) => [
+                  for (final person in saved)
+                    PopupMenuItem(
+                      value: person,
+                      child: Text(
+                        "${store.nameOf(person)} · ${person.displayId}",
+                      ),
+                    ),
+                ],
+              );
               final logout = wide
                   ? OutlinedButton.icon(
                       onPressed: store.logout,
                       icon: const Icon(Icons.logout, size: 16, color: cream),
-                      label: Text(t.navLogout, style: const TextStyle(color: cream)),
-                      style: OutlinedButton.styleFrom(side: BorderSide(color: gold.withValues(alpha: 0.5)), visualDensity: VisualDensity.compact),
+                      label: Text(
+                        t.navLogout,
+                        style: const TextStyle(color: cream),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: gold.withValues(alpha: 0.5)),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     )
                   : IconButton(
                       onPressed: store.logout,
@@ -131,13 +213,17 @@ class AppHeader extends StatelessWidget {
                         brand,
                         const Spacer(),
                         language,
+                        switcher,
                         logout,
                       ],
                     ),
                     const SizedBox(height: 4),
                     identity,
                     const SizedBox(height: 4),
-                    SingleChildScrollView(scrollDirection: Axis.horizontal, child: nav),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: nav,
+                    ),
                   ],
                 );
               }
@@ -151,6 +237,7 @@ class AppHeader extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(child: identity),
                     language,
+                    switcher,
                     const SizedBox(width: 8),
                     logout,
                   ],
@@ -189,7 +276,10 @@ class _Nav extends StatelessWidget {
       ),
       label: Text(
         label,
-        style: TextStyle(color: cream.withValues(alpha: selected ? 1 : 0.8), fontSize: compact ? 12 : 14),
+        style: TextStyle(
+          color: cream.withValues(alpha: selected ? 1 : 0.8),
+          fontSize: compact ? 12 : 14,
+        ),
       ),
       style: TextButton.styleFrom(
         visualDensity: VisualDensity.compact,

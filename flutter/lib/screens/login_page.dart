@@ -231,6 +231,36 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                       const SizedBox(height: 20),
+                      Text(
+                        t.sampleTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: navy,
+                        ),
+                      ),
+                      if (AuthMail.enabled) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          t.sampleHint,
+                          style: const TextStyle(color: mutedFg, fontSize: 13),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      for (final person in store.people.where(
+                        (p) => p.email.endsWith(".example"),
+                      ))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: OutlinedButton(
+                            onPressed: () => store.signInForTest(person),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Text(
+                                "${store.nameOf(person)} · ${person.displayId} · ${person.email}",
+                              ),
+                            ),
+                          ),
+                        ),
                       if (AuthMail.enabled) ...[
                         Text(
                           t.email,
@@ -523,29 +553,6 @@ class _LoginPageState extends State<LoginPage> {
                             }),
                             child: Text(
                               signup ? t.haveAccount : t.createAccount,
-                            ),
-                          ),
-                      ],
-                      if (!AuthMail.enabled) ...[
-                        Text(
-                          t.sampleTitle,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: navy,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        for (final person in store.people)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: OutlinedButton(
-                              onPressed: () => store.signInForTest(person),
-                              child: Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  "${store.nameOf(person)} · ${person.displayId} · ${person.email}",
-                                ),
-                              ),
                             ),
                           ),
                       ],
