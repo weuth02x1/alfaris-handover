@@ -19,6 +19,8 @@
 
 إذا ما انضبط مفتاح Supabase، السيرفر يستخدم `RESEND_API_KEY` مباشرة (ومن `noreply@alfarisgrp.com` أو `RESEND_FROM`)، أو SMTP الشركة.
 
+GitHub Pages يبني التطبيق بدون سيرفر، لذلك يحتاج **Publishable key** من Supabase كسرّ GitHub اسمه `SUPABASE_ANON_KEY` (نفس القيمة المحفوظة في أسرار Cursor). لا تضع القيمة في المحادثة: من [أسرار المستودع](https://github.com/weuth02x1/alfaris-handover/settings/secrets/actions) → New repository secret.
+
 على IIS عيّن هذه المتغيرات (القيم من لوحة Cursor / Supabase / Resend، مو داخل الملفات):
 
 - `SUPABASE_URL`
