@@ -20,6 +20,9 @@ class _LoginPageState extends State<LoginPage> {
   final jobTitle = TextEditingController();
   final code = TextEditingController();
   String departmentId = "D-HR";
+  String managesDepartmentId = "D-HR";
+  String managerId = "";
+  bool isManager = false;
   bool signup = false;
   bool codeStep = false;
   bool busy = false;
@@ -58,6 +61,9 @@ class _LoginPageState extends State<LoginPage> {
           employeeNo: employeeNo.text,
           jobTitle: jobTitle.text,
           departmentId: departmentId,
+          managerId: managerId,
+          isManager: isManager,
+          managesDepartmentId: managesDepartmentId,
         );
       } else {
         await store.requestOtp(email.text);
@@ -231,36 +237,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      Text(
-                        t.sampleTitle,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: navy,
-                        ),
-                      ),
-                      if (AuthMail.enabled) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          t.sampleHint,
-                          style: const TextStyle(color: mutedFg, fontSize: 13),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      for (final person in store.people.where(
-                        (p) => p.email.endsWith(".example"),
-                      ))
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: OutlinedButton(
-                            onPressed: () => store.signInForTest(person),
-                            child: Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: Text(
-                                "${store.nameOf(person)} · ${person.displayId} · ${person.email}",
-                              ),
-                            ),
-                          ),
-                        ),
                       if (AuthMail.enabled) ...[
                         Text(
                           t.email,
@@ -430,10 +406,103 @@ class _LoginPageState extends State<LoginPage> {
                                       label: t.deptIt,
                                     ),
                                   ],
-                                  onSelected: (v) => setState(
-                                    () => departmentId = v ?? "D-HR",
+                                  onSelected: (v) => setState(() {
+                                    departmentId = v ?? "D-HR";
+                                    final allowed = store
+                                        .managersFor(departmentId)
+                                        .map((p) => p.id);
+                                    if (!allowed.contains(managerId)) {
+                                      managerId = "";
+                                    }
+                                  }),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  t.directManager,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<String>(
+                                  initialValue:
+                                      store
+                                          .managersFor(departmentId)
+                                          .any((p) => p.id == managerId)
+                                      ? managerId
+                                      : "",
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: "",
+                                      child: Text(t.noManager),
+                                    ),
+                                    for (final person in store.managersFor(
+                                      departmentId,
+                                    ))
+                                      DropdownMenuItem(
+                                        value: person.id,
+                                        child: Text(
+                                          "${store.nameOf(person)} · ${person.displayId} · ${t.pick(person.jobTitleAr, person.jobTitleEn)}",
+                                        ),
+                                      ),
+                                  ],
+                                  onChanged: (v) =>
+                                      setState(() => managerId = v ?? ""),
+                                ),
+                                if (store
+                                    .managersFor(departmentId)
+                                    .isEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    t.noManagerYet,
+                                    style: const TextStyle(
+                                      color: mutedFg,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                                CheckboxListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  value: isManager,
+                                  title: Text(t.isDirectManager),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  onChanged: (v) =>
+                                      setState(() => isManager = v ?? false),
+                                ),
+                                if (isManager) ...[
+                                  Text(
+                                    t.managesDepartment,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  DropdownMenu<String>(
+                                    key: ValueKey(managesDepartmentId),
+                                    initialSelection: managesDepartmentId,
+                                    expandedInsets: EdgeInsets.zero,
+                                    dropdownMenuEntries: [
+                                      DropdownMenuEntry(
+                                        value: "D-HR",
+                                        label: t.deptHr,
+                                      ),
+                                      DropdownMenuEntry(
+                                        value: "D-TA",
+                                        label: t.deptTalent,
+                                      ),
+                                      DropdownMenuEntry(
+                                        value: "D-ITD",
+                                        label: t.deptIt,
+                                      ),
+                                    ],
+                                    onSelected: (v) => setState(
+                                      () => managesDepartmentId = v ?? "D-HR",
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

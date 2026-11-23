@@ -7,7 +7,9 @@ import "package:material_ui/material_ui.dart";
 import "auth_mail.dart";
 import "directory.dart";
 import "i18n.dart";
+import "local_box.dart";
 import "models.dart";
+import "persist.dart";
 
 class InboxItem {
   InboxItem({required this.handover, this.task});
@@ -53,8 +55,19 @@ class Access {
 }
 
 class AppStore extends ChangeNotifier {
-  AppStore() {
-    accounts = List.of(mockEmployees);
+  AppStore({LocalBox? box}) : _box = box ?? createLocalBox() {
+    accounts = [];
+    _load();
+  }
+
+  final LocalBox _box;
+  bool _hydrating = false;
+  static const _storageKey = "alfaris-handover-v1";
+
+  @override
+  void notifyListeners() {
+    if (!_hydrating) _persist();
+    super.notifyListeners();
   }
 
   final _rng = Random();
@@ -116,32 +129,22 @@ class AppStore extends ChangeNotifier {
         .toList();
   }
 
+  List<Employee> managersFor(String departmentId) => accounts
+      .where(
+        (p) =>
+            p.isManager &&
+            (p.managesDepartmentId == null ||
+                p.managesDepartmentId == departmentId),
+      )
+      .toList();
+
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
 
   Future<void> requestOtp(String email) async {
     final mail = email.trim().toLowerCase();
     if (!_isEmail(mail)) throw WorkflowException("invalid");
-    var emp = findByEmail(mail);
-    if (emp == null) {
-      emp = Employee(
-        id: "local-${_id()}",
-        staffNumber: "${100000 + (_rng.nextInt(900000))}",
-        nameAr: mail.split("@").first,
-        nameEn: mail.split("@").first,
-        jobTitleAr: "موظف",
-        jobTitleEn: "Employee",
-        departmentId: hrDept["departmentId"]!,
-        departmentAr: hrDept["departmentAr"]!,
-        departmentEn: hrDept["departmentEn"]!,
-        sectionAr: hrDept["sectionAr"]!,
-        sectionEn: hrDept["sectionEn"]!,
-        branchId: "B-RUH",
-        managerId: null,
-        email: mail,
-        role: "employee",
-      );
-      accounts.add(emp);
-    }
+    final emp = findByEmail(mail);
+    if (emp == null) throw WorkflowException("notFoundEmail");
     try {
       await AuthMail.send(emp.email);
     } on WorkflowException {
@@ -155,35 +158,48 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> register({
+  Employee createAccount({
     required String email,
     required String name,
     required String employeeNo,
     required String jobTitle,
     required String departmentId,
-  }) async {
+    String? managerId,
+    bool isManager = false,
+    String? managesDepartmentId,
+  }) {
     final mail = email.trim().toLowerCase();
     final n = name.trim();
     final no = employeeNo.trim();
     final job = jobTitle.trim();
-    final dept = switch (departmentId) {
-      "D-HR" => hrDept,
-      "D-TA" => talent,
-      "D-ITD" => itDev,
-      _ => null,
-    };
-    if (!_isEmail(mail) || n.length < 2 || n.length > 80)
+    final dept = departmentById(departmentId);
+    final managed = isManager
+        ? departmentById(managesDepartmentId ?? "")
+        : null;
+    if (!_isEmail(mail) || n.length < 2 || n.length > 80) {
       throw WorkflowException("invalid");
+    }
     if (!RegExp(r"^\d{3,10}$").hasMatch(no)) throw WorkflowException("invalid");
     if (job.length < 2 || job.length > 80) throw WorkflowException("invalid");
     if (dept == null) throw WorkflowException("invalid");
-    if (accounts.any((p) => p.email.toLowerCase() == mail))
+    if (isManager && managed == null) throw WorkflowException("invalid");
+    if (accounts.any((p) => p.email.toLowerCase() == mail)) {
       throw WorkflowException("emailTaken");
-    if (accounts.any((p) => p.id == no || p.staffNumber == no))
+    }
+    if (accounts.any((p) => p.id == no || p.staffNumber == no)) {
       throw WorkflowException("idTaken");
-
+    }
+    final bossId = (managerId == null || managerId.isEmpty) ? null : managerId;
+    if (bossId != null) {
+      final boss = person(bossId);
+      if (boss == null || !boss.isManager) throw WorkflowException("invalid");
+      if (boss.managesDepartmentId != null &&
+          boss.managesDepartmentId != departmentId) {
+        throw WorkflowException("invalid");
+      }
+    }
     final emp = Employee(
-      id: "local-$_id()",
+      id: no,
       staffNumber: no,
       nameAr: n,
       nameEn: n,
@@ -195,11 +211,37 @@ class AppStore extends ChangeNotifier {
       sectionAr: dept["sectionAr"]!,
       sectionEn: dept["sectionEn"]!,
       branchId: "B-RUH",
-      managerId: null,
+      managerId: bossId,
       email: mail,
-      role: "employee",
+      role: departmentId == "D-HR" ? "hr" : "employee",
+      isManager: isManager,
+      managesDepartmentId: managed?["departmentId"],
     );
     accounts.add(emp);
+    notifyListeners();
+    return emp;
+  }
+
+  Future<void> register({
+    required String email,
+    required String name,
+    required String employeeNo,
+    required String jobTitle,
+    required String departmentId,
+    String? managerId,
+    bool isManager = false,
+    String? managesDepartmentId,
+  }) async {
+    final emp = createAccount(
+      email: email,
+      name: name,
+      employeeNo: employeeNo,
+      jobTitle: jobTitle,
+      departmentId: departmentId,
+      managerId: managerId,
+      isManager: isManager,
+      managesDepartmentId: managesDepartmentId,
+    );
     await requestOtp(emp.email);
   }
 
@@ -310,64 +352,6 @@ class AppStore extends ChangeNotifier {
       .toList()
       .reversed
       .toList();
-
-  String initiateClearance(
-    Employee actor,
-    String requestRef, {
-    String? reason,
-  }) {
-    if (!actor.isHr) throw WorkflowException("notAllowed");
-    ApprovedRequest? req;
-    for (final r in mockApprovedRequests) {
-      if (r.ref == requestRef) req = r;
-    }
-    if (req == null) throw WorkflowException("notFound");
-    Handover? existing;
-    for (final h in handovers) {
-      if (h.requestRef == req.ref) existing = h;
-    }
-    if (existing != null) return existing.id;
-    final emp = person(req.employeeId);
-    if (emp == null) throw WorkflowException("notFound");
-    final manager = person(emp.managerId);
-    counter += 1;
-    final h = Handover(
-      id: _id(),
-      number: "HO-${DateTime.now().year}-${counter.toString().padLeft(4, "0")}",
-      requestRef: req.ref,
-      type: reason != null && exitReasons.contains(reason) ? reason : req.type,
-      lastWorkingDay: req.startDate,
-      returnDate: req.endDate,
-      employee: EmployeeSnapshot(
-        id: emp.id,
-        nameAr: emp.nameAr,
-        nameEn: emp.nameEn,
-        jobTitleAr: emp.jobTitleAr,
-        jobTitleEn: emp.jobTitleEn,
-        departmentAr: emp.departmentAr,
-        departmentEn: emp.departmentEn,
-        sectionAr: emp.sectionAr,
-        sectionEn: emp.sectionEn,
-        managerId: emp.managerId,
-        managerNameAr: manager?.nameAr ?? "",
-        managerNameEn: manager?.nameEn ?? "",
-      ),
-      status: "draft",
-      initiatedById: actor.id,
-      createdAt: _now(),
-    );
-    handovers.add(h);
-    _audit(h, actor.id, "clearance_initiated", req.ref);
-    _notify(
-      h,
-      emp,
-      "مطلوب: تعبئة نموذج تسليم المهام ${h.number} | Action required: handover form",
-      "بدأت الموارد البشرية إخلاء الطرف للطلب ${req.ref}. افتح الرابط الآمن، سجّل الدخول، وعبّئ نموذج تسليم المهام وحدد مستلم كل مهمة.\n\nHR has started clearance for ${req.ref}. Open the secure link, sign in, fill in your handover form and assign each task.",
-    );
-    _audit(h, "system", "link_sent", emp.email);
-    notifyListeners();
-    return h.id;
-  }
 
   String startOwn(
     Employee actor, {
@@ -812,6 +796,63 @@ class AppStore extends ChangeNotifier {
           },
     "finalizedAt": h.finalizedAt,
   };
+
+  void _persist() {
+    try {
+      _box.write(
+        _storageKey,
+        jsonEncode({
+          "userId": user?.id,
+          "locale": locale,
+          "counter": counter,
+          "accounts": [for (final e in accounts) employeeToJson(e)],
+          "handovers": [for (final h in handovers) handoverToJson(h)],
+          "outbox": [for (final m in outbox) mailToJson(m)],
+          "audit": [for (final a in auditLog) auditToJson(a)],
+        }),
+      );
+    } catch (_) {}
+  }
+
+  void _load() {
+    final raw = _box.read(_storageKey);
+    if (raw == null || raw.isEmpty) return;
+    _hydrating = true;
+    try {
+      final data = jsonDecode(raw);
+      if (data is! Map) return;
+      counter = (data["counter"] as num?)?.toInt() ?? 0;
+      final savedLocale = data["locale"];
+      if (savedLocale is String &&
+          (savedLocale == "ar" || savedLocale == "en")) {
+        locale = savedLocale;
+      }
+      accounts = [
+        for (final item in data["accounts"] as List? ?? const [])
+          if (item is Map) employeeFromJson(item.cast<String, dynamic>()),
+      ];
+      for (final item in data["handovers"] as List? ?? const []) {
+        if (item is Map)
+          handovers.add(handoverFromJson(item.cast<String, dynamic>()));
+      }
+      for (final item in data["outbox"] as List? ?? const []) {
+        if (item is Map) outbox.add(mailFromJson(item.cast<String, dynamic>()));
+      }
+      for (final item in data["audit"] as List? ?? const []) {
+        if (item is Map)
+          auditLog.add(auditFromJson(item.cast<String, dynamic>()));
+      }
+      user = person(data["userId"] as String?);
+    } catch (_) {
+      accounts = [];
+      handovers.clear();
+      outbox.clear();
+      auditLog.clear();
+      user = null;
+    } finally {
+      _hydrating = false;
+    }
+  }
 }
 
 class StoreScope extends InheritedWidget {

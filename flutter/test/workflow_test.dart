@@ -1,6 +1,7 @@
 import "package:alfaris_handover/auth_mail.dart";
 import "package:alfaris_handover/directory.dart";
 import "package:alfaris_handover/i18n.dart";
+import "package:alfaris_handover/local_box.dart";
 import "package:alfaris_handover/models.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -8,13 +9,45 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   test("clearance cycle after a signed-in employee", () {
     final store = AppStore();
-    final hind = mockEmployees.firstWhere((e) => e.id == "30115");
-    store.signInForTest(hind);
-    expect(store.user?.id, "30115");
+    final hind = store.createAccount(
+      email: "hind@alfaris.test",
+      name: "هند الغامدي",
+      employeeNo: "30115",
+      jobTitle: "أخصائية موارد بشرية",
+      departmentId: "D-HR",
+    );
+    final fahad = store.createAccount(
+      email: "fahad@alfaris.test",
+      name: "فهد العتيبي",
+      employeeNo: "10501",
+      jobTitle: "مدير تطوير",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    final sarah = store.createAccount(
+      email: "sarah@alfaris.test",
+      name: "سارة القحطاني",
+      employeeNo: "10518",
+      jobTitle: "مطورة أنظمة",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    final abdullah = store.createAccount(
+      email: "abdullah@alfaris.test",
+      name: "عبدالله الحربي",
+      employeeNo: "10530",
+      jobTitle: "مطور واجهات",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    store.signInForTest(sarah);
 
-    final id = store.initiateClearance(store.user!, "ANN-2026-0412");
-    final sarah = mockEmployees.firstWhere((e) => e.id == "10518");
-    store.user = sarah;
+    final id = store.startOwn(
+      sarah,
+      type: "clearance",
+      lastWorkingDay: "2026-12-15",
+    );
     store.saveForm(
       sarah,
       id,
@@ -24,7 +57,7 @@ void main() {
           id: "",
           title: "متابعة مشروع ترقية نظام الرواتب",
           details: "الملفات على الشبكة الداخلية",
-          assigneeId: "10530",
+          assigneeId: abdullah.id,
           status: "draft",
         ),
       ],
@@ -32,8 +65,6 @@ void main() {
     );
     expect(store.handover(id)!.status, "pending_acceptance");
 
-    final abdullah = mockEmployees.firstWhere((e) => e.id == "10530");
-    store.user = abdullah;
     store.acceptTask(
       abdullah,
       id,
@@ -42,12 +73,9 @@ void main() {
     );
     expect(store.handover(id)!.status, "pending_manager");
 
-    final fahad = mockEmployees.firstWhere((e) => e.id == "10501");
-    store.user = fahad;
     store.managerDecision(fahad, id, true, "");
     expect(store.handover(id)!.status, "pending_hr");
 
-    store.user = hind;
     store.hrDecision(hind, id, true, "معتمد");
     expect(store.handover(id)!.status, "approved");
     expect(store.handover(id)!.documentHash, isNotNull);
@@ -58,8 +86,26 @@ void main() {
     () async {
       final store = AppStore();
       expect(AuthMail.enabled, isFalse);
+      expect(store.people, isEmpty);
       await expectLater(
-        store.requestOtp("hind.alghamdi@alfaris.example"),
+        store.requestOtp("nobody@alfaris.test"),
+        throwsA(
+          isA<WorkflowException>().having(
+            (e) => e.code,
+            "code",
+            "notFoundEmail",
+          ),
+        ),
+      );
+      store.createAccount(
+        email: "hind@alfaris.test",
+        name: "هند",
+        employeeNo: "30115",
+        jobTitle: "موارد بشرية",
+        departmentId: "D-HR",
+      );
+      await expectLater(
+        store.requestOtp("hind@alfaris.test"),
         throwsA(
           isA<WorkflowException>().having((e) => e.code, "code", "mailFailed"),
         ),
@@ -71,13 +117,63 @@ void main() {
     },
   );
 
-  test("an employee can open leave and only assign the same department", () {
+  test("an employee can open leave and only assign a registered colleague", () {
     final store = AppStore();
-    final sarah = mockEmployees.firstWhere((e) => e.id == "10518");
+    store.createAccount(
+      email: "hind@alfaris.test",
+      name: "هند الغامدي",
+      employeeNo: "30115",
+      jobTitle: "موارد بشرية",
+      departmentId: "D-HR",
+    );
+    final fahad = store.createAccount(
+      email: "fahad@alfaris.test",
+      name: "فهد العتيبي",
+      employeeNo: "10501",
+      jobTitle: "مدير تطوير",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    final sarah = store.createAccount(
+      email: "sarah@alfaris.test",
+      name: "سارة القحطاني",
+      employeeNo: "10518",
+      jobTitle: "مطورة أنظمة",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    store.accounts.add(
+      Employee(
+        id: "10540",
+        nameAr: "نورة الدوسري",
+        nameEn: "نورة الدوسري",
+        jobTitleAr: "محللة",
+        jobTitleEn: "محللة",
+        departmentId: "IT-SYS",
+        departmentAr: "إدارة تقنية المعلومات",
+        departmentEn: "Information Technology",
+        sectionAr: "تحليل الأنظمة",
+        sectionEn: "Systems Analysis",
+        branchId: "B-RUH",
+        email: "noura@alfaris.test",
+        role: "employee",
+        managerId: fahad.id,
+      ),
+    );
+    store.createAccount(
+      email: "lama@alfaris.test",
+      name: "لمى الحربي",
+      employeeNo: "40221",
+      jobTitle: "استقطاب",
+      departmentId: "D-TA",
+    );
     store.signInForTest(sarah);
     final colleagues = store.colleaguesFor(sarah.id).map((e) => e.id);
     expect(colleagues, contains("10540"));
+    expect(colleagues, contains("10501"));
     expect(colleagues, isNot(contains("40221")));
+    expect(departmentKey(store.person("10540")!), "D-ITD");
 
     final id = store.startOwn(
       sarah,
@@ -86,8 +182,7 @@ void main() {
       returnDate: "2026-12-20",
     );
     expect(store.handover(id)!.status, "draft");
-    expect(store.handover(id)!.type, "annual_leave");
-    final hind = mockEmployees.firstWhere((e) => e.id == "30115");
+    final hind = store.person("30115")!;
     final notice = store.mailFor(hind).single;
     expect(notice.subject, "يوجد طلب إجازة سنوية من سارة القحطاني");
     expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
@@ -115,6 +210,33 @@ void main() {
         isA<WorkflowException>().having((e) => e.code, "code", "notAllowed"),
       ),
     );
+  });
+
+  test("a reload keeps registered people and their manager", () {
+    final box = LocalBox();
+    final store = AppStore(box: box);
+    expect(store.people, isEmpty);
+    final manager = store.createAccount(
+      email: "fahad@alfaris.test",
+      name: "فهد",
+      employeeNo: "10501",
+      jobTitle: "مدير",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    store.createAccount(
+      email: "sarah@alfaris.test",
+      name: "سارة",
+      employeeNo: "10518",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+      managerId: manager.id,
+    );
+    final again = AppStore(box: box);
+    expect(again.person("10518")?.managerId, "10501");
+    expect(again.managersFor("D-ITD").map((e) => e.id), ["10501"]);
+    expect(again.managersFor("D-HR"), isEmpty);
   });
 
   test("OTP redirect points at the live site, not localhost", () {

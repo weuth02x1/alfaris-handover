@@ -15,6 +15,8 @@ class Employee {
     required this.role,
     this.managerId,
     this.staffNumber,
+    this.isManager = false,
+    this.managesDepartmentId,
   });
 
   final String id;
@@ -32,6 +34,8 @@ class Employee {
   final String email;
   final String role;
   final String? staffNumber;
+  final bool isManager;
+  final String? managesDepartmentId;
 
   String get displayId => staffNumber ?? id;
   bool get isHr => role == "hr";
@@ -54,7 +58,11 @@ class ApprovedRequest {
 }
 
 class TaskRejection {
-  TaskRejection({required this.recipientId, required this.comment, required this.at});
+  TaskRejection({
+    required this.recipientId,
+    required this.comment,
+    required this.at,
+  });
   final String recipientId;
   final String comment;
   final String at;
@@ -115,7 +123,12 @@ class EmployeeSnapshot {
 }
 
 class ReturnInfo {
-  ReturnInfo({required this.stage, required this.byId, required this.comment, required this.at});
+  ReturnInfo({
+    required this.stage,
+    required this.byId,
+    required this.comment,
+    required this.at,
+  });
   final String stage;
   final String byId;
   final String comment;

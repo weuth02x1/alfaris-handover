@@ -99,12 +99,20 @@ class I18n {
       isAr ? "ما عندك حساب؟ أنشئ حساباً" : "No account yet? Create one";
   String get signupTitle => isAr ? "إنشاء حساب" : "Create an account";
   String get signupHint => isAr
-      ? "الحساب يتفعل لما يوصلك الرمز على إيميلك وتكتبه هنا."
-      : "The account activates when the code arrives in your email and you type it here.";
+      ? "اكتب بياناتك الحقيقية. المدير والمستلم يختارون من الحسابات المسجّلة في الموقع."
+      : "Enter your real details. The manager and the recipient are chosen from people registered on this site.";
+  String get directManager => isAr ? "المدير المباشر" : "Direct manager";
+  String get noManager => isAr ? "بدون مدير مباشر" : "No direct manager";
+  String get noManagerYet => isAr
+      ? "ما فيه مدير مسجّل لهذا القسم بعد. تقدر تكمل بدون مدير."
+      : "No manager is registered for this department yet. You can continue without one.";
+  String get isDirectManager =>
+      isAr ? "أنا مدير مباشر" : "I am a direct manager";
+  String get managesDepartment => isAr ? "أدير قسم" : "Department I manage";
   String get name => isAr ? "الاسم" : "Name";
   String get namePh => isAr ? "اسمك الثلاثي" : "Your full name";
   String get employeeNo => isAr ? "الرقم الوظيفي" : "Employee number";
-  String get employeeNoPh => isAr ? "مثال: 30115" : "e.g. 30115";
+  String get employeeNoPh => isAr ? "أرقام فقط" : "Digits only";
   String get jobTitle => isAr ? "المسمى الوظيفي" : "Job title";
   String get jobTitlePh =>
       isAr ? "مثال: أخصائية موارد بشرية" : "e.g. HR Specialist";
@@ -176,8 +184,8 @@ class I18n {
       ? "اختر نوع الخروج والتاريخ. بعدها تعبّئ المهام وتسندها لزميل من نفس القسم."
       : "Choose the reason and the dates. Then list the tasks and assign each one to someone in your department.";
   String get sameDepartmentOnly => isAr
-      ? "المستلم لازم يكون من نفس قسمك، حتى لو اسم القسم مكتوب بصيغة ثانية."
-      : "The recipient must be in your department, even if the department name is written differently.";
+      ? "المستلم لازم يكون موظفاً مسجّلاً في الموقع ومن نفس قسمك."
+      : "The recipient must be registered on this site and in your department.";
   String get pickDate => isAr ? "اختر من التقويم" : "Choose from the calendar";
   String get inboxTitle => isAr ? "المطلوب منك" : "Waiting on you";
   String get inboxSubtitle => isAr
@@ -208,8 +216,8 @@ class I18n {
 
   String get hrTitle => isAr ? "لوحة الموارد البشرية" : "HR console";
   String get hrSubtitle => isAr
-      ? "ابدأ إخلاء الطرف للطلبات المعتمدة في Menaitech وتابع جميع نماذج التسليم."
-      : "Start clearance for requests approved in Menaitech and track every handover.";
+      ? "تابع نماذج التسليم التي يرفعها الموظفون المسجّلون."
+      : "Track handover forms raised by registered employees.";
   String get approvedRequests =>
       isAr ? "طلبات معتمدة في Menaitech" : "Approved requests in Menaitech";
   String get approvedRequestsHint => isAr

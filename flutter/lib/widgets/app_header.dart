@@ -164,27 +164,6 @@ class AppHeader extends StatelessWidget {
                         style: const TextStyle(color: cream),
                       ),
                     );
-              final saved = store.people
-                  .where((p) => p.email.endsWith(".example"))
-                  .toList();
-              final switcher = PopupMenuButton<Employee>(
-                tooltip: t.switchAccount,
-                icon: const Icon(Icons.switch_account, color: cream, size: 20),
-                onSelected: (person) {
-                  store.signInForTest(person);
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil("/", (_) => false);
-                },
-                itemBuilder: (context) => [
-                  for (final person in saved)
-                    PopupMenuItem(
-                      value: person,
-                      child: Text(
-                        "${store.nameOf(person)} · ${person.displayId}",
-                      ),
-                    ),
-                ],
-              );
               final logout = wide
                   ? OutlinedButton.icon(
                       onPressed: store.logout,
@@ -208,15 +187,7 @@ class AppHeader extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        brand,
-                        const Spacer(),
-                        language,
-                        switcher,
-                        logout,
-                      ],
-                    ),
+                    Row(children: [brand, const Spacer(), language, logout]),
                     const SizedBox(height: 4),
                     identity,
                     const SizedBox(height: 4),
@@ -237,7 +208,6 @@ class AppHeader extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(child: identity),
                     language,
-                    switcher,
                     const SizedBox(width: 8),
                     logout,
                   ],
