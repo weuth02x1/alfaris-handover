@@ -32,14 +32,35 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          DEFINES=""
-          if [ -n "$SUPABASE_ANON_KEY" ]; then
-            echo "Mail key is present; sign-in codes will be emailed."
-            DEFINES="--dart-define=SUPABASE_URL=${SUPABASE_URL:-https://sfshhcfjowiptefesqgp.supabase.co} --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-          else
-            echo "Mail key is missing; login will not send email until SUPABASE_ANON_KEY is set as a GitHub Actions secret."
+          set -euo pipefail
+          if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Mail key is missing; login will not send email."
+            flutter build web --release --base-href /alfaris-handover/
+            exit 0
           fi
-          flutter build web --release --base-href /alfaris-handover/ $DEFINES
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          key = os.environ["SUPABASE_ANON_KEY"].strip()
+          url = (os.environ.get("SUPABASE_URL") or "https://sfshhcfjowiptefesqgp.supabase.co").strip()
+          if key.startswith("http"):
+              sys.exit("SUPABASE_ANON_KEY is a URL. Use the Publishable key from Supabase → Settings → API Keys.")
+          if len(key) < 20:
+              sys.exit("SUPABASE_ANON_KEY is too short to be a Publishable key.")
+          pathlib.Path("/tmp/dart-defines.json").write_text(json.dumps({"SUPABASE_URL": url, "SUPABASE_ANON_KEY": key}))
+          print("Mail key is present; sign-in codes will be emailed.")
+          PY
+          flutter build web --release --base-href /alfaris-handover/ --dart-define-from-file=/tmp/dart-defines.json
+          python3 - <<'PY'
+          import os, pathlib, sys
+          key = os.environ["SUPABASE_ANON_KEY"].strip()
+          js = pathlib.Path("build/web/main.dart.js").read_text(encoding="utf-8", errors="replace")
+          slices = [key[i:i + 12] for i in range(0, min(len(key), 60), 12) if len(key[i:i + 12]) >= 8]
+          hits = sum(1 for part in slices if part in js)
+          print("define_slices_found", hits, "of", len(slices))
+          if hits == 0:
+              sys.exit("Publishable key was not baked into the web build.")
+          PY
+          rm -f /tmp/dart-defines.json
       - run: touch build/web/.nojekyll
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3
