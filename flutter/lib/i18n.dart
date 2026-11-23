@@ -68,6 +68,9 @@ class I18n {
   String get invalid => isAr ? "تأكد من الإيميل وباقي البيانات." : "Check the email and the other fields.";
   String get slow => isAr ? "محاولات كثيرة. انتظر ربع ساعة ثم أعد الطلب." : "Too many attempts. Wait 15 minutes, then try again.";
   String get mailFailed => isAr ? "ما قدرنا نرسل الرمز إلى هذا الإيميل. حاول مرة ثانية." : "We could not send the code to that email. Try again.";
+  String get mailerDown => isAr
+      ? "المشروع واصل، بس بريد Supabase/Resend رافض الإرسال. في Authentication → SMTP حط Host smtp.resend.com وPort 465 وUser resend، والمرسل عنوان على دومين موثّق في Resend مو Gmail."
+      : "The app reached Supabase, but its mailer refused to send. In Authentication → SMTP set host smtp.resend.com, port 465, user resend, and a From address on a Resend-verified domain — not Gmail.";
   String get emailTaken => isAr ? "هذا الإيميل مسجّل. ادخل منه." : "This email is already registered. Sign in with it.";
   String get idTaken => isAr ? "هذا الرقم الوظيفي مستخدم." : "This employee number is already used.";
   String get haveAccount => isAr ? "عندك حساب؟ سجّل الدخول" : "Already have an account? Sign in";
@@ -265,6 +268,7 @@ class I18n {
         "invalid": invalid,
         "slow": slow,
         "mailFailed": mailFailed,
+        "mailerDown": mailerDown,
         "emailTaken": emailTaken,
         "idTaken": idTaken,
       }[code] ?? code;

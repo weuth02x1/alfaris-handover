@@ -136,6 +136,8 @@ class AppStore extends ChangeNotifier {
     }
     try {
       await AuthMail.send(emp.email);
+    } on WorkflowException {
+      rethrow;
     } catch (_) {
       throw WorkflowException("mailFailed");
     }

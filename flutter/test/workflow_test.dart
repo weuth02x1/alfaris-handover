@@ -56,6 +56,7 @@ void main() {
       throwsA(isA<WorkflowException>().having((e) => e.code, "code", "mailFailed")),
     );
     expect(I18n("ar").error("mailFailed"), isNot(contains("mailFailed")));
+    expect(I18n("ar").error("mailerDown"), contains("SMTP"));
     expect(store.lastOtpCode, isNull);
     expect(store.user, isNull);
   });

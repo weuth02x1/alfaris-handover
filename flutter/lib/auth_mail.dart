@@ -30,8 +30,7 @@ class AuthMail {
           body: jsonEncode({"email": email.trim().toLowerCase(), "create_user": true}),
         )
         .timeout(const Duration(seconds: 25));
-    if (response.statusCode == 429) throw WorkflowException("slow");
-    if (response.statusCode >= 400) throw WorkflowException("mailFailed");
+    if (response.statusCode >= 400) throw WorkflowException(_mailError(response));
   }
 
   static Future<void> verify(String email, String code) async {
@@ -49,5 +48,18 @@ class AuthMail {
         .timeout(const Duration(seconds: 20));
     if (response.statusCode == 429) throw WorkflowException("slow");
     if (response.statusCode >= 400) throw WorkflowException("badCode");
+  }
+
+  static String _mailError(http.Response response) {
+    if (response.statusCode == 429) return "slow";
+    try {
+      final body = jsonDecode(response.body);
+      final code = "${body["error_code"] ?? ""}".toLowerCase();
+      final msg = "${body["msg"] ?? body["message"] ?? ""}".toLowerCase();
+      if (code == "unexpected_failure" || msg.contains("confirmation email") || msg.contains("error sending")) {
+        return "mailerDown";
+      }
+    } catch (_) {}
+    return "mailFailed";
   }
 }
