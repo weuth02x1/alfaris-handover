@@ -79,6 +79,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  bool _codeReady(String value) {
+    final n = value.trim().length;
+    return n == 6 || n == 8;
+  }
+
   String _errorCode(Object e) {
     if (e is WorkflowException) return e.code;
     final raw = e.toString();
@@ -243,7 +248,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextField(
                           controller: code,
                           keyboardType: TextInputType.number,
-                          maxLength: 6,
+                          maxLength: 8,
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 20, letterSpacing: 10, fontWeight: FontWeight.w700),
                           decoration: const InputDecoration(counterText: ""),
@@ -260,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           if (codeStep) ...[
                             FilledButton(
-                              onPressed: busy || code.text.trim().length < 6 ? null : confirm,
+                              onPressed: busy || !_codeReady(code.text) ? null : confirm,
                               child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.confirm),
                             ),
                             OutlinedButton(

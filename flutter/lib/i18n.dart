@@ -56,8 +56,8 @@ class I18n {
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
   String get codeSent => isAr ? "أرسلنا رمز الدخول إلى إيميلك." : "We emailed the sign-in code.";
   String get checkInbox => isAr
-      ? "افتح الإيميل واكتب الرمز المكوّن من 6 أرقام. شيك غير المرغوب إذا تأخر."
-      : "Open the email and type the 6-digit code. Check spam if it is slow.";
+      ? "افتح الإيميل واكتب الرمز كما هو. شيك غير المرغوب إذا تأخر."
+      : "Open the email and type the code as it appears. Check spam if it is slow.";
   String get demoMail => isAr ? "رمز الدخول" : "Sign-in code";
   String get code => isAr ? "رمز الدخول" : "Sign-in code";
   String get confirm => isAr ? "دخول" : "Sign in";

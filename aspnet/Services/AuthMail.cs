@@ -80,7 +80,7 @@ public class AuthMail(HttpClient http, IConfiguration config, OtpBox otps, ILogg
     {
         email = email.Trim().ToLowerInvariant();
         var given = (code ?? "").Replace(" ", "", StringComparison.Ordinal);
-        if (!System.Text.RegularExpressions.Regex.IsMatch(given, @"^\d{6}$")) throw new WorkflowException("badCode");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(given, @"^\d{6}$|^\d{8}$")) throw new WorkflowException("badCode");
 
         if (HasSupabase && await TrySupabaseVerifyAsync(email, given, ct)) return;
         if (otps.Match(email, HashCode(email, given))) return;
