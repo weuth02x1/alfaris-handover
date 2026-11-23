@@ -19,8 +19,10 @@
             <button class="btn-ghost" type="submit">@Model.T.NavLanguage</button>
         </form>
         <h2>@Model.T.LoginTitle</h2>
+        @if (Model.MailReady)
+        {
         <p class="muted">@Model.T.LoginSubtitle</p>
-        <p class="@(Model.MailReady ? "ok" : "error")" title="@Model.MailChannel">@(Model.MailReady ? Model.T.MailLive : Model.T.MailOffline)</p>
+        <p class="ok" title="@Model.MailChannel">@Model.T.MailLive</p>
         <form method="post">
             <input type="hidden" asp-for="Signup" />
             <input type="hidden" asp-for="CodeStep" />
@@ -85,6 +87,7 @@
                 <input type="hidden" asp-for="Signup" />
                 <button class="btn-ghost" type="submit">@(Model.Signup ? Model.T.HaveAccount : Model.T.CreateAccount)</button>
             </form>
+        }
         }
         @if (Model.AllowSampleLogin)
         {

@@ -43,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> sendCode({required bool create}) async {
+    if (!AuthMail.enabled) return;
     final store = StoreScope.of(context);
     final t = store.t;
     setState(() {
@@ -154,13 +155,13 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       Text(t.loginTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: navy)),
                       const SizedBox(height: 6),
-                      Text(t.loginSubtitle, style: const TextStyle(color: mutedFg, fontSize: 14)),
-                      const SizedBox(height: 10),
-                      Text(
-                        AuthMail.enabled ? t.mailLive : t.mailOffline,
-                        style: TextStyle(color: AuthMail.enabled ? const Color(0xFF047857) : const Color(0xFFBE123C), fontSize: 13),
-                      ),
+                      Text(AuthMail.enabled ? t.loginSubtitle : t.sampleHint, style: const TextStyle(color: mutedFg, fontSize: 14)),
+                      if (AuthMail.enabled) ...[
+                        const SizedBox(height: 10),
+                        Text(t.mailLive, style: const TextStyle(color: Color(0xFF047857), fontSize: 13)),
+                      ],
                       const SizedBox(height: 20),
+                      if (AuthMail.enabled) ...[
                       Text(t.email, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
                       TextField(
@@ -278,7 +279,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                         ],
                       ),
-                      if (!codeStep)
+                      if (AuthMail.enabled && !codeStep)
                         TextButton(
                           onPressed: () => setState(() {
                             signup = !signup;
@@ -286,11 +287,9 @@ class _LoginPageState extends State<LoginPage> {
                           }),
                           child: Text(signup ? t.haveAccount : t.createAccount),
                         ),
+                      ],
                       if (!AuthMail.enabled) ...[
-                        const SizedBox(height: 24),
                         Text(t.sampleTitle, style: const TextStyle(fontWeight: FontWeight.w700, color: navy)),
-                        const SizedBox(height: 4),
-                        Text(t.sampleHint, style: const TextStyle(color: mutedFg, fontSize: 13)),
                         const SizedBox(height: 8),
                         for (final person in store.people)
                           Padding(

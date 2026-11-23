@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Alfaris.Handover.Pages;
 
-public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail, IWebHostEnvironment env) : AppPageModel(store, locale)
+public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail) : AppPageModel(store, locale)
 {
     [BindProperty] public string Email { get; set; } = "";
     [BindProperty] public string Code { get; set; } = "";
@@ -18,7 +18,7 @@ public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail
     public string? Error { get; set; }
     public bool MailReady => mail.Enabled;
     public string MailChannel => mail.Channel;
-    public bool AllowSampleLogin => env.IsDevelopment() && !mail.Enabled;
+    public bool AllowSampleLogin => !mail.Enabled;
     public IReadOnlyList<Employee> SampleStaff => Store.People;
 
     public IActionResult OnGet()
@@ -35,6 +35,7 @@ public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail
 
     public async Task<IActionResult> OnPostSendAsync()
     {
+        if (!mail.Enabled) return Page();
         try
         {
             if (Store.FindByEmail(Email) is null)
@@ -53,6 +54,7 @@ public class LoginModel(HandoverStore store, LocaleService locale, AuthMail mail
 
     public async Task<IActionResult> OnPostRegisterAsync()
     {
+        if (!mail.Enabled) return Page();
         Signup = true;
         try
         {

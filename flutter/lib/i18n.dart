@@ -49,8 +49,8 @@ class I18n {
       : "Mail is not connected on this site right now. Use sample sign-in or try again later.";
   String get sampleTitle => isAr ? "دخول تجريبي" : "Sample sign-in";
   String get sampleHint => isAr
-      ? "يظهر لأن إرسال الرمز على الإيميل غير متاح هنا. اختر موظفاً للدخول."
-      : "Shown because email codes are not available here. Pick a staff member to sign in.";
+      ? "اختر موظفاً للدخول. إرسال الرمز على الإيميل غير متاح هنا."
+      : "Pick a staff member to sign in. Email codes are not available here.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
