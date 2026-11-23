@@ -93,7 +93,8 @@ public class Inbox
     public List<InboxItem> Accepted { get; set; } = [];
     public List<HandoverForm> ManagerQueue { get; set; } = [];
     public List<HandoverForm> HrQueue { get; set; } = [];
-    public bool IsEmpty => Mine.Count + ToAccept.Count + Accepted.Count + ManagerQueue.Count + HrQueue.Count == 0;
+    public List<HandoverForm> Raised { get; set; } = [];
+    public bool IsEmpty => Mine.Count + ToAccept.Count + Accepted.Count + ManagerQueue.Count + HrQueue.Count + Raised.Count == 0;
 }
 
 public class WorkflowException(string code) : Exception(code)

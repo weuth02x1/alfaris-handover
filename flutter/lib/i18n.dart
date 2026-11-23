@@ -191,13 +191,15 @@ class I18n {
       : "Waiting for your approval as direct manager";
   String get hrQueue =>
       isAr ? "نماذج بانتظار اعتماد الموارد البشرية" : "Waiting for HR approval";
+  String get raisedQueue => isAr ? "طلبات مرفوعة للموارد البشرية" : "Requests raised to HR";
+  String get notices => isAr ? "إشعارات" : "Notices";
   String get acceptedByMe => isAr ? "مهام استلمتها" : "Tasks I took over";
   String get nothing => isAr
       ? "لا يوجد شيء بانتظارك حالياً."
       : "Nothing is waiting on you right now.";
   String get nothingHint => isAr
-      ? "ستصلك رسالة بريد عند إسناد مهمة لك أو طلب اعتمادك."
-      : "You will get an email when a task is assigned to you or your approval is needed.";
+      ? "إذا رُفع طلب أو أُسندت لك مهمة يصلك إشعار هنا وعلى إيميلك فيه نوع الطلب والتفاصيل."
+      : "When a request is raised or a task is assigned to you, the notice arrives here and by email with the request type and details.";
   String get open => isAr ? "فتح" : "Open";
   String get from => isAr ? "من" : "From";
 

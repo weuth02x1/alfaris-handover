@@ -62,7 +62,7 @@ public class LocaleService
     public string HrQueue => Pick("نماذج بانتظار اعتماد الموارد البشرية", "Waiting for HR approval");
     public string AcceptedByMe => Pick("مهام استلمتها", "Tasks I took over");
     public string Nothing => Pick("لا يوجد شيء بانتظارك حالياً.", "Nothing is waiting on you right now.");
-    public string NothingHint => Pick("ستصلك رسالة بريد عند إسناد مهمة لك أو طلب اعتمادك.", "You will get an email when a task is assigned to you or your approval is needed.");
+    public string NothingHint => Pick("إذا رُفع طلب أو أُسندت لك مهمة يصلك إشعار هنا وعلى إيميلك فيه نوع الطلب والتفاصيل.", "When a request is raised or a task is assigned to you, the notice arrives here and by email with the request type and details.");
     public string Open => Pick("فتح", "Open");
     public string From => Pick("من", "From");
     public string HrTitle => Pick("لوحة الموارد البشرية", "HR console");

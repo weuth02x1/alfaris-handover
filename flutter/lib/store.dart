@@ -22,18 +22,21 @@ class Inbox {
     required this.accepted,
     required this.managerQueue,
     required this.hrQueue,
+    required this.raised,
   });
   final List<Handover> mine;
   final List<InboxItem> toAccept;
   final List<InboxItem> accepted;
   final List<Handover> managerQueue;
   final List<Handover> hrQueue;
+  final List<Handover> raised;
   bool get isEmpty =>
       mine.isEmpty &&
       toAccept.isEmpty &&
       accepted.isEmpty &&
       managerQueue.isEmpty &&
-      hrQueue.isEmpty;
+      hrQueue.isEmpty &&
+      raised.isEmpty;
 }
 
 class Access {
@@ -250,12 +253,25 @@ class AppStore extends ChangeNotifier {
     final hrQueue = me.isHr
         ? handovers.where((h) => h.status == "pending_hr").toList()
         : <Handover>[];
+    final raised = me.isHr
+        ? handovers
+              .where(
+                (h) =>
+                    h.employee.id != me.id &&
+                    (h.status == "draft" ||
+                        h.status == "returned" ||
+                        h.status == "pending_acceptance" ||
+                        h.status == "pending_manager"),
+              )
+              .toList()
+        : <Handover>[];
     return Inbox(
       mine: mine,
       toAccept: toAccept,
       accepted: accepted,
       managerQueue: managerQueue,
       hrQueue: hrQueue,
+      raised: raised,
     );
   }
 
@@ -394,6 +410,11 @@ class AppStore extends ChangeNotifier {
     );
     handovers.add(h);
     _audit(h, actor.id, "clearance_initiated", h.requestRef);
+    _notifyHr(
+      h,
+      "يوجد طلب ${exitReasonAr(h.type)} من ${actor.nameAr}",
+      "راجع الطلب وافتح النموذج. الموظف يعبّئ المهام ويسندها لزميل من نفس القسم.",
+    );
     notifyListeners();
     return h.id;
   }
@@ -688,20 +709,43 @@ class AppStore extends ChangeNotifier {
     );
   }
 
+  void _notifyHr(Handover h, String subject, String extra) {
+    for (final person in hrUsers) {
+      if (person.id == h.initiatedById) continue;
+      _notify(h, person, subject, extra);
+    }
+  }
+
+  String _requestBlock(Handover h) {
+    final back = (h.returnDate == null || h.returnDate!.isEmpty)
+        ? "غير محدد"
+        : h.returnDate!;
+    return [
+      "يوجد طلب ${exitReasonAr(h.type)}",
+      "الموظف: ${h.employee.nameAr}",
+      "القسم: ${h.employee.departmentAr}",
+      "آخر يوم عمل: ${h.lastWorkingDay}",
+      "تاريخ العودة: $back",
+      "رقم الطلب: ${h.number}",
+    ].join("\n");
+  }
+
   void _notify(Handover h, Employee to, String subject, String body) {
+    final full = "${_requestBlock(h)}\n\n$body";
     outbox.add(
       EmailMessage(
         id: _id(),
         to: to.email,
         toEmployeeId: to.id,
         subject: subject,
-        body: body,
+        body: full,
         link: "/handovers/${h.id}",
         at: _now(),
         kind: "workflow",
       ),
     );
     if (outbox.length > 100) outbox.removeRange(0, outbox.length - 100);
+    WorkflowMail.send(to: to.email, subject: subject, body: full);
   }
 
   void _audit(

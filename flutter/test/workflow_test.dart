@@ -87,6 +87,14 @@ void main() {
     );
     expect(store.handover(id)!.status, "draft");
     expect(store.handover(id)!.type, "annual_leave");
+    final hind = mockEmployees.firstWhere((e) => e.id == "30115");
+    final notice = store.mailFor(hind).single;
+    expect(notice.subject, "يوجد طلب إجازة سنوية من سارة القحطاني");
+    expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
+    expect(notice.body, contains("آخر يوم عمل: 2026-12-01"));
+    expect(notice.body, contains("تاريخ العودة: 2026-12-20"));
+    expect(store.inboxFor(hind).raised.map((h) => h.id), contains(id));
+    expect(store.mailFor(sarah), isEmpty);
     expect(
       () => store.saveForm(
         sarah,

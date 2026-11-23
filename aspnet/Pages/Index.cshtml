@@ -31,7 +31,38 @@
         </div>
         <button type="submit">@t.StartRequest</button>
     </form>
-    @if (inbox.IsEmpty)
+    @if (Model.Notices.Count > 0)
+    {
+        <h2 class="section-title">إشعارات</h2>
+        <div class="card">
+            @foreach (var message in Model.Notices.Take(8))
+            {
+                <a class="list-row" href="@(message.Link ?? "/")">
+                    <div>
+                        <div>@message.Subject</div>
+                        <div class="muted">@message.Body</div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+    @if (inbox.Raised.Count > 0)
+    {
+        <h2 class="section-title">طلبات مرفوعة للموارد البشرية</h2>
+        <div class="card">
+            @foreach (var h in inbox.Raised)
+            {
+                <a class="list-row" href="/Handovers/@h.Id">
+                    <div>
+                        <div>@Model.NameSnap(h.Employee) · @t.Type(h.Type)</div>
+                        <div class="muted">@h.Number · @t.Date(h.LastWorkingDay)</div>
+                    </div>
+                    <span class="badge">@t.Status(h.Status)</span>
+                </a>
+            }
+        </div>
+    }
+    @if (inbox.IsEmpty && Model.Notices.Count == 0)
     {
         <div class="card" style="text-align:center;padding:48px 16px">
             <strong>@t.Nothing</strong>

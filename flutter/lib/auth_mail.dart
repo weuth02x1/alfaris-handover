@@ -72,3 +72,26 @@ class AuthMail {
     return "mailFailed";
   }
 }
+
+/// Workflow notices use the same project mailer as the sign-in code.
+/// The browser never holds the SMTP password. A missing function keeps the
+/// in-app notice and does not pretend the email left.
+class WorkflowMail {
+  static Future<void> send({
+    required String to,
+    required String subject,
+    required String body,
+  }) async {
+    final address = to.trim().toLowerCase();
+    if (!AuthMail.enabled || address.endsWith(".example") || address.isEmpty) return;
+    try {
+      await http
+          .post(
+            AuthMail._uri("/functions/v1/send-notice"),
+            headers: AuthMail._headers,
+            body: jsonEncode({"to": address, "subject": subject, "body": body}),
+          )
+          .timeout(const Duration(seconds: 20));
+    } catch (_) {}
+  }
+}

@@ -87,6 +87,9 @@ public class HandoverStore
             }
             inbox.ManagerQueue = _handovers.Where(h => h.Status == "pending_manager" && h.Employee.ManagerId == me.Id).ToList();
             inbox.HrQueue = me.IsHr ? _handovers.Where(h => h.Status == "pending_hr").ToList() : [];
+            inbox.Raised = me.IsHr
+                ? _handovers.Where(h => h.Employee.Id != me.Id && h.Status is "draft" or "returned" or "pending_acceptance" or "pending_manager").ToList()
+                : [];
             return inbox;
         }
     }
@@ -157,6 +160,8 @@ public class HandoverStore
             };
             _handovers.Add(h);
             Audit(h, actor.Id, "clearance_initiated", h.RequestRef);
+            foreach (var hr in _accounts.Where(e => e.IsHr && e.Id != actor.Id))
+                Notify(h, hr, $"يوجد طلب {ReasonAr(h.Type)} من {actor.NameAr}", "راجع الطلب وافتح النموذج. الموظف يعبّئ المهام ويسندها لزميل من نفس القسم.");
             return h.Id;
         }
     }
@@ -355,9 +360,34 @@ public class HandoverStore
         Notify(h, owner, $"أُعيد نموذج التسليم {h.Number} للتعديل", $"أعاد {actor.NameAr} النموذج. السبب: {comment}");
     }
 
+    static string ReasonAr(string key) => key switch
+    {
+        "annual_leave" => "إجازة سنوية",
+        "clearance" => "إخلاء طرف",
+        "resignation" => "استقالة",
+        "transfer" => "نقل",
+        "contract_end" => "انتهاء العقد",
+        _ => key
+    };
+
+    static string RequestBlock(HandoverForm h)
+    {
+        var back = string.IsNullOrWhiteSpace(h.ReturnDate) ? "غير محدد" : h.ReturnDate;
+        return string.Join("\n",
+        [
+            $"يوجد طلب {ReasonAr(h.Type)}",
+            $"الموظف: {h.Employee.NameAr}",
+            $"القسم: {h.Employee.DepartmentAr}",
+            $"آخر يوم عمل: {h.LastWorkingDay}",
+            $"تاريخ العودة: {back}",
+            $"رقم الطلب: {h.Number}"
+        ]);
+    }
+
     void Notify(HandoverForm h, Employee to, string subject, string body)
     {
-        _outbox.Add(new EmailMessage(Id(), to.Email, to.Id, subject, body, Now(), "workflow", $"/Handovers/{h.Id}"));
+        var full = RequestBlock(h) + "\n\n" + body;
+        _outbox.Add(new EmailMessage(Id(), to.Email, to.Id, subject, full, Now(), "workflow", $"/Handovers/{h.Id}"));
         if (_outbox.Count > 100) _outbox.RemoveRange(0, _outbox.Count - 100);
     }
 

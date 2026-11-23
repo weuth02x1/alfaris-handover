@@ -23,6 +23,7 @@ class HomePage extends StatelessWidget {
     final user = store.user!;
     final t = store.t;
     final inbox = store.inboxFor(user);
+    final notices = store.mailFor(user);
     String empName(Handover h) => store.nameSnap(h.employee);
 
     return Directionality(
@@ -77,7 +78,7 @@ class HomePage extends StatelessWidget {
                       style: const TextStyle(color: mutedFg),
                     ),
                     const SizedBox(height: 24),
-                    if (inbox.isEmpty)
+                    if (inbox.isEmpty && notices.isEmpty)
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 56),
@@ -118,6 +119,39 @@ class HomePage extends StatelessWidget {
                         builder: (context, box) {
                           final two = box.maxWidth >= 860;
                           final sections = <Widget>[
+                            if (notices.isNotEmpty)
+                              _Section(
+                                icon: Icons.notifications_outlined,
+                                title: t.notices,
+                                highlight: true,
+                                children: [
+                                  for (final message in notices.take(8))
+                                    _Row(
+                                      title: message.subject,
+                                      meta: message.body.split("\n").take(3).join(" · "),
+                                      badge: const SizedBox.shrink(),
+                                      onTap: () {
+                                        final link = message.link;
+                                        if (link != null) Navigator.pushNamed(context, link);
+                                      },
+                                    ),
+                                ],
+                              ),
+                            if (inbox.raised.isNotEmpty)
+                              _Section(
+                                icon: Icons.mark_email_unread_outlined,
+                                title: t.raisedQueue,
+                                highlight: true,
+                                children: [
+                                  for (final h in inbox.raised)
+                                    _Row(
+                                      title: "${empName(h)} · ${t.type(h.type)}",
+                                      meta: "${h.number} · ${t.date(h.lastWorkingDay)}",
+                                      badge: HandoverStatusBadge(status: h.status, label: t.status(h.status)),
+                                      onTap: () => Navigator.pushNamed(context, "/handovers/${h.id}"),
+                                    ),
+                                ],
+                              ),
                             if (inbox.toAccept.isNotEmpty)
                               _Section(
                                 icon: Icons.back_hand_outlined,

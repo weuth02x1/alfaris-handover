@@ -213,6 +213,15 @@ const exitReasons = [
   "contract_end",
 ];
 
+String exitReasonAr(String key) => switch (key) {
+  "annual_leave" => "إجازة سنوية",
+  "clearance" => "إخلاء طرف",
+  "resignation" => "استقالة",
+  "transfer" => "نقل",
+  "contract_end" => "انتهاء العقد",
+  _ => key,
+};
+
 /// Same workplace unit even when the Arabic or English label differs.
 String departmentKey(Employee person) {
   final blob =

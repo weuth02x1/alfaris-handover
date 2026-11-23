@@ -8,11 +8,13 @@ namespace Alfaris.Handover.Pages;
 public class IndexModel(HandoverStore store, LocaleService locale) : AppPageModel(store, locale)
 {
     public Inbox? Inbox { get; set; }
+    public List<EmailMessage> Notices { get; set; } = [];
 
     public IActionResult OnGet()
     {
         if (CurrentUser is null) return RedirectToPage("/Login");
         Inbox = Store.InboxFor(CurrentUser);
+        Notices = Store.MailFor(CurrentUser);
         return Page();
     }
 
