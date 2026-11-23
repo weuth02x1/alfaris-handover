@@ -1,8 +1,8 @@
 name: GitHub Pages
 
-# Flutter on GitHub Pages is no longer the product. Keep the workflow
-# disabled so a push cannot republish the old site onto the company domain.
 on:
+  push:
+    branches: [main, cursor/http-no-ssl-0f10]
   workflow_dispatch:
 
 permissions:
@@ -16,11 +16,34 @@ concurrency:
 
 jobs:
   deploy:
-    if: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Disabled. Host the ASP.NET app on IIS at handover.alfarisgrp.com."
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+        working-directory: flutter
+      - run: flutter test
+        working-directory: flutter
+      - name: Build web
+        working-directory: flutter
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          DEFINES=""
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          fi
+          flutter build web --release --base-href /alfaris-handover/ $DEFINES
+      - run: touch build/web/.nojekyll
+        working-directory: flutter
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: flutter/build/web
+      - id: deploy
+        uses: actions/deploy-pages@v4

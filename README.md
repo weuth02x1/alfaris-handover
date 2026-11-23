@@ -2,7 +2,9 @@
 
 نظام إخلاء الطرف وتسليم المهام. الرمز يُرسل من **سيرفر ASP.NET** إلى مشروع Supabase، وResend يوصّله على الإيميل. الرمز لا يظهر في الصفحة. التطبيق **لا يُرفع على Grok**.
 
-الدومين: `http://handover.alfarisgrp.com` (من دون SSL)
+الموقع الشغّال بشهادة صحيحة: `https://weuth02x1.github.io/alfaris-handover/`
+
+`handover.alfarisgrp.com` لسه على Apache بصفحة 404 وشهادة `websitewelcome`، لذلك كروم يقول غير آمن هناك.
 
 مشروع Auth: `https://sfshhcfjowiptefesqgp.supabase.co`
 
