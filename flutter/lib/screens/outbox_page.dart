@@ -26,7 +26,7 @@ class OutboxPage extends StatelessWidget {
         user: user,
         current: "outbox",
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 28, 16, 40),
+          padding: EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 24, MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 40),
           children: [
             Center(
               child: ConstrainedBox(

@@ -36,6 +36,7 @@ class I18n {
 
   String get navInbox => isAr ? "مهامي" : "My work";
   String get navHr => isAr ? "لوحة الموارد البشرية" : "HR console";
+  String get navHrShort => isAr ? "الموارد" : "HR";
   String get navOutbox => isAr ? "صندوق البريد" : "Mail outbox";
   String get navLogout => isAr ? "تسجيل الخروج" : "Sign out";
   String get navLanguage => isAr ? "English" : "العربية";

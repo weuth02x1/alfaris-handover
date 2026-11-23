@@ -69,7 +69,7 @@ class HandoverPage extends StatelessWidget {
       child: AppScaffold(
         user: user,
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 48),
+          padding: EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 24, MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 48),
           children: [
             Center(
               child: ConstrainedBox(

@@ -31,7 +31,7 @@ class HomePage extends StatelessWidget {
       child: AppScaffold(
         user: user,
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 28, 16, 40),
+          padding: EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 24, MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 40),
           children: [
             Center(
               child: ConstrainedBox(
@@ -44,7 +44,7 @@ class HomePage extends StatelessWidget {
                         final title = Text(
                           t.inboxTitle,
                           style: TextStyle(
-                            fontSize: box.maxWidth < 600 ? 22 : 26,
+                            fontSize: box.maxWidth < 600 ? 22 : 28,
                             fontWeight: FontWeight.w700,
                             color: navy,
                           ),
@@ -56,7 +56,7 @@ class HomePage extends StatelessWidget {
                         );
                         if (box.maxWidth < 600) {
                           return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               title,
                               const SizedBox(height: 12),
@@ -66,7 +66,8 @@ class HomePage extends StatelessWidget {
                         }
                         return Row(
                           children: [
-                            Expanded(child: title),
+                            title,
+                            const SizedBox(width: 16),
                             action,
                           ],
                         );
