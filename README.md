@@ -13,7 +13,7 @@
 المسار الوحيد للدخول الحقيقي:
 
 1. المستخدم يكتب إيميله في الموقع.
-2. السيرفر يستدعي `POST /auth/v1/otp` على مشروع Supabase مع `redirect_to=http://handover.alfarisgrp.com`.
+2. السيرفر يستدعي `POST /auth/v1/otp` على مشروع سوبا بيس مع `redirect_to=https://weuth02x1.github.io/alfaris-handover/`.
 3. SMTP داخل Supabase (Resend: `smtp.resend.com`) يرسل الرسالة. حقل From لازم يكون على دومين المجموعة بعد SPF/DKIM.
 4. المستخدم يكتب الرمز هنا. السيرفر يتحقق عبر `/auth/v1/verify`.
 
@@ -29,11 +29,11 @@ GitHub Pages يبني التطبيق بدون سيرفر، لذلك يحتاج *
 - `RESEND_FROM` (مثال: `Alfaris Group <noreply@alfarisgrp.com>`)
 - اختياري إذا SMTP مباشر: `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `SMTP_FROM`
 
-في لوحة Supabase Authentication:
+في لوحة سوبا بيس Authentication → URL Configuration:
 
-- Site URL: `http://handover.alfarisgrp.com`
-- Redirect URLs: `http://handover.alfarisgrp.com/**`
-- SMTP: Resend، ومن عنوان على `alfarisgrp.com` مو Grok.
+- Site URL: `https://weuth02x1.github.io/alfaris-handover/`
+- Redirect URLs: `https://weuth02x1.github.io/alfaris-handover/**`
+- SMTP: Resend، ومن عنوان على `alfarisgrp.com`. لا تترك Site URL على `http://localhost:3000`.
 
 ## تشغيل محلي
 

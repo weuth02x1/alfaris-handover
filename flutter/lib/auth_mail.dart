@@ -6,6 +6,10 @@ import "models.dart";
 
 const projectUrl = "https://sfshhcfjowiptefesqgp.supabase.co";
 const supabaseAnonKey = String.fromEnvironment("SUPABASE_ANON_KEY");
+const siteUrl = String.fromEnvironment(
+  "SITE_URL",
+  defaultValue: "https://weuth02x1.github.io/alfaris-handover/",
+);
 
 /// Sign-in mail goes only to this project's Auth endpoint. Custom SMTP in
 /// that project (Resend) delivers the message. The anon key is a publishable
@@ -13,7 +17,12 @@ const supabaseAnonKey = String.fromEnvironment("SUPABASE_ANON_KEY");
 class AuthMail {
   static bool get enabled => supabaseAnonKey.trim().isNotEmpty;
 
-  static Uri _uri(String path) => Uri.parse("$projectUrl$path");
+  static Uri _uri(String path, [Map<String, String>? query]) {
+    final uri = Uri.parse("$projectUrl$path");
+    return query == null ? uri : uri.replace(queryParameters: query);
+  }
+
+  static Uri otpUri() => _uri("/auth/v1/otp", {"redirect_to": siteUrl});
 
   static Map<String, String> get _headers => {
         "apikey": supabaseAnonKey.trim(),
@@ -25,7 +34,7 @@ class AuthMail {
     if (!enabled) throw WorkflowException("mailFailed");
     final response = await http
         .post(
-          _uri("/auth/v1/otp"),
+          otpUri(),
           headers: _headers,
           body: jsonEncode({"email": email.trim().toLowerCase(), "create_user": true}),
         )

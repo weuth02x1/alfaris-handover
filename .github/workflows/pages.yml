@@ -2,7 +2,7 @@ name: GitHub Pages
 
 on:
   push:
-    branches: [main, cursor/http-no-ssl-0f10, cursor/mail-failed-fix-0f10]
+    branches: [main, cursor/http-no-ssl-0f10, cursor/mail-failed-fix-0f10, cursor/otp-site-url-0f10]
   workflow_dispatch:
 
 permissions:
@@ -46,7 +46,11 @@ jobs:
               sys.exit("SUPABASE_ANON_KEY is a URL. Use the Publishable key from Supabase → Settings → API Keys.")
           if len(key) < 20:
               sys.exit("SUPABASE_ANON_KEY is too short to be a Publishable key.")
-          pathlib.Path("/tmp/dart-defines.json").write_text(json.dumps({"SUPABASE_URL": url, "SUPABASE_ANON_KEY": key}))
+          pathlib.Path("/tmp/dart-defines.json").write_text(json.dumps({
+            "SUPABASE_URL": url,
+            "SUPABASE_ANON_KEY": key,
+            "SITE_URL": "https://weuth02x1.github.io/alfaris-handover/",
+          }))
           print("Mail key is present; sign-in codes will be emailed.")
           PY
           flutter build web --release --base-href /alfaris-handover/ --dart-define-from-file=/tmp/dart-defines.json

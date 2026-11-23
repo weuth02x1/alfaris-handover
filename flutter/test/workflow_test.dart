@@ -60,4 +60,10 @@ void main() {
     expect(store.lastOtpCode, isNull);
     expect(store.user, isNull);
   });
+
+  test("OTP redirect points at the live site, not localhost", () {
+    expect(AuthMail.otpUri().queryParameters["redirect_to"], contains("alfaris-handover"));
+    expect(AuthMail.otpUri().toString(), isNot(contains("localhost")));
+    expect(siteUrl, isNot(contains("localhost")));
+  });
 }
