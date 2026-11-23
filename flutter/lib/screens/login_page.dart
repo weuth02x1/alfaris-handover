@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../auth_mail.dart";
 import "../models.dart";
 import "../store.dart";
 import "../theme.dart";
@@ -70,11 +71,20 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() {
         busy = false;
-        final errCode = e is WorkflowException ? e.code : e.toString();
+        final errCode = _errorCode(e);
         error = t.error(errCode);
         if (errCode == "notFoundEmail") signup = true;
       });
     }
+  }
+
+  String _errorCode(Object e) {
+    if (e is WorkflowException) return e.code;
+    final raw = e.toString();
+    for (final code in ["mailFailed", "badCode", "expired", "notFoundEmail", "invalid", "slow", "emailTaken", "idTaken"]) {
+      if (raw == code || raw.endsWith(code)) return code;
+    }
+    return raw;
   }
 
   Future<void> confirm() async {
@@ -91,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() {
         busy = false;
-        error = t.error(e is WorkflowException ? e.code : e.toString());
+        error = t.error(_errorCode(e));
       });
     }
   }
@@ -145,6 +155,11 @@ class _LoginPageState extends State<LoginPage> {
                       Text(t.loginTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: navy)),
                       const SizedBox(height: 6),
                       Text(t.loginSubtitle, style: const TextStyle(color: mutedFg, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      Text(
+                        AuthMail.enabled ? t.mailLive : t.mailOffline,
+                        style: TextStyle(color: AuthMail.enabled ? const Color(0xFF047857) : const Color(0xFFBE123C), fontSize: 13),
+                      ),
                       const SizedBox(height: 20),
                       Text(t.email, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 6),
@@ -271,6 +286,24 @@ class _LoginPageState extends State<LoginPage> {
                           }),
                           child: Text(signup ? t.haveAccount : t.createAccount),
                         ),
+                      if (!AuthMail.enabled) ...[
+                        const SizedBox(height: 24),
+                        Text(t.sampleTitle, style: const TextStyle(fontWeight: FontWeight.w700, color: navy)),
+                        const SizedBox(height: 4),
+                        Text(t.sampleHint, style: const TextStyle(color: mutedFg, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        for (final person in store.people)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: OutlinedButton(
+                              onPressed: () => store.signInForTest(person),
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text("${store.nameOf(person)} · ${person.displayId} · ${person.email}"),
+                              ),
+                            ),
+                          ),
+                      ],
                     ],
                   ),
                 ),

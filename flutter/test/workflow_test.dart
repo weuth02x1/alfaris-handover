@@ -1,5 +1,6 @@
 import "package:alfaris_handover/auth_mail.dart";
 import "package:alfaris_handover/directory.dart";
+import "package:alfaris_handover/i18n.dart";
 import "package:alfaris_handover/models.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -50,7 +51,11 @@ void main() {
   test("sign-in without mail configured does not invent a local code", () async {
     final store = AppStore();
     expect(AuthMail.enabled, isFalse);
-    await expectLater(store.requestOtp("hind.alghamdi@alfaris.example"), throwsA(isA<WorkflowException>()));
+    await expectLater(
+      store.requestOtp("hind.alghamdi@alfaris.example"),
+      throwsA(isA<WorkflowException>().having((e) => e.code, "code", "mailFailed")),
+    );
+    expect(I18n("ar").error("mailFailed"), isNot(contains("mailFailed")));
     expect(store.lastOtpCode, isNull);
     expect(store.user, isNull);
   });

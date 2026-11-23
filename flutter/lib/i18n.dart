@@ -41,6 +41,16 @@ class I18n {
   String get loginSubtitle => isAr
       ? "أدخل إيميلك. نرسل رمز الدخول إلى صندوق الوارد عبر بريد المجموعة."
       : "Enter your email. We send the sign-in code to that inbox through company mail.";
+  String get mailLive => isAr
+      ? "البريد مربوط: الرمز يطلع على إيميلك من Supabase / Resend."
+      : "Mail is connected: the code is emailed through Supabase / Resend.";
+  String get mailOffline => isAr
+      ? "البريد غير مربوط على هذا الموقع حالياً. استخدم الدخول التجريبي أو أعد المحاولة لاحقاً."
+      : "Mail is not connected on this site right now. Use sample sign-in or try again later.";
+  String get sampleTitle => isAr ? "دخول تجريبي" : "Sample sign-in";
+  String get sampleHint => isAr
+      ? "يظهر لأن إرسال الرمز على الإيميل غير متاح هنا. اختر موظفاً للدخول."
+      : "Shown because email codes are not available here. Pick a staff member to sign in.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
@@ -254,6 +264,7 @@ class I18n {
         "notFoundEmail": notFound,
         "invalid": invalid,
         "slow": slow,
+        "mailFailed": mailFailed,
         "emailTaken": emailTaken,
         "idTaken": idTaken,
       }[code] ?? code;

@@ -11,5 +11,7 @@ void main() {
     expect(find.text("تسجيل الدخول"), findsOneWidget);
     expect(find.text("أرسل الرمز على الإيميل"), findsOneWidget);
     expect(find.text("نظام تسليم العهد والمهام"), findsWidgets);
+    expect(find.textContaining("mailFailed"), findsNothing);
+    expect(find.text("دخول تجريبي"), findsOneWidget);
   });
 }

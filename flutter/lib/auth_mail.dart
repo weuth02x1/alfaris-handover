@@ -2,6 +2,8 @@ import "dart:convert";
 
 import "package:http/http.dart" as http;
 
+import "models.dart";
+
 const projectUrl = "https://sfshhcfjowiptefesqgp.supabase.co";
 const supabaseAnonKey = String.fromEnvironment("SUPABASE_ANON_KEY");
 
@@ -20,7 +22,7 @@ class AuthMail {
       };
 
   static Future<void> send(String email) async {
-    if (!enabled) throw Exception("mailFailed");
+    if (!enabled) throw WorkflowException("mailFailed");
     final response = await http
         .post(
           _uri("/auth/v1/otp"),
@@ -28,11 +30,11 @@ class AuthMail {
           body: jsonEncode({"email": email, "create_user": true}),
         )
         .timeout(const Duration(seconds: 25));
-    if (response.statusCode >= 400) throw Exception("mailFailed");
+    if (response.statusCode >= 400) throw WorkflowException("mailFailed");
   }
 
   static Future<void> verify(String email, String code) async {
-    if (!enabled) throw Exception("badCode");
+    if (!enabled) throw WorkflowException("badCode");
     final response = await http
         .post(
           _uri("/auth/v1/verify"),
@@ -40,6 +42,6 @@ class AuthMail {
           body: jsonEncode({"type": "email", "email": email, "token": code.trim()}),
         )
         .timeout(const Duration(seconds: 20));
-    if (response.statusCode >= 400) throw Exception("badCode");
+    if (response.statusCode >= 400) throw WorkflowException("badCode");
   }
 }

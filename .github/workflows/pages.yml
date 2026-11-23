@@ -2,7 +2,7 @@ name: GitHub Pages
 
 on:
   push:
-    branches: [main, cursor/http-no-ssl-0f10]
+    branches: [main, cursor/http-no-ssl-0f10, cursor/mail-failed-fix-0f10]
   workflow_dispatch:
 
 permissions:
