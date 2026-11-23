@@ -15,11 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -36,8 +33,11 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           DEFINES=""
-          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
-            DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          if [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo "Mail key is present; sign-in codes will be emailed."
+            DEFINES="--dart-define=SUPABASE_URL=${SUPABASE_URL:-https://sfshhcfjowiptefesqgp.supabase.co} --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          else
+            echo "Mail key is missing; login will not send email until SUPABASE_ANON_KEY is set as a GitHub Actions secret."
           fi
           flutter build web --release --base-href /alfaris-handover/ $DEFINES
       - run: touch build/web/.nojekyll
@@ -45,5 +45,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: flutter/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@v4

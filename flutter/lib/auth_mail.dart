@@ -27,9 +27,10 @@ class AuthMail {
         .post(
           _uri("/auth/v1/otp"),
           headers: _headers,
-          body: jsonEncode({"email": email, "create_user": true}),
+          body: jsonEncode({"email": email.trim().toLowerCase(), "create_user": true}),
         )
         .timeout(const Duration(seconds: 25));
+    if (response.statusCode == 429) throw WorkflowException("slow");
     if (response.statusCode >= 400) throw WorkflowException("mailFailed");
   }
 
@@ -39,9 +40,14 @@ class AuthMail {
         .post(
           _uri("/auth/v1/verify"),
           headers: _headers,
-          body: jsonEncode({"type": "email", "email": email, "token": code.trim()}),
+          body: jsonEncode({
+            "type": "email",
+            "email": email.trim().toLowerCase(),
+            "token": code.trim(),
+          }),
         )
         .timeout(const Duration(seconds: 20));
+    if (response.statusCode == 429) throw WorkflowException("slow");
     if (response.statusCode >= 400) throw WorkflowException("badCode");
   }
 }
