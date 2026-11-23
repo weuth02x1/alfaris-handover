@@ -134,6 +134,33 @@ public class HandoverStore
         }
     }
 
+    public string StartOwn(Employee actor, string type, string lastWorkingDay, string? returnDate)
+    {
+        if (!StaffDirectory.ExitReasons.Contains(type)) throw new WorkflowException("invalid");
+        if (string.IsNullOrWhiteSpace(lastWorkingDay)) throw new WorkflowException("invalid");
+        lock (_gate)
+        {
+            var manager = actor.ManagerId is null ? null : _accounts.FirstOrDefault(e => e.Id == actor.ManagerId);
+            _counter++;
+            var h = new HandoverForm
+            {
+                Id = Id(),
+                Number = $"HO-{DateTime.UtcNow.Year}-{_counter.ToString().PadLeft(4, '0')}",
+                RequestRef = $"SELF-{actor.DisplayId}-{_counter}",
+                Type = type,
+                LastWorkingDay = lastWorkingDay,
+                ReturnDate = string.IsNullOrWhiteSpace(returnDate) ? null : returnDate,
+                Employee = new EmployeeSnapshot(actor.Id, actor.NameAr, actor.NameEn, actor.JobTitleAr, actor.JobTitleEn, actor.DepartmentAr, actor.DepartmentEn, actor.SectionAr, actor.SectionEn, actor.ManagerId, manager?.NameAr ?? "", manager?.NameEn ?? ""),
+                Status = "draft",
+                InitiatedById = actor.Id,
+                CreatedAt = Now()
+            };
+            _handovers.Add(h);
+            Audit(h, actor.Id, "clearance_initiated", h.RequestRef);
+            return h.Id;
+        }
+    }
+
     public void SaveForm(Employee actor, string id, string generalNotes, List<HandoverTask> tasks, bool submit)
     {
         lock (_gate)
@@ -290,8 +317,8 @@ public class HandoverStore
     {
         var me = _accounts.FirstOrDefault(e => e.Id == employeeId);
         if (me is null) return [];
-        var sameDept = _accounts.Where(p => p.Id != me.Id && p.DepartmentId == me.DepartmentId).ToList();
-        return sameDept.Count > 0 ? sameDept : _accounts.Where(p => p.Id != me.Id && p.BranchId == me.BranchId).ToList();
+        var key = StaffDirectory.DepartmentKey(me);
+        return _accounts.Where(p => p.Id != me.Id && StaffDirectory.DepartmentKey(p) == key).ToList();
     }
 
     void NotifyRecipient(HandoverForm h, HandoverTask task, Employee recipient, Employee from) =>

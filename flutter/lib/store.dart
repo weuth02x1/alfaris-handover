@@ -29,7 +29,11 @@ class Inbox {
   final List<Handover> managerQueue;
   final List<Handover> hrQueue;
   bool get isEmpty =>
-      mine.isEmpty && toAccept.isEmpty && accepted.isEmpty && managerQueue.isEmpty && hrQueue.isEmpty;
+      mine.isEmpty &&
+      toAccept.isEmpty &&
+      accepted.isEmpty &&
+      managerQueue.isEmpty &&
+      hrQueue.isEmpty;
 }
 
 class Access {
@@ -103,9 +107,10 @@ class AppStore extends ChangeNotifier {
   List<Employee> colleaguesFor(String employeeId) {
     final me = person(employeeId);
     if (me == null) return [];
-    final sameDept = accounts.where((p) => p.id != me.id && p.departmentId == me.departmentId).toList();
-    if (sameDept.isNotEmpty) return sameDept;
-    return accounts.where((p) => p.id != me.id && p.branchId == me.branchId).toList();
+    final key = departmentKey(me);
+    return accounts
+        .where((p) => p.id != me.id && departmentKey(p) == key)
+        .toList();
   }
 
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
@@ -164,12 +169,15 @@ class AppStore extends ChangeNotifier {
       "D-ITD" => itDev,
       _ => null,
     };
-    if (!_isEmail(mail) || n.length < 2 || n.length > 80) throw WorkflowException("invalid");
+    if (!_isEmail(mail) || n.length < 2 || n.length > 80)
+      throw WorkflowException("invalid");
     if (!RegExp(r"^\d{3,10}$").hasMatch(no)) throw WorkflowException("invalid");
     if (job.length < 2 || job.length > 80) throw WorkflowException("invalid");
     if (dept == null) throw WorkflowException("invalid");
-    if (accounts.any((p) => p.email.toLowerCase() == mail)) throw WorkflowException("emailTaken");
-    if (accounts.any((p) => p.id == no || p.staffNumber == no)) throw WorkflowException("idTaken");
+    if (accounts.any((p) => p.email.toLowerCase() == mail))
+      throw WorkflowException("emailTaken");
+    if (accounts.any((p) => p.id == no || p.staffNumber == no))
+      throw WorkflowException("idTaken");
 
     final emp = Employee(
       id: "local-$_id()",
@@ -192,7 +200,9 @@ class AppStore extends ChangeNotifier {
     await requestOtp(emp.email);
   }
 
-  bool _isEmail(String value) => RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(value) && value.length <= 160;
+  bool _isEmail(String value) =>
+      RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(value) &&
+      value.length <= 160;
 
   void signInForTest(Employee emp) {
     user = emp;
@@ -232,17 +242,38 @@ class AppStore extends ChangeNotifier {
         }
       }
     }
-    final managerQueue = handovers.where((h) => h.status == "pending_manager" && h.employee.managerId == me.id).toList();
-    final hrQueue = me.isHr ? handovers.where((h) => h.status == "pending_hr").toList() : <Handover>[];
-    return Inbox(mine: mine, toAccept: toAccept, accepted: accepted, managerQueue: managerQueue, hrQueue: hrQueue);
+    final managerQueue = handovers
+        .where(
+          (h) => h.status == "pending_manager" && h.employee.managerId == me.id,
+        )
+        .toList();
+    final hrQueue = me.isHr
+        ? handovers.where((h) => h.status == "pending_hr").toList()
+        : <Handover>[];
+    return Inbox(
+      mine: mine,
+      toAccept: toAccept,
+      accepted: accepted,
+      managerQueue: managerQueue,
+      hrQueue: hrQueue,
+    );
   }
 
   Access access(Employee me, Handover h) {
     final isOwner = h.employee.id == me.id;
     final isManager = h.employee.managerId == me.id;
     final isHr = me.isHr;
-    final isRecipient = h.tasks.any((t) => t.assigneeId == me.id || t.rejections.any((r) => r.recipientId == me.id));
-    return Access(isOwner: isOwner, isManager: isManager, isHr: isHr, isRecipient: isRecipient);
+    final isRecipient = h.tasks.any(
+      (t) =>
+          t.assigneeId == me.id ||
+          t.rejections.any((r) => r.recipientId == me.id),
+    );
+    return Access(
+      isOwner: isOwner,
+      isManager: isManager,
+      isHr: isHr,
+      isRecipient: isRecipient,
+    );
   }
 
   Handover? handover(String id) {
@@ -252,13 +283,23 @@ class AppStore extends ChangeNotifier {
     return null;
   }
 
-  List<AuditEntry> auditFor(String handoverId) =>
-      auditLog.where((a) => a.handoverId == handoverId).toList().reversed.toList();
+  List<AuditEntry> auditFor(String handoverId) => auditLog
+      .where((a) => a.handoverId == handoverId)
+      .toList()
+      .reversed
+      .toList();
 
-  List<EmailMessage> mailFor(Employee me) =>
-      outbox.where((m) => m.kind != "otp" && m.toEmployeeId == me.id).toList().reversed.toList();
+  List<EmailMessage> mailFor(Employee me) => outbox
+      .where((m) => m.kind != "otp" && m.toEmployeeId == me.id)
+      .toList()
+      .reversed
+      .toList();
 
-  String initiateClearance(Employee actor, String requestRef, {String? reason}) {
+  String initiateClearance(
+    Employee actor,
+    String requestRef, {
+    String? reason,
+  }) {
     if (!actor.isHr) throw WorkflowException("notAllowed");
     ApprovedRequest? req;
     for (final r in mockApprovedRequests) {
@@ -312,17 +353,74 @@ class AppStore extends ChangeNotifier {
     return h.id;
   }
 
-  void saveForm(Employee actor, String id, {required String generalNotes, required List<HandoverTask> tasks, required bool submit}) {
+  String startOwn(
+    Employee actor, {
+    required String type,
+    required String lastWorkingDay,
+    String? returnDate,
+  }) {
+    if (!exitReasons.contains(type)) throw WorkflowException("invalid");
+    if (!RegExp(r"^\d{4}-\d{2}-\d{2}$").hasMatch(lastWorkingDay))
+      throw WorkflowException("invalid");
+    final back = (returnDate == null || returnDate.isEmpty) ? null : returnDate;
+    if (back != null && !RegExp(r"^\d{4}-\d{2}-\d{2}$").hasMatch(back))
+      throw WorkflowException("invalid");
+    final manager = person(actor.managerId);
+    counter += 1;
+    final h = Handover(
+      id: _id(),
+      number: "HO-${DateTime.now().year}-${counter.toString().padLeft(4, "0")}",
+      requestRef: "SELF-${actor.displayId}-$counter",
+      type: type,
+      lastWorkingDay: lastWorkingDay,
+      returnDate: back,
+      employee: EmployeeSnapshot(
+        id: actor.id,
+        nameAr: actor.nameAr,
+        nameEn: actor.nameEn,
+        jobTitleAr: actor.jobTitleAr,
+        jobTitleEn: actor.jobTitleEn,
+        departmentAr: actor.departmentAr,
+        departmentEn: actor.departmentEn,
+        sectionAr: actor.sectionAr,
+        sectionEn: actor.sectionEn,
+        managerId: actor.managerId,
+        managerNameAr: manager?.nameAr ?? "",
+        managerNameEn: manager?.nameEn ?? "",
+      ),
+      status: "draft",
+      initiatedById: actor.id,
+      createdAt: _now(),
+    );
+    handovers.add(h);
+    _audit(h, actor.id, "clearance_initiated", h.requestRef);
+    notifyListeners();
+    return h.id;
+  }
+
+  void saveForm(
+    Employee actor,
+    String id, {
+    required String generalNotes,
+    required List<HandoverTask> tasks,
+    required bool submit,
+  }) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (h.employee.id != actor.id) throw WorkflowException("notAllowed");
-    if (h.status != "draft" && h.status != "returned") throw WorkflowException("notAllowed");
-    if (tasks.length > 40 || generalNotes.length > 4000) throw WorkflowException("notAllowed");
+    if (h.status != "draft" && h.status != "returned")
+      throw WorkflowException("notAllowed");
+    if (tasks.length > 40 || generalNotes.length > 4000)
+      throw WorkflowException("notAllowed");
     final colleagueIds = colleaguesFor(actor.id).map((c) => c.id).toSet();
     for (final task in tasks) {
-      if (task.title.length > 160 || task.details.length > 2000) throw WorkflowException("notAllowed");
-      if (submit && task.title.trim().isEmpty) throw WorkflowException("titleRequired");
-      if (submit && task.assigneeId.isEmpty) throw WorkflowException("assigneeRequired");
-      if (task.assigneeId.isNotEmpty && !colleagueIds.contains(task.assigneeId)) throw WorkflowException("notAllowed");
+      if (task.title.length > 160 || task.details.length > 2000)
+        throw WorkflowException("notAllowed");
+      if (submit && task.title.trim().isEmpty)
+        throw WorkflowException("titleRequired");
+      if (submit && task.assigneeId.isEmpty)
+        throw WorkflowException("assigneeRequired");
+      if (task.assigneeId.isNotEmpty && !colleagueIds.contains(task.assigneeId))
+        throw WorkflowException("notAllowed");
     }
     if (submit && tasks.isEmpty) throw WorkflowException("noTasks");
 
@@ -330,7 +428,8 @@ class AppStore extends ChangeNotifier {
     h.generalNotes = generalNotes;
     h.tasks = tasks.map((ti) {
       final prev = previous[ti.id];
-      final unchanged = prev != null &&
+      final unchanged =
+          prev != null &&
           prev.title == ti.title &&
           prev.details == ti.details &&
           prev.dueDate == ti.dueDate &&
@@ -340,7 +439,9 @@ class AppStore extends ChangeNotifier {
         id: prev?.id ?? (ti.id.isEmpty ? _id() : ti.id),
         title: ti.title.trim(),
         details: ti.details.trim(),
-        dueDate: (ti.dueDate == null || ti.dueDate!.isEmpty) ? null : ti.dueDate,
+        dueDate: (ti.dueDate == null || ti.dueDate!.isEmpty)
+            ? null
+            : ti.dueDate,
         assigneeId: ti.assigneeId,
         status: "draft",
         rejections: prev?.rejections ?? [],
@@ -361,8 +462,14 @@ class AppStore extends ChangeNotifier {
     for (final task in h.tasks) {
       if (task.status == "accepted") continue;
       task.status = "pending";
-      final recipient = colleaguesFor(actor.id).firstWhere((c) => c.id == task.assigneeId);
-      _audit(h, actor.id, "task_assigned", "${task.title} → ${recipient.nameAr}");
+      final recipient = colleaguesFor(actor.id)
+          .firstWhere((c) => c.id == task.assigneeId);
+      _audit(
+        h,
+        actor.id,
+        "task_assigned",
+        "${task.title} → ${recipient.nameAr}",
+      );
       _notifyRecipient(h, task, recipient, actor);
     }
     _advanceIfAllAccepted(h);
@@ -372,7 +479,10 @@ class AppStore extends ChangeNotifier {
   void acceptTask(Employee actor, String id, String taskId, String note) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     final task = _task(h, taskId);
-    if (task == null || task.assigneeId != actor.id || task.status != "pending" || h.status != "pending_acceptance") {
+    if (task == null ||
+        task.assigneeId != actor.id ||
+        task.status != "pending" ||
+        h.status != "pending_acceptance") {
       throw WorkflowException("notAllowed");
     }
     task.status = "accepted";
@@ -387,12 +497,18 @@ class AppStore extends ChangeNotifier {
     if (comment.trim().isEmpty) throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     final task = _task(h, taskId);
-    if (task == null || task.assigneeId != actor.id || task.status != "pending" || h.status != "pending_acceptance") {
+    if (task == null ||
+        task.assigneeId != actor.id ||
+        task.status != "pending" ||
+        h.status != "pending_acceptance") {
       throw WorkflowException("notAllowed");
     }
-    final owner = person(h.employee.id) ?? (throw WorkflowException("notFound"));
+    final owner =
+        person(h.employee.id) ?? (throw WorkflowException("notFound"));
     task.status = "rejected";
-    task.rejections.add(TaskRejection(recipientId: actor.id, comment: comment.trim(), at: _now()));
+    task.rejections.add(
+      TaskRejection(recipientId: actor.id, comment: comment.trim(), at: _now()),
+    );
     _audit(h, actor.id, "task_rejected", "${task.title}: ${comment.trim()}");
     _notify(
       h,
@@ -403,12 +519,20 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reassignTask(Employee actor, String id, String taskId, String newAssigneeId) {
+  void reassignTask(
+    Employee actor,
+    String id,
+    String taskId,
+    String newAssigneeId,
+  ) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id != actor.id || h.status != "pending_acceptance") throw WorkflowException("notAllowed");
+    if (h.employee.id != actor.id || h.status != "pending_acceptance")
+      throw WorkflowException("notAllowed");
     final task = _task(h, taskId);
-    if (task == null || task.status != "rejected") throw WorkflowException("notAllowed");
-    if (task.rejections.any((r) => r.recipientId == newAssigneeId)) throw WorkflowException("sameAssignee");
+    if (task == null || task.status != "rejected")
+      throw WorkflowException("notAllowed");
+    if (task.rejections.any((r) => r.recipientId == newAssigneeId))
+      throw WorkflowException("sameAssignee");
     Employee? recipient;
     for (final c in colleaguesFor(actor.id)) {
       if (c.id == newAssigneeId) recipient = c;
@@ -416,19 +540,36 @@ class AppStore extends ChangeNotifier {
     if (recipient == null) throw WorkflowException("assigneeRequired");
     task.assigneeId = newAssigneeId;
     task.status = "pending";
-    _audit(h, actor.id, "task_reassigned", "${task.title} → ${recipient.nameAr}");
+    _audit(
+      h,
+      actor.id,
+      "task_reassigned",
+      "${task.title} → ${recipient.nameAr}",
+    );
     _notifyRecipient(h, task, recipient, actor);
     notifyListeners();
   }
 
-  void managerDecision(Employee actor, String id, bool approve, String comment) {
-    if (!approve && comment.trim().isEmpty) throw WorkflowException("commentRequired");
+  void managerDecision(
+    Employee actor,
+    String id,
+    bool approve,
+    String comment,
+  ) {
+    if (!approve && comment.trim().isEmpty)
+      throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (h.employee.id == actor.id) throw WorkflowException("notAllowed");
-    if (h.status != "pending_manager" || h.employee.managerId != actor.id) throw WorkflowException("notAllowed");
-    final owner = person(h.employee.id) ?? (throw WorkflowException("notFound"));
+    if (h.status != "pending_manager" || h.employee.managerId != actor.id)
+      throw WorkflowException("notAllowed");
+    final owner =
+        person(h.employee.id) ?? (throw WorkflowException("notFound"));
     if (approve) {
-      h.managerApproval = Approval(byId: actor.id, at: _now(), comment: comment.trim().isEmpty ? null : comment.trim());
+      h.managerApproval = Approval(
+        byId: actor.id,
+        at: _now(),
+        comment: comment.trim().isEmpty ? null : comment.trim(),
+      );
       _audit(h, actor.id, "manager_approved", comment.trim());
       _moveToHr(h);
     } else {
@@ -439,20 +580,28 @@ class AppStore extends ChangeNotifier {
 
   void hrDecision(Employee actor, String id, bool approve, String comment) {
     if (!actor.isHr) throw WorkflowException("notAllowed");
-    if (!approve && comment.trim().isEmpty) throw WorkflowException("commentRequired");
+    if (!approve && comment.trim().isEmpty)
+      throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (h.employee.id == actor.id) throw WorkflowException("notAllowed");
     if (h.status != "pending_hr") throw WorkflowException("notAllowed");
-    final owner = person(h.employee.id) ?? (throw WorkflowException("notFound"));
+    final owner =
+        person(h.employee.id) ?? (throw WorkflowException("notFound"));
     if (!approve) {
       _returnToEmployee(h, owner, actor, "hr", comment.trim());
       notifyListeners();
       return;
     }
-    h.hrApproval = Approval(byId: actor.id, at: _now(), comment: comment.trim().isEmpty ? null : comment.trim());
+    h.hrApproval = Approval(
+      byId: actor.id,
+      at: _now(),
+      comment: comment.trim().isEmpty ? null : comment.trim(),
+    );
     h.status = "approved";
     h.finalizedAt = _now();
-    h.documentHash = sha256.convert(utf8.encode(jsonEncode(_canonical(h)))).toString();
+    h.documentHash = sha256
+        .convert(utf8.encode(jsonEncode(_canonical(h))))
+        .toString();
     _audit(h, actor.id, "hr_approved", comment.trim());
     _audit(h, "system", "document_generated", h.documentHash!.substring(0, 16));
     _notify(
@@ -466,7 +615,12 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _notifyRecipient(Handover h, HandoverTask task, Employee recipient, Employee from) {
+  void _notifyRecipient(
+    Handover h,
+    HandoverTask task,
+    Employee recipient,
+    Employee from,
+  ) {
     _notify(
       h,
       recipient,
@@ -506,10 +660,26 @@ class AppStore extends ChangeNotifier {
     }
   }
 
-  void _returnToEmployee(Handover h, Employee owner, Employee actor, String stage, String comment) {
+  void _returnToEmployee(
+    Handover h,
+    Employee owner,
+    Employee actor,
+    String stage,
+    String comment,
+  ) {
     h.status = "returned";
-    h.lastReturn = ReturnInfo(stage: stage, byId: actor.id, comment: comment, at: _now());
-    _audit(h, actor.id, stage == "manager" ? "manager_rejected" : "hr_rejected", comment);
+    h.lastReturn = ReturnInfo(
+      stage: stage,
+      byId: actor.id,
+      comment: comment,
+      at: _now(),
+    );
+    _audit(
+      h,
+      actor.id,
+      stage == "manager" ? "manager_rejected" : "hr_rejected",
+      comment,
+    );
     _notify(
       h,
       owner,
@@ -534,8 +704,22 @@ class AppStore extends ChangeNotifier {
     if (outbox.length > 100) outbox.removeRange(0, outbox.length - 100);
   }
 
-  void _audit(Handover h, String actorId, String action, [String details = ""]) {
-    auditLog.add(AuditEntry(id: _id(), handoverId: h.id, at: _now(), actorId: actorId, action: action, details: details));
+  void _audit(
+    Handover h,
+    String actorId,
+    String action, [
+    String details = "",
+  ]) {
+    auditLog.add(
+      AuditEntry(
+        id: _id(),
+        handoverId: h.id,
+        at: _now(),
+        actorId: actorId,
+        action: action,
+        details: details,
+      ),
+    );
   }
 
   HandoverTask? _task(Handover h, String taskId) {
@@ -546,36 +730,44 @@ class AppStore extends ChangeNotifier {
   }
 
   Map<String, Object?> _canonical(Handover h) => {
-        "number": h.number,
-        "requestRef": h.requestRef,
-        "type": h.type,
-        "lastWorkingDay": h.lastWorkingDay,
-        "returnDate": h.returnDate,
-        "employee": {
-          "id": h.employee.id,
-          "nameAr": h.employee.nameAr,
-          "nameEn": h.employee.nameEn,
+    "number": h.number,
+    "requestRef": h.requestRef,
+    "type": h.type,
+    "lastWorkingDay": h.lastWorkingDay,
+    "returnDate": h.returnDate,
+    "employee": {
+      "id": h.employee.id,
+      "nameAr": h.employee.nameAr,
+      "nameEn": h.employee.nameEn,
+    },
+    "generalNotes": h.generalNotes,
+    "tasks": [
+      for (final t in h.tasks)
+        {
+          "title": t.title,
+          "details": t.details,
+          "dueDate": t.dueDate,
+          "assigneeId": t.assigneeId,
+          "acceptedAt": t.acceptedAt,
+          "acceptNote": t.acceptNote,
         },
-        "generalNotes": h.generalNotes,
-        "tasks": [
-          for (final t in h.tasks)
-            {
-              "title": t.title,
-              "details": t.details,
-              "dueDate": t.dueDate,
-              "assigneeId": t.assigneeId,
-              "acceptedAt": t.acceptedAt,
-              "acceptNote": t.acceptNote,
-            },
-        ],
-        "managerApproval": h.managerApproval == null
-            ? null
-            : {"byId": h.managerApproval!.byId, "at": h.managerApproval!.at, "comment": h.managerApproval!.comment},
-        "hrApproval": h.hrApproval == null
-            ? null
-            : {"byId": h.hrApproval!.byId, "at": h.hrApproval!.at, "comment": h.hrApproval!.comment},
-        "finalizedAt": h.finalizedAt,
-      };
+    ],
+    "managerApproval": h.managerApproval == null
+        ? null
+        : {
+            "byId": h.managerApproval!.byId,
+            "at": h.managerApproval!.at,
+            "comment": h.managerApproval!.comment,
+          },
+    "hrApproval": h.hrApproval == null
+        ? null
+        : {
+            "byId": h.hrApproval!.byId,
+            "at": h.hrApproval!.at,
+            "comment": h.hrApproval!.comment,
+          },
+    "finalizedAt": h.finalizedAt,
+  };
 }
 
 class StoreScope extends InheritedWidget {

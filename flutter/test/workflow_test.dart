@@ -34,7 +34,12 @@ void main() {
 
     final abdullah = mockEmployees.firstWhere((e) => e.id == "10530");
     store.user = abdullah;
-    store.acceptTask(abdullah, id, store.handover(id)!.tasks.first.id, "تم الاستلام");
+    store.acceptTask(
+      abdullah,
+      id,
+      store.handover(id)!.tasks.first.id,
+      "تم الاستلام",
+    );
     expect(store.handover(id)!.status, "pending_manager");
 
     final fahad = mockEmployees.firstWhere((e) => e.id == "10501");
@@ -48,21 +53,67 @@ void main() {
     expect(store.handover(id)!.documentHash, isNotNull);
   });
 
-  test("sign-in without mail configured does not invent a local code", () async {
+  test(
+    "sign-in without mail configured does not invent a local code",
+    () async {
+      final store = AppStore();
+      expect(AuthMail.enabled, isFalse);
+      await expectLater(
+        store.requestOtp("hind.alghamdi@alfaris.example"),
+        throwsA(
+          isA<WorkflowException>().having((e) => e.code, "code", "mailFailed"),
+        ),
+      );
+      expect(I18n("ar").error("mailFailed"), isNot(contains("mailFailed")));
+      expect(I18n("ar").error("mailerDown"), contains("SMTP"));
+      expect(store.lastOtpCode, isNull);
+      expect(store.user, isNull);
+    },
+  );
+
+  test("an employee can open leave and only assign the same department", () {
     final store = AppStore();
-    expect(AuthMail.enabled, isFalse);
-    await expectLater(
-      store.requestOtp("hind.alghamdi@alfaris.example"),
-      throwsA(isA<WorkflowException>().having((e) => e.code, "code", "mailFailed")),
+    final sarah = mockEmployees.firstWhere((e) => e.id == "10518");
+    store.signInForTest(sarah);
+    final colleagues = store.colleaguesFor(sarah.id).map((e) => e.id);
+    expect(colleagues, contains("10540"));
+    expect(colleagues, isNot(contains("40221")));
+
+    final id = store.startOwn(
+      sarah,
+      type: "annual_leave",
+      lastWorkingDay: "2026-12-01",
+      returnDate: "2026-12-20",
     );
-    expect(I18n("ar").error("mailFailed"), isNot(contains("mailFailed")));
-    expect(I18n("ar").error("mailerDown"), contains("SMTP"));
-    expect(store.lastOtpCode, isNull);
-    expect(store.user, isNull);
+    expect(store.handover(id)!.status, "draft");
+    expect(store.handover(id)!.type, "annual_leave");
+    expect(
+      () => store.saveForm(
+        sarah,
+        id,
+        generalNotes: "",
+        tasks: [
+          HandoverTask(
+            id: "",
+            title: "تسليم",
+            details: "",
+            assigneeId: "40221",
+            status: "draft",
+          ),
+        ],
+        submit: true,
+      ),
+      throwsA(
+        isA<WorkflowException>().having((e) => e.code, "code", "notAllowed"),
+      ),
+    );
   });
 
   test("OTP redirect points at the live site, not localhost", () {
-    expect(AuthMail.otpUri().queryParameters["redirect_to"], contains("alfaris-handover"));
+    expect(
+      AuthMail.otpUri().queryParameters["redirect_to"],
+      contains("alfaris-handover"),
+    );
     expect(AuthMail.otpUri().toString(), isNot(contains("localhost")));
     expect(siteUrl, isNot(contains("localhost")));
   });

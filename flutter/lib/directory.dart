@@ -156,13 +156,83 @@ final mockEmployees = <Employee>[
     email: "abdullah.alharbi@alfaris.example",
     role: "employee",
   ),
+  _e(
+    id: "10540",
+    nameAr: "نورة الدوسري",
+    nameEn: "Noura Aldosari",
+    jobTitleAr: "محللة أنظمة",
+    jobTitleEn: "Systems Analyst",
+    dept: {
+      "departmentId": "IT-SYS",
+      "departmentAr": "إدارة تقنية المعلومات",
+      "departmentEn": "Information Technology",
+      "sectionAr": "تحليل الأنظمة",
+      "sectionEn": "Systems Analysis",
+      "branchId": "B-RUH",
+    },
+    managerId: "10501",
+    email: "noura.aldosari@alfaris.example",
+    role: "employee",
+  ),
 ];
 
 const mockApprovedRequests = [
-  ApprovedRequest(ref: "ANN-2026-0412", employeeId: "10518", type: "annual_leave", startDate: "2026-12-01", endDate: "2026-12-28"),
-  ApprovedRequest(ref: "CLR-2026-0087", employeeId: "10524", type: "clearance", startDate: "2026-12-15"),
-  ApprovedRequest(ref: "ANN-2026-0419", employeeId: "40221", type: "annual_leave", startDate: "2026-12-05", endDate: "2026-12-19"),
-  ApprovedRequest(ref: "RES-2026-0014", employeeId: "40233", type: "resignation", startDate: "2026-12-31"),
+  ApprovedRequest(
+    ref: "ANN-2026-0412",
+    employeeId: "10518",
+    type: "annual_leave",
+    startDate: "2026-12-01",
+    endDate: "2026-12-28",
+  ),
+  ApprovedRequest(
+    ref: "CLR-2026-0087",
+    employeeId: "10524",
+    type: "clearance",
+    startDate: "2026-12-15",
+  ),
+  ApprovedRequest(
+    ref: "ANN-2026-0419",
+    employeeId: "40221",
+    type: "annual_leave",
+    startDate: "2026-12-05",
+    endDate: "2026-12-19",
+  ),
+  ApprovedRequest(
+    ref: "RES-2026-0014",
+    employeeId: "40233",
+    type: "resignation",
+    startDate: "2026-12-31",
+  ),
 ];
 
-const exitReasons = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"];
+const exitReasons = [
+  "annual_leave",
+  "clearance",
+  "resignation",
+  "transfer",
+  "contract_end",
+];
+
+/// Same workplace unit even when the Arabic or English label differs.
+String departmentKey(Employee person) {
+  final blob =
+      "${person.departmentId} ${person.departmentAr} ${person.departmentEn} ${person.sectionAr} ${person.sectionEn}"
+          .toLowerCase();
+  const hr = ["d-hr", "موارد", "شؤون الموظف", "human resource", "personnel"];
+  const talent = ["d-ta", "استقطاب", "مواهب", "talent"];
+  const it = [
+    "d-itd",
+    "تقنية المعلومات",
+    "تطوير الأنظمة",
+    "تطوير تقنية",
+    "information technology",
+    "it development",
+    "systems development",
+  ];
+  bool hit(List<String> words) => words.any(blob.contains);
+  if (hit(hr)) return "D-HR";
+  if (hit(talent)) return "D-TA";
+  if (hit(it)) return "D-ITD";
+  final id = person.departmentId.trim();
+  return id.isEmpty ? blob : id;
+}

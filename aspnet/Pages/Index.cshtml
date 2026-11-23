@@ -9,6 +9,28 @@
 <div class="wrap">
     <h1>@t.InboxTitle</h1>
     <p class="muted">@t.InboxSubtitle</p>
+    <form method="post" asp-page-handler="Start" class="card" style="margin:16px 0;padding:16px">
+        <strong>@t.NewRequest</strong>
+        <p class="muted">@t.SameDepartment</p>
+        <label>@t.TypeLabel</label>
+        <select name="type">
+            @foreach (var reason in StaffDirectory.ExitReasons)
+            {
+                <option value="@reason">@t.Type(reason)</option>
+            }
+        </select>
+        <div class="row row-2">
+            <div>
+                <label>@t.LastWorkingDay</label>
+                <input type="date" name="lastWorkingDay" required />
+            </div>
+            <div>
+                <label>@t.ReturnDate</label>
+                <input type="date" name="returnDate" />
+            </div>
+        </div>
+        <button type="submit">@t.StartRequest</button>
+    </form>
     @if (inbox.IsEmpty)
     {
         <div class="card" style="text-align:center;padding:48px 16px">

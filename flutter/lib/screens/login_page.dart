@@ -87,7 +87,16 @@ class _LoginPageState extends State<LoginPage> {
   String _errorCode(Object e) {
     if (e is WorkflowException) return e.code;
     final raw = e.toString();
-    for (final code in ["mailFailed", "badCode", "expired", "notFoundEmail", "invalid", "slow", "emailTaken", "idTaken"]) {
+    for (final code in [
+      "mailFailed",
+      "badCode",
+      "expired",
+      "notFoundEmail",
+      "invalid",
+      "slow",
+      "emailTaken",
+      "idTaken",
+    ]) {
       if (raw == code || raw.endsWith(code)) return code;
     }
     return raw;
@@ -125,22 +134,57 @@ class _LoginPageState extends State<LoginPage> {
             final brand = Stack(
               children: [
                 const Positioned.fill(child: ColoredBox(color: navy)),
-                const Positioned(left: -64, bottom: -64, child: BrandWatermark(size: 320)),
-                const Positioned(right: -80, top: -80, child: BrandWatermark(size: 280, angle: 0.2)),
+                const Positioned(
+                  left: -64,
+                  bottom: -64,
+                  child: BrandWatermark(size: 320),
+                ),
+                const Positioned(
+                  right: -80,
+                  top: -80,
+                  child: BrandWatermark(size: 280, angle: 0.2),
+                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: wide ? 40 : 20,
+                    vertical: wide ? 40 : 20,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const BrandLockup(height: 72),
-                      const Spacer(),
+                      BrandLockup(height: wide ? 72 : 44),
+                      if (wide) const Spacer() else const SizedBox(height: 12),
                       Container(width: 64, height: 1, color: gold),
-                      const SizedBox(height: 16),
-                      Text(t.appName, style: const TextStyle(color: cream, fontSize: 34, fontWeight: FontWeight.w600, height: 1.3)),
                       const SizedBox(height: 12),
-                      Text(t.appTagline, style: const TextStyle(color: gold, fontSize: 14, height: 1.6)),
-                      const Spacer(),
-                      const Text("ALFARIS GROUP", style: TextStyle(color: gold, letterSpacing: 3.5, fontSize: 12)),
+                      Text(
+                        t.appName,
+                        style: TextStyle(
+                          color: cream,
+                          fontSize: wide ? 34 : 22,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                      if (wide) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          t.appTagline,
+                          style: const TextStyle(
+                            color: gold,
+                            fontSize: 14,
+                            height: 1.6,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Text(
+                          "ALFARIS GROUP",
+                          style: TextStyle(
+                            color: gold,
+                            letterSpacing: 3.5,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -153,148 +197,343 @@ class _LoginPageState extends State<LoginPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 560),
                   child: ListView(
+                    shrinkWrap: !wide,
+                    physics: wide ? null : const NeverScrollableScrollPhysics(),
                     children: [
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
-                        child: TextButton(onPressed: store.toggleLocale, child: Text(t.navLanguage)),
+                        child: TextButton(
+                          onPressed: store.toggleLocale,
+                          child: Text(t.navLanguage),
+                        ),
                       ),
-                      Text(t.loginTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: navy)),
+                      Text(
+                        t.loginTitle,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: navy,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text(AuthMail.enabled ? t.loginSubtitle : t.sampleHint, style: const TextStyle(color: mutedFg, fontSize: 14)),
+                      Text(
+                        AuthMail.enabled ? t.loginSubtitle : t.sampleHint,
+                        style: const TextStyle(color: mutedFg, fontSize: 14),
+                      ),
                       if (AuthMail.enabled) ...[
                         const SizedBox(height: 10),
-                        Text(t.mailLive, style: const TextStyle(color: Color(0xFF047857), fontSize: 13)),
+                        Text(
+                          t.mailLive,
+                          style: const TextStyle(
+                            color: Color(0xFF047857),
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 20),
                       if (AuthMail.enabled) ...[
-                      Text(t.email, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: email,
-                        keyboardType: TextInputType.emailAddress,
-                        textDirection: TextDirection.ltr,
-                        decoration: InputDecoration(hintText: t.emailPh),
-                      ),
-                      if (signup && !codeStep) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            border: Border.all(color: line),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.signupTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text(t.signupHint, style: const TextStyle(color: mutedFg, fontSize: 13)),
-                              const SizedBox(height: 12),
-                              Text(t.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 6),
-                              TextField(controller: name, decoration: InputDecoration(hintText: t.namePh)),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(t.employeeNo, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                        const SizedBox(height: 6),
-                                        TextField(controller: employeeNo, decoration: InputDecoration(hintText: t.employeeNoPh)),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(t.jobTitle, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                        const SizedBox(height: 6),
-                                        TextField(controller: jobTitle, decoration: InputDecoration(hintText: t.jobTitlePh)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(t.department, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 6),
-                              DropdownMenu<String>(
-                                initialSelection: departmentId,
-                                expandedInsets: EdgeInsets.zero,
-                                dropdownMenuEntries: [
-                                  DropdownMenuEntry(value: "D-HR", label: t.deptHr),
-                                  DropdownMenuEntry(value: "D-TA", label: t.deptTalent),
-                                  DropdownMenuEntry(value: "D-ITD", label: t.deptIt),
-                                ],
-                                onSelected: (v) => setState(() => departmentId = v ?? "D-HR"),
-                              ),
-                            ],
+                        Text(
+                          t.email,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                      if (codeStep) ...[
-                        const SizedBox(height: 16),
-                        Text(t.codeSent, style: const TextStyle(color: mutedFg, fontSize: 14)),
-                        const SizedBox(height: 6),
-                        Text(t.checkInbox, style: const TextStyle(fontSize: 14)),
-                        const SizedBox(height: 12),
-                        Text(t.code, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
                         TextField(
-                          controller: code,
-                          keyboardType: TextInputType.number,
-                          maxLength: 8,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 20, letterSpacing: 10, fontWeight: FontWeight.w700),
-                          decoration: const InputDecoration(counterText: ""),
+                          controller: email,
+                          keyboardType: TextInputType.emailAddress,
+                          textDirection: TextDirection.ltr,
+                          decoration: InputDecoration(hintText: t.emailPh),
                         ),
-                      ],
-                      if (error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(error!, style: const TextStyle(color: Color(0xFFBE123C), fontSize: 13)),
-                      ],
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (codeStep) ...[
-                            FilledButton(
-                              onPressed: busy || !_codeReady(code.text) ? null : confirm,
-                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.confirm),
+                        if (signup && !codeStep) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              border: Border.all(color: line),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            OutlinedButton(
-                              onPressed: busy ? null : () => sendCode(create: false),
-                              child: Text(t.resend),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.signupTitle,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  t.signupHint,
+                                  style: const TextStyle(
+                                    color: mutedFg,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  t.name,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                TextField(
+                                  controller: name,
+                                  decoration: InputDecoration(
+                                    hintText: t.namePh,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                if (box.maxWidth < 640)
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        t.employeeNo,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      TextField(
+                                        controller: employeeNo,
+                                        decoration: InputDecoration(
+                                          hintText: t.employeeNoPh,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        t.jobTitle,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      TextField(
+                                        controller: jobTitle,
+                                        decoration: InputDecoration(
+                                          hintText: t.jobTitlePh,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              t.employeeNo,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            TextField(
+                                              controller: employeeNo,
+                                              decoration: InputDecoration(
+                                                hintText: t.employeeNoPh,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              t.jobTitle,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            TextField(
+                                              controller: jobTitle,
+                                              decoration: InputDecoration(
+                                                hintText: t.jobTitlePh,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  t.department,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                DropdownMenu<String>(
+                                  initialSelection: departmentId,
+                                  expandedInsets: EdgeInsets.zero,
+                                  dropdownMenuEntries: [
+                                    DropdownMenuEntry(
+                                      value: "D-HR",
+                                      label: t.deptHr,
+                                    ),
+                                    DropdownMenuEntry(
+                                      value: "D-TA",
+                                      label: t.deptTalent,
+                                    ),
+                                    DropdownMenuEntry(
+                                      value: "D-ITD",
+                                      label: t.deptIt,
+                                    ),
+                                  ],
+                                  onSelected: (v) => setState(
+                                    () => departmentId = v ?? "D-HR",
+                                  ),
+                                ),
+                              ],
                             ),
-                          ] else if (signup)
-                            FilledButton(
-                              onPressed: busy || email.text.trim().isEmpty ? null : () => sendCode(create: true),
-                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.createAndSend),
-                            )
-                          else
-                            FilledButton(
-                              onPressed: busy || email.text.trim().isEmpty ? null : () => sendCode(create: false),
-                              child: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cream)) : Text(t.sendCode),
-                            ),
+                          ),
                         ],
-                      ),
-                      if (AuthMail.enabled && !codeStep)
-                        TextButton(
-                          onPressed: () => setState(() {
-                            signup = !signup;
-                            error = null;
-                          }),
-                          child: Text(signup ? t.haveAccount : t.createAccount),
+                        if (codeStep) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            t.codeSent,
+                            style: const TextStyle(
+                              color: mutedFg,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            t.checkInbox,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            t.code,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: code,
+                            keyboardType: TextInputType.number,
+                            maxLength: 8,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              letterSpacing: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            decoration: const InputDecoration(counterText: ""),
+                          ),
+                        ],
+                        if (error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            error!,
+                            style: const TextStyle(
+                              color: Color(0xFFBE123C),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (codeStep) ...[
+                              FilledButton(
+                                onPressed: busy || !_codeReady(code.text)
+                                    ? null
+                                    : confirm,
+                                child: busy
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: cream,
+                                        ),
+                                      )
+                                    : Text(t.confirm),
+                              ),
+                              OutlinedButton(
+                                onPressed: busy
+                                    ? null
+                                    : () => sendCode(create: false),
+                                child: Text(t.resend),
+                              ),
+                            ] else if (signup)
+                              FilledButton(
+                                onPressed: busy || email.text.trim().isEmpty
+                                    ? null
+                                    : () => sendCode(create: true),
+                                child: busy
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: cream,
+                                        ),
+                                      )
+                                    : Text(t.createAndSend),
+                              )
+                            else
+                              FilledButton(
+                                onPressed: busy || email.text.trim().isEmpty
+                                    ? null
+                                    : () => sendCode(create: false),
+                                child: busy
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: cream,
+                                        ),
+                                      )
+                                    : Text(t.sendCode),
+                              ),
+                          ],
                         ),
+                        if (AuthMail.enabled && !codeStep)
+                          TextButton(
+                            onPressed: () => setState(() {
+                              signup = !signup;
+                              error = null;
+                            }),
+                            child: Text(
+                              signup ? t.haveAccount : t.createAccount,
+                            ),
+                          ),
                       ],
                       if (!AuthMail.enabled) ...[
-                        Text(t.sampleTitle, style: const TextStyle(fontWeight: FontWeight.w700, color: navy)),
+                        Text(
+                          t.sampleTitle,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: navy,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         for (final person in store.people)
                           Padding(
@@ -303,7 +542,9 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: () => store.signInForTest(person),
                               child: Align(
                                 alignment: AlignmentDirectional.centerStart,
-                                child: Text("${store.nameOf(person)} · ${person.displayId} · ${person.email}"),
+                                child: Text(
+                                  "${store.nameOf(person)} · ${person.displayId} · ${person.email}",
+                                ),
                               ),
                             ),
                           ),
@@ -314,9 +555,24 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
             if (!wide) {
-              return ListView(children: [SizedBox(height: 280, child: brand), form]);
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: box.maxWidth < 420 ? 168 : 220,
+                      child: brand,
+                    ),
+                    form,
+                  ],
+                ),
+              );
             }
-            return Row(children: [Expanded(child: brand), Expanded(child: form)]);
+            return Row(
+              children: [
+                Expanded(child: brand),
+                Expanded(child: form),
+              ],
+            );
           },
         ),
       ),

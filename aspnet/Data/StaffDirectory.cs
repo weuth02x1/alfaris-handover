@@ -22,6 +22,17 @@ public static class StaffDirectory
 
     public static readonly string[] ExitReasons = ["annual_leave", "clearance", "resignation", "transfer", "contract_end"];
 
+    public static string DepartmentKey(Employee person)
+    {
+        var blob = $"{person.DepartmentId} {person.DepartmentAr} {person.DepartmentEn} {person.SectionAr} {person.SectionEn}".ToLowerInvariant();
+        if (Hit(blob, "d-hr", "موارد", "شؤون الموظف", "human resource", "personnel")) return "D-HR";
+        if (Hit(blob, "d-ta", "استقطاب", "مواهب", "talent")) return "D-TA";
+        if (Hit(blob, "d-itd", "تقنية المعلومات", "تطوير الأنظمة", "تطوير تقنية", "information technology", "it development", "systems development")) return "D-ITD";
+        return string.IsNullOrWhiteSpace(person.DepartmentId) ? blob : person.DepartmentId.Trim();
+    }
+
+    static bool Hit(string blob, params string[] words) => words.Any(blob.Contains);
+
     public static List<Employee> Seed() =>
     [
         E("30102", "منيرة السبيعي", "Munira Alsubaie", "مديرة الموارد البشرية", "HR Manager", HrDept, "munira.alsubaie@alfaris.example", "hr"),
@@ -33,6 +44,11 @@ public static class StaffDirectory
         E("10518", "سارة القحطاني", "Sarah Alqahtani", "مطورة أنظمة أولى", "Senior Systems Developer", ItDev, "sarah.alqahtani@alfaris.example", "employee", "10501"),
         E("10524", "خالد الشهري", "Khalid Alshehri", "مطور برمجيات", "Software Developer", ItDev, "khalid.alshehri@alfaris.example", "employee", "10501"),
         E("10530", "عبدالله الحربي", "Abdullah Alharbi", "مطور واجهات", "Frontend Developer", ItDev, "abdullah.alharbi@alfaris.example", "employee", "10501"),
+        E("10540", "نورة الدوسري", "Noura Aldosari", "محللة أنظمة", "Systems Analyst", new Dictionary<string, string>
+        {
+            ["departmentId"] = "IT-SYS", ["departmentAr"] = "إدارة تقنية المعلومات", ["departmentEn"] = "Information Technology",
+            ["sectionAr"] = "تحليل الأنظمة", ["sectionEn"] = "Systems Analysis", ["branchId"] = "B-RUH"
+        }, "noura.aldosari@alfaris.example", "employee", "10501"),
     ];
 
     public static readonly ApprovedRequest[] ApprovedRequests =

@@ -16,6 +16,20 @@ public class IndexModel(HandoverStore store, LocaleService locale) : AppPageMode
         return Page();
     }
 
+    public IActionResult OnPostStart(string type, string lastWorkingDay, string? returnDate)
+    {
+        if (CurrentUser is null) return RedirectToPage("/Login");
+        try
+        {
+            var id = Store.StartOwn(CurrentUser, type, lastWorkingDay, returnDate);
+            return Redirect($"/Handovers/{id}");
+        }
+        catch (WorkflowException)
+        {
+            return RedirectToPage();
+        }
+    }
+
     public IActionResult OnPostLang()
     {
         ToggleLang();

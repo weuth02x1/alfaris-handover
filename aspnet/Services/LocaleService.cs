@@ -93,7 +93,10 @@ public class LocaleService
     public string Employee => Pick("الموظف", "Employee");
     public string ApprovedRequestsHint => Pick("بدء إخلاء الطرف يُنشئ نموذج التسليم تلقائياً ويرسل للموظف رابطاً آمناً بالبريد.", "Starting clearance creates the handover form and emails the employee a secure link.");
     public string Tasks => Pick("المهام المُسلَّمة", "Handed-over tasks");
-    public string TasksHint => Pick("اكتب كل مهمة وحدد الموظف الذي سيستلمها. يجب أن يكون المستلم من نفس الإدارة أو الفرع، ويجب أن يقبل كل مستلم مهمته.", "List each task and who will take it over. Recipients must be in your department or branch, and each must accept.");
+    public string NewRequest => Pick("رفع طلب", "New request");
+    public string StartRequest => Pick("ابدأ الطلب", "Start request");
+    public string SameDepartment => Pick("المستلم لازم يكون من نفس القسم، حتى لو اسم القسم مكتوب بصيغة ثانية.", "The recipient must be in your department, even if the department name is written differently.");
+    public string TasksHint => Pick("اكتب كل مهمة وحدد الموظف الذي سيستلمها. المستلم لازم يكون من نفس القسم، حتى لو اسم القسم مختلف، ويجب أن يقبل كل مستلم مهمته.", "List each task and who will take it over. Recipients must be in your department, and each must accept.");
     public string TaskTitle => Pick("المهمة", "Task");
     public string TaskDetails => Pick("التفاصيل والملاحظات", "Details and notes");
     public string DueDate => Pick("تاريخ الاستحقاق", "Due date");

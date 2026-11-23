@@ -10,7 +10,10 @@ class OutboxPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    return ListenableBuilder(listenable: store, builder: (context, _) => _body(context, store));
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) => _body(context, store),
+    );
   }
 
   Widget _body(BuildContext context, AppStore store) {
@@ -19,8 +22,9 @@ class OutboxPage extends StatelessWidget {
     final mail = store.mailFor(user);
     return Directionality(
       textDirection: t.dir,
-      child: Scaffold(
-        appBar: AppHeader(user: user, current: "outbox"),
+      child: AppScaffold(
+        user: user,
+        current: "outbox",
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 28, 16, 40),
           children: [
@@ -30,9 +34,19 @@ class OutboxPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t.outboxTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: navy)),
+                    Text(
+                      t.outboxTitle,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: navy,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(t.outboxSubtitle, style: const TextStyle(color: mutedFg)),
+                    Text(
+                      t.outboxSubtitle,
+                      style: const TextStyle(color: mutedFg),
+                    ),
                     const SizedBox(height: 20),
                     if (mail.isEmpty)
                       Card(
@@ -40,9 +54,16 @@ class OutboxPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 56),
                           child: Column(
                             children: [
-                              const Icon(Icons.mail_outline, size: 36, color: mutedFg),
+                              const Icon(
+                                Icons.mail_outline,
+                                size: 36,
+                                color: mutedFg,
+                              ),
                               const SizedBox(height: 8),
-                              Text(t.outboxEmpty, style: const TextStyle(color: mutedFg)),
+                              Text(
+                                t.outboxEmpty,
+                                style: const TextStyle(color: mutedFg),
+                              ),
                             ],
                           ),
                         ),
@@ -57,15 +78,33 @@ class OutboxPage extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(m.subject, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text(
+                                    m.subject,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text("${t.outboxTo}: ${m.to} · ${t.date(m.at, withTime: true)}", style: const TextStyle(color: mutedFg, fontSize: 12)),
+                                  Text(
+                                    "${t.outboxTo}: ${m.to} · ${t.date(m.at, withTime: true)}",
+                                    style: const TextStyle(
+                                      color: mutedFg,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
-                                  Text(m.body, style: const TextStyle(color: mutedFg, height: 1.5)),
+                                  Text(
+                                    m.body,
+                                    style: const TextStyle(
+                                      color: mutedFg,
+                                      height: 1.5,
+                                    ),
+                                  ),
                                   if (m.link != null) ...[
                                     const SizedBox(height: 8),
                                     TextButton(
-                                      onPressed: () => Navigator.pushNamed(context, m.link!),
+                                      onPressed: () =>
+                                          Navigator.pushNamed(context, m.link!),
                                       child: Text(t.open),
                                     ),
                                   ],

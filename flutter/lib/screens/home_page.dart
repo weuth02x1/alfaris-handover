@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../directory.dart";
 import "../models.dart";
 import "../store.dart";
 import "../theme.dart";
@@ -26,8 +27,8 @@ class HomePage extends StatelessWidget {
 
     return Directionality(
       textDirection: t.dir,
-      child: Scaffold(
-        appBar: AppHeader(user: user),
+      child: AppScaffold(
+        user: user,
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 28, 16, 40),
           children: [
@@ -37,9 +38,44 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t.inboxTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: navy)),
+                    LayoutBuilder(
+                      builder: (context, box) {
+                        final title = Text(
+                          t.inboxTitle,
+                          style: TextStyle(
+                            fontSize: box.maxWidth < 600 ? 22 : 26,
+                            fontWeight: FontWeight.w700,
+                            color: navy,
+                          ),
+                        );
+                        final action = FilledButton.icon(
+                          onPressed: () => _openRequest(context, store),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text(t.newRequest),
+                        );
+                        if (box.maxWidth < 600) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              title,
+                              const SizedBox(height: 12),
+                              action,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: title),
+                            action,
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 4),
-                    Text(t.inboxSubtitle, style: const TextStyle(color: mutedFg)),
+                    Text(
+                      t.inboxSubtitle,
+                      style: const TextStyle(color: mutedFg),
+                    ),
                     const SizedBox(height: 24),
                     if (inbox.isEmpty)
                       Card(
@@ -47,13 +83,31 @@ class HomePage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 56),
                           child: Column(
                             children: [
-                              const Icon(Icons.inbox_outlined, size: 36, color: mutedFg),
+                              const Icon(
+                                Icons.inbox_outlined,
+                                size: 36,
+                                color: mutedFg,
+                              ),
                               const SizedBox(height: 8),
-                              Text(t.nothing, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              Text(
+                                t.nothing,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
-                                child: Text(t.nothingHint, textAlign: TextAlign.center, style: const TextStyle(color: mutedFg, fontSize: 13)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Text(
+                                  t.nothingHint,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: mutedFg,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -73,9 +127,16 @@ class HomePage extends StatelessWidget {
                                   for (final item in inbox.toAccept)
                                     _Row(
                                       title: item.task!.title,
-                                      meta: "${t.from} ${empName(item.handover)} · ${item.handover.number}",
-                                      badge: TaskStatusBadge(status: item.task!.status, label: t.taskStatus(item.task!.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${item.handover.id}"),
+                                      meta:
+                                          "${t.from} ${empName(item.handover)} · ${item.handover.number}",
+                                      badge: TaskStatusBadge(
+                                        status: item.task!.status,
+                                        label: t.taskStatus(item.task!.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${item.handover.id}",
+                                      ),
                                     ),
                                 ],
                               ),
@@ -88,9 +149,16 @@ class HomePage extends StatelessWidget {
                                   for (final h in inbox.mine)
                                     _Row(
                                       title: "${h.number} · ${t.type(h.type)}",
-                                      meta: "${h.requestRef} · ${t.date(h.lastWorkingDay)}",
-                                      badge: HandoverStatusBadge(status: h.status, label: t.status(h.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${h.id}"),
+                                      meta:
+                                          "${h.requestRef} · ${t.date(h.lastWorkingDay)}",
+                                      badge: HandoverStatusBadge(
+                                        status: h.status,
+                                        label: t.status(h.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
                                     ),
                                 ],
                               ),
@@ -104,8 +172,14 @@ class HomePage extends StatelessWidget {
                                     _Row(
                                       title: empName(h),
                                       meta: "${h.number} · ${t.type(h.type)}",
-                                      badge: HandoverStatusBadge(status: h.status, label: t.status(h.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${h.id}"),
+                                      badge: HandoverStatusBadge(
+                                        status: h.status,
+                                        label: t.status(h.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
                                     ),
                                 ],
                               ),
@@ -119,8 +193,14 @@ class HomePage extends StatelessWidget {
                                     _Row(
                                       title: empName(h),
                                       meta: "${h.number} · ${t.type(h.type)}",
-                                      badge: HandoverStatusBadge(status: h.status, label: t.status(h.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${h.id}"),
+                                      badge: HandoverStatusBadge(
+                                        status: h.status,
+                                        label: t.status(h.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
                                     ),
                                 ],
                               ),
@@ -132,21 +212,39 @@ class HomePage extends StatelessWidget {
                                   for (final item in inbox.accepted)
                                     _Row(
                                       title: item.task!.title,
-                                      meta: "${t.from} ${empName(item.handover)} · ${t.date(item.task!.acceptedAt, withTime: true)}",
-                                      badge: TaskStatusBadge(status: item.task!.status, label: t.taskStatus(item.task!.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${item.handover.id}"),
+                                      meta:
+                                          "${t.from} ${empName(item.handover)} · ${t.date(item.task!.acceptedAt, withTime: true)}",
+                                      badge: TaskStatusBadge(
+                                        status: item.task!.status,
+                                        label: t.taskStatus(item.task!.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${item.handover.id}",
+                                      ),
                                     ),
                                 ],
                               ),
                           ];
                           if (!two) {
-                            return Column(children: [for (final s in sections) ...[s, const SizedBox(height: 16)]]);
+                            return Column(
+                              children: [
+                                for (final s in sections) ...[
+                                  s,
+                                  const SizedBox(height: 16),
+                                ],
+                              ],
+                            );
                           }
                           return Wrap(
                             spacing: 16,
                             runSpacing: 16,
                             children: [
-                              for (final s in sections) SizedBox(width: (box.maxWidth - 16) / 2, child: s),
+                              for (final s in sections)
+                                SizedBox(
+                                  width: (box.maxWidth - 16) / 2,
+                                  child: s,
+                                ),
                             ],
                           );
                         },
@@ -162,8 +260,121 @@ class HomePage extends StatelessWidget {
   }
 }
 
+Future<void> _openRequest(BuildContext context, AppStore store) async {
+  final t = store.t;
+  var type = "annual_leave";
+  DateTime? start;
+  DateTime? end;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setLocal) {
+          String label(DateTime? value) => value == null
+              ? t.pickDate
+              : t.date(
+                  "${value.year.toString().padLeft(4, "0")}-${value.month.toString().padLeft(2, "0")}-${value.day.toString().padLeft(2, "0")}",
+                );
+          return Directionality(
+            textDirection: t.dir,
+            child: AlertDialog(
+              title: Text(t.newRequest),
+              content: SizedBox(
+                width: MediaQuery.sizeOf(context).width < 520
+                    ? double.maxFinite
+                    : 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      t.newRequestHint,
+                      style: const TextStyle(color: mutedFg, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownMenu<String>(
+                      initialSelection: type,
+                      label: Text(t.typeLabel),
+                      expandedInsets: EdgeInsets.zero,
+                      dropdownMenuEntries: [
+                        for (final reason in exitReasons)
+                          DropdownMenuEntry(
+                            value: reason,
+                            label: t.type(reason),
+                          ),
+                      ],
+                      onSelected: (v) => setLocal(() => type = v ?? type),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: start ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) setLocal(() => start = picked);
+                      },
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text("${t.lastWorkingDay}: ${label(start)}"),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: end ?? start ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) setLocal(() => end = picked);
+                      },
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text("${t.returnDate}: ${label(end)}"),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(t.cancel),
+                ),
+                FilledButton(
+                  onPressed: start == null
+                      ? null
+                      : () => Navigator.pop(context, true),
+                  child: Text(t.startRequest),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+  final chosenStart = start;
+  final chosenEnd = end;
+  if (ok != true || chosenStart == null || !context.mounted) return;
+  String iso(DateTime value) =>
+      "${value.year.toString().padLeft(4, "0")}-${value.month.toString().padLeft(2, "0")}-${value.day.toString().padLeft(2, "0")}";
+  final id = store.startOwn(
+    store.user!,
+    type: type,
+    lastWorkingDay: iso(chosenStart),
+    returnDate: chosenEnd == null ? null : iso(chosenEnd),
+  );
+  if (context.mounted) Navigator.pushNamed(context, "/handovers/$id");
+}
+
 class _Section extends StatelessWidget {
-  const _Section({required this.icon, required this.title, required this.children, this.highlight = false});
+  const _Section({
+    required this.icon,
+    required this.title,
+    required this.children,
+    this.highlight = false,
+  });
   final IconData icon;
   final String title;
   final List<Widget> children;
@@ -186,11 +397,19 @@ class _Section extends StatelessWidget {
                 Container(
                   width: 28,
                   height: 28,
-                  decoration: BoxDecoration(color: navy.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                  decoration: BoxDecoration(
+                    color: navy.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                   child: Icon(icon, size: 16, color: navy),
                 ),
                 const SizedBox(width: 8),
-                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700))),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
               ],
             ),
           ),
@@ -203,7 +422,12 @@ class _Section extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.title, required this.meta, required this.badge, required this.onTap});
+  const _Row({
+    required this.title,
+    required this.meta,
+    required this.badge,
+    required this.onTap,
+  });
   final String title;
   final String meta;
   final Widget badge;
@@ -221,8 +445,18 @@ class _Row extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: mutedFg, fontSize: 12)),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: mutedFg, fontSize: 12),
+                  ),
                 ],
               ),
             ),
