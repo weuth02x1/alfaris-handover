@@ -337,6 +337,14 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  int waitingCount(Employee person) {
+    final box = inboxFor(person);
+    return box.toAccept.length +
+        box.managerQueue.length +
+        box.hrQueue.length +
+        box.raised.length;
+  }
+
   Inbox inboxFor(Employee me) {
     final mine = handovers.where((h) => h.employee.id == me.id).toList();
     final toAccept = <InboxItem>[];

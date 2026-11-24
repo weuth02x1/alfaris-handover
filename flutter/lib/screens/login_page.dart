@@ -293,9 +293,22 @@ class _LoginPageState extends State<LoginPage> {
                               }),
                               child: Align(
                                 alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  "${store.nameOf(person)} · ${t.pick(person.jobTitleAr, person.jobTitleEn)} · ${person.email}",
-                                  textDirection: TextDirection.ltr,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (store.waitingCount(person) > 0)
+                                      Text(
+                                        t.waitingHere,
+                                        style: const TextStyle(
+                                          color: Color(0xFF047857),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    Text(
+                                      "${store.nameOf(person)} · ${t.pick(person.jobTitleAr, person.jobTitleEn)} · ${person.staffNumber ?? person.id} · ${person.email}",
+                                      textDirection: TextDirection.ltr,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

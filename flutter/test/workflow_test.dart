@@ -64,6 +64,8 @@ void main() {
       submit: true,
     );
     expect(store.handover(id)!.status, "pending_acceptance");
+    expect(store.waitingCount(abdullah), 1);
+    expect(store.waitingCount(fahad), 0);
 
     store.acceptTask(
       abdullah,

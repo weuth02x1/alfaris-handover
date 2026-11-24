@@ -69,7 +69,12 @@ class HandoverPage extends StatelessWidget {
       child: AppScaffold(
         user: user,
         body: ListView(
-          padding: EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 24, MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 48),
+          padding: EdgeInsets.fromLTRB(
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 28,
+            24,
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 28,
+            48,
+          ),
           children: [
             Center(
               child: ConstrainedBox(
@@ -511,10 +516,18 @@ class _EditorState extends State<_Editor> {
         tasks: tasks,
         submit: submit,
       );
+      final recipients = tasks
+          .map((task) => store.person(task.assigneeId))
+          .whereType<Employee>()
+          .map((person) => person.email)
+          .toSet()
+          .join("، ");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            store.t.audit(submit ? "form_submitted" : "form_saved"),
+            submit && recipients.isNotEmpty
+                ? store.t.sentTo(recipients)
+                : store.t.audit(submit ? "form_submitted" : "form_saved"),
           ),
         ),
       );
@@ -697,7 +710,7 @@ class _TaskFieldsState extends State<_TaskFields> {
               DropdownMenuEntry(
                 value: c.id,
                 label:
-                    "${store.nameOf(c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)}",
+                    "${store.nameOf(c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)} · ${c.staffNumber ?? c.id} · ${c.email}",
               ),
           ],
           onSelected: (v) {

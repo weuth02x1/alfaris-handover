@@ -58,8 +58,12 @@ class I18n {
   String get switchAccount => isAr ? "تبديل الحساب" : "Switch account";
   String get cycleAccounts => isAr ? "حسابات الدورة" : "Cycle accounts";
   String get cycleHint => isAr
-      ? "اضغط الإيميل ثم أرسل الرمز. كل الرموز توصل لصندوق جيميل شهد."
-      : "Tap an email, then send the code. Every code arrives in Shahad's Gmail.";
+      ? "اضغط الإيميل ثم أرسل الرمز. كل الرموز توصل لصندوق جيميل شهد. إذا طلع «مهمة بانتظارك» فالمهمة وصلت لهذا الحساب في هذا المتصفح."
+      : "Tap an email, then send the code. Every code arrives in Shahad's Gmail. “A task is waiting” means that account has it in this browser.";
+  String get waitingHere => isAr ? "مهمة بانتظارك" : "A task is waiting";
+  String sentTo(String who) => isAr
+      ? "أُرسلت المهمة إلى $who. ادخل بهذا الإيميل من نفس المتصفح."
+      : "The task was sent to $who. Sign in with that email in this same browser.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";
