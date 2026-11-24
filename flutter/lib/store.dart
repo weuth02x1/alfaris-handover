@@ -772,15 +772,67 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _withHr(Handover h) {
+    final noManager =
+        h.employee.managerId == null || h.employee.managerId!.isEmpty;
+    return h.status == "pending_hr" ||
+        (noManager && h.status == "pending_acceptance");
+  }
+
+  /// A submitted request with no direct manager is HR's to approve or reject,
+  /// even while a task is still waiting for acceptance.
+  void _sendUnassignedToHr() {
+    for (final h in handovers) {
+      if (_withHr(h) && h.status != "pending_hr") h.status = "pending_hr";
+    }
+  }
+
+  Employee _ownerOf(Handover h) {
+    _repairOwners();
+    final existing = person(h.employee.id);
+    if (existing != null) return existing;
+    final dept = h.employee.departmentAr.contains("موارد")
+        ? hrDept
+        : h.employee.departmentAr.contains("استقطاب")
+        ? talent
+        : itDev;
+    final created = Employee(
+      id: h.employee.id,
+      staffNumber: h.employee.id,
+      nameAr: h.employee.nameAr,
+      nameEn: h.employee.nameEn,
+      jobTitleAr: h.employee.jobTitleAr,
+      jobTitleEn: h.employee.jobTitleEn,
+      departmentId: dept["departmentId"]!,
+      departmentAr: h.employee.departmentAr.isEmpty
+          ? dept["departmentAr"]!
+          : h.employee.departmentAr,
+      departmentEn: h.employee.departmentEn.isEmpty
+          ? dept["departmentEn"]!
+          : h.employee.departmentEn,
+      sectionAr: h.employee.sectionAr.isEmpty
+          ? dept["sectionAr"]!
+          : h.employee.sectionAr,
+      sectionEn: h.employee.sectionEn.isEmpty
+          ? dept["sectionEn"]!
+          : h.employee.sectionEn,
+      branchId: "B-RUH",
+      managerId: h.employee.managerId,
+      email: "employee-${h.employee.id}@alfaris.local",
+      role: "employee",
+    );
+    accounts.add(created);
+    return created;
+  }
+
   void hrDecision(Employee actor, String id, bool approve, String comment) {
     if (!actor.isHr) throw WorkflowException("notAllowed");
     if (!approve && comment.trim().isEmpty)
       throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (_owns(actor, h)) throw WorkflowException("notAllowed");
-    if (h.status != "pending_hr") throw WorkflowException("notAllowed");
-    final owner =
-        person(h.employee.id) ?? (throw WorkflowException("notFound"));
+    if (!_withHr(h)) throw WorkflowException("notAllowed");
+    final owner = _ownerOf(h);
     if (!approve) {
       _returnToEmployee(h, owner, actor, "hr", comment.trim());
       notifyListeners();
@@ -1130,6 +1182,7 @@ class AppStore extends ChangeNotifier {
           if (item is Map) auditFromJson(Map<String, dynamic>.from(item)),
       ]);
     _repairOwners();
+    _sendUnassignedToHr();
     user = person(keepUser) ?? findByEmail(keepEmail ?? "");
     _hydrating = false;
     notifyListeners();
@@ -1230,6 +1283,7 @@ class AppStore extends ChangeNotifier {
           auditLog.add(auditFromJson(item.cast<String, dynamic>()));
       }
       _repairOwners();
+      _sendUnassignedToHr();
       user =
           person(data["userId"] as String?) ??
           findByEmail("${data["userEmail"] ?? ""}");

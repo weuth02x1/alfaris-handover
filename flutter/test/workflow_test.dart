@@ -528,6 +528,68 @@ void main() {
     },
   );
 
+  test("HR can approve or reject a request that has no manager", () {
+    final store = AppStore();
+    final hr = store.createAccount(
+      email: "hr5@alfaris.test",
+      name: "هند",
+      employeeNo: "70115",
+      jobTitle: "موارد بشرية",
+      departmentId: "D-HR",
+    );
+    final person = store.createAccount(
+      email: "majid@alfaris.test",
+      name: "Mohammed A Majid",
+      employeeNo: "96552",
+      jobTitle: "IT Director",
+      departmentId: "D-ITD",
+    );
+    final colleague = store.createAccount(
+      email: "witness@alfaris.test",
+      name: "شهد",
+      employeeNo: "22030",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    final id = store.startOwn(
+      person,
+      type: "annual_leave",
+      lastWorkingDay: "2026-11-26",
+      returnDate: "2026-12-10",
+    );
+    store.handover(id)!.status = "pending_acceptance";
+    store.handover(id)!.tasks = [
+      HandoverTask(
+        id: "erp",
+        title: "ERP - Epicor",
+        details: "ERP",
+        assigneeId: colleague.id,
+        status: "pending",
+      ),
+      HandoverTask(
+        id: "net",
+        title: "Network",
+        details: "Network",
+        assigneeId: colleague.id,
+        status: "accepted",
+      ),
+    ];
+    store.replaceShared(store.snapshot());
+    expect(store.handover(id)!.status, "pending_hr");
+    expect(store.inboxFor(hr).hrQueue.map((h) => h.id), contains(id));
+    store.hrDecision(hr, id, false, "ناقص");
+    expect(store.handover(id)!.status, "returned");
+
+    final other = store.startOwn(
+      person,
+      type: "annual_leave",
+      lastWorkingDay: "2026-11-26",
+    );
+    store.accounts.removeWhere((e) => e.id == person.id);
+    store.hrDecision(hr, other, true, "");
+    expect(store.handover(other)!.status, "approved");
+  });
+
   test("a refusal comes back, then acceptance reaches the manager and HR", () {
     final store = AppStore();
     final hind = store.createAccount(
