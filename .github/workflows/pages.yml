@@ -65,6 +65,9 @@ jobs:
               sys.exit("Publishable key was not baked into the web build.")
           PY
           rm -f /tmp/dart-defines.json
+      - name: Replace the cached app shell
+        working-directory: flutter
+        run: cp web/flutter_service_worker.js build/web/flutter_service_worker.js
       - run: touch build/web/.nojekyll
         working-directory: flutter
       - uses: actions/upload-pages-artifact@v3

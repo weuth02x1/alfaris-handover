@@ -156,15 +156,18 @@ String stateFingerprint(Map<String, dynamic> raw) {
 class SharedBin {
   /// Null means the read failed. Callers must not save over the bin in that case,
   /// or a new device's request gets wiped by an empty copy.
+  ///
+  /// The query string is the cache buster. Do not add request headers here:
+  /// a header such as Cache-Control turns this into a CORS preflight that
+  /// jsonstorage rejects, the read throws, and the request never leaves
+  /// the browser that created it.
   Future<Map<String, dynamic>?> fetch() async {
     final uri = sharedBinUri.replace(
       queryParameters: {"v": "${DateTime.now().microsecondsSinceEpoch}"},
     );
-    final response = await http
-        .get(uri, headers: const {"Cache-Control": "no-cache"})
-        .timeout(const Duration(seconds: 15));
+    final response = await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode == 404) return emptySharedState();
-    if (response.statusCode >= 400) return null;
+    if (response.statusCode != 200 || response.body.isEmpty) return null;
     final decoded = jsonDecode(response.body);
     if (decoded is! Map) return null;
     return asSharedState(decoded);
