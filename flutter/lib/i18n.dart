@@ -103,8 +103,8 @@ class I18n {
       isAr ? "ما عندك حساب؟ أنشئ حساباً" : "No account yet? Create one";
   String get signupTitle => isAr ? "إنشاء حساب" : "Create an account";
   String get signupHint => isAr
-      ? "اكتب بياناتك الحقيقية. المدير والمستلم يختارون من الحسابات المسجّلة في الموقع."
-      : "Enter your real details. The manager and the recipient are chosen from people registered on this site.";
+      ? "عبّي الاسم والقسم والمسمى والرقم الوظيفي والمدير أولاً. الرمز ما ينرسل إلا بعد ما تكتمل البيانات."
+      : "Enter your name, department, job title, employee number, and manager first. The code is emailed only after the details are complete.";
   String get directManager => isAr ? "المدير المباشر" : "Direct manager";
   String get noManager => isAr ? "بدون مدير مباشر" : "No direct manager";
   String get noManagerYet => isAr

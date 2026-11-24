@@ -31,8 +31,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    email.addListener(() => setState(() {}));
-    code.addListener(() => setState(() {}));
+    for (final field in [email, name, employeeNo, jobTitle, code]) {
+      field.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -45,10 +48,31 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  bool _profileReady() {
+    final mail = email.text.trim();
+    return RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(mail) &&
+        name.text.trim().length >= 2 &&
+        RegExp(r"^\d{3,10}$").hasMatch(employeeNo.text.trim()) &&
+        jobTitle.text.trim().length >= 2;
+  }
+
   Future<void> sendCode({required bool create}) async {
     if (!AuthMail.enabled) return;
     final store = StoreScope.of(context);
     final t = store.t;
+    final mail = email.text.trim().toLowerCase();
+    final known = store.findByEmail(mail);
+    if (!create &&
+        RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(mail) &&
+        known == null) {
+      setState(() {
+        signup = true;
+        codeStep = false;
+        error = null;
+        busy = false;
+      });
+      return;
+    }
     setState(() {
       error = null;
       busy = true;
@@ -79,8 +103,13 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         busy = false;
         final errCode = _errorCode(e);
-        error = t.error(errCode);
-        if (errCode == "notFoundEmail") signup = true;
+        if (errCode == "notFoundEmail") {
+          signup = true;
+          codeStep = false;
+          error = null;
+        } else {
+          error = t.error(errCode);
+        }
       });
     }
   }
@@ -617,7 +646,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ] else if (signup)
                               FilledButton(
-                                onPressed: busy || email.text.trim().isEmpty
+                                onPressed: busy || !_profileReady()
                                     ? null
                                     : () => sendCode(create: true),
                                 child: busy
