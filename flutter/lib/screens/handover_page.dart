@@ -29,7 +29,23 @@ class HandoverPage extends StatelessWidget {
         textDirection: t.dir,
         child: AppScaffold(
           user: user,
-          body: Center(child: Text(t.handoverNotFound)),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t.handoverNotFound),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    "/",
+                    (_) => false,
+                  ),
+                  child: Text(t.inboxTitle),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }

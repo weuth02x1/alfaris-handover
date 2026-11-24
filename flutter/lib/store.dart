@@ -127,10 +127,40 @@ class AppStore extends ChangeNotifier {
 
   Employee? findByEmail(String email) {
     final target = email.trim().toLowerCase();
-    for (final e in accounts) {
-      if (e.email.toLowerCase() == target) return e;
+    final matches = [
+      for (final e in accounts)
+        if (e.email.toLowerCase() == target) e,
+    ];
+    if (matches.isEmpty) return null;
+    final current = user?.id;
+    for (final e in matches) {
+      if (e.id == current) return e;
     }
-    return null;
+    matches.sort((a, b) => _emailScore(b).compareTo(_emailScore(a)));
+    return matches.first;
+  }
+
+  int _emailScore(Employee e) {
+    var score = 0;
+    for (final h in handovers) {
+      if (h.employee.id != e.id && h.initiatedById != e.id) continue;
+      score += h.status == "approved" ? 1 : 5;
+    }
+    return score;
+  }
+
+  Set<String> _idsForEmail(String email) {
+    final target = email.trim().toLowerCase();
+    return {
+      for (final e in accounts)
+        if (e.email.toLowerCase() == target) e.id,
+    };
+  }
+
+  bool _owns(Employee me, Handover h) {
+    final ids = _idsForEmail(me.email);
+    ids.add(me.id);
+    return ids.contains(h.employee.id) || ids.contains(h.initiatedById);
   }
 
   List<Employee> colleaguesFor(String employeeId) {
@@ -355,7 +385,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Inbox inboxFor(Employee me) {
-    final mine = handovers.where((h) => h.employee.id == me.id).toList();
+    final mine = handovers.where((h) => _owns(me, h)).toList();
     final toAccept = <InboxItem>[];
     final accepted = <InboxItem>[];
     for (final h in handovers) {
@@ -389,8 +419,7 @@ class AppStore extends ChangeNotifier {
     final needsReassign = handovers
         .where(
           (h) =>
-              h.employee.id == me.id &&
-              h.tasks.any((task) => task.status == "rejected"),
+              _owns(me, h) && h.tasks.any((task) => task.status == "rejected"),
         )
         .toList();
     final hrQueue = me.isHr
@@ -421,7 +450,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Access access(Employee me, Handover h) {
-    final isOwner = h.employee.id == me.id;
+    final isOwner = _owns(me, h);
     final isManager = h.employee.managerId == me.id;
     final isHr = me.isHr;
     final isRecipient = h.tasks.any(
@@ -542,7 +571,7 @@ class AppStore extends ChangeNotifier {
     required bool submit,
   }) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id != actor.id) throw WorkflowException("notAllowed");
+    if (!_owns(actor, h)) throw WorkflowException("notAllowed");
     if (h.status == "approved") throw WorkflowException("notAllowed");
     if (tasks.length > 40 || generalNotes.length > 4000)
       throw WorkflowException("notAllowed");
@@ -685,7 +714,7 @@ class AppStore extends ChangeNotifier {
     String newAssigneeId,
   ) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id != actor.id || !_openForTasks(h))
+    if (!_owns(actor, h) || !_openForTasks(h))
       throw WorkflowException("notAllowed");
     final task = _task(h, taskId);
     if (task == null || task.status != "rejected")
@@ -718,7 +747,7 @@ class AppStore extends ChangeNotifier {
     if (!approve && comment.trim().isEmpty)
       throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id == actor.id) throw WorkflowException("notAllowed");
+    if (_owns(actor, h)) throw WorkflowException("notAllowed");
     if (h.status != "pending_manager" || h.employee.managerId != actor.id)
       throw WorkflowException("notAllowed");
     final owner =
@@ -748,7 +777,7 @@ class AppStore extends ChangeNotifier {
     if (!approve && comment.trim().isEmpty)
       throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id == actor.id) throw WorkflowException("notAllowed");
+    if (_owns(actor, h)) throw WorkflowException("notAllowed");
     if (h.status != "pending_hr") throw WorkflowException("notAllowed");
     final owner =
         person(h.employee.id) ?? (throw WorkflowException("notFound"));
@@ -1064,7 +1093,18 @@ class AppStore extends ChangeNotifier {
 
   void replaceShared(Map<String, dynamic> state) {
     final keepUser = user?.id;
+    final keepEmail = user?.email;
     final keepLocale = locale;
+    final combined = mergeSharedState(snapshot(), state);
+    _applyShared(combined, keepUser: keepUser, keepEmail: keepEmail);
+    locale = keepLocale;
+  }
+
+  void _applyShared(
+    Map<String, dynamic> state, {
+    String? keepUser,
+    String? keepEmail,
+  }) {
     _hydrating = true;
     counter = (state["counter"] as num?)?.toInt() ?? counter;
     accounts = [
@@ -1089,10 +1129,58 @@ class AppStore extends ChangeNotifier {
         for (final item in state["audit"] as List)
           if (item is Map) auditFromJson(Map<String, dynamic>.from(item)),
       ]);
-    locale = keepLocale;
-    user = person(keepUser);
+    _repairOwners();
+    user = person(keepUser) ?? findByEmail(keepEmail ?? "");
     _hydrating = false;
     notifyListeners();
+  }
+
+  /// A form can outlive the account row when the same email is registered twice.
+  /// Put that owner back so the open form does not turn into "not found".
+  void _repairOwners() {
+    for (final h in handovers) {
+      if (person(h.employee.id) != null) continue;
+      String? email;
+      for (final message in outbox) {
+        if (message.toEmployeeId == h.employee.id && message.to.contains("@")) {
+          email = message.to.trim().toLowerCase();
+          break;
+        }
+      }
+      if (email == null || email.isEmpty) continue;
+      final dept = h.employee.departmentAr.contains("موارد")
+          ? hrDept
+          : h.employee.departmentAr.contains("استقطاب")
+          ? talent
+          : itDev;
+      accounts.add(
+        Employee(
+          id: h.employee.id,
+          staffNumber: h.employee.id,
+          nameAr: h.employee.nameAr,
+          nameEn: h.employee.nameEn,
+          jobTitleAr: h.employee.jobTitleAr,
+          jobTitleEn: h.employee.jobTitleEn,
+          departmentId: dept["departmentId"]!,
+          departmentAr: h.employee.departmentAr.isEmpty
+              ? dept["departmentAr"]!
+              : h.employee.departmentAr,
+          departmentEn: h.employee.departmentEn.isEmpty
+              ? dept["departmentEn"]!
+              : h.employee.departmentEn,
+          sectionAr: h.employee.sectionAr.isEmpty
+              ? dept["sectionAr"]!
+              : h.employee.sectionAr,
+          sectionEn: h.employee.sectionEn.isEmpty
+              ? dept["sectionEn"]!
+              : h.employee.sectionEn,
+          branchId: "B-RUH",
+          managerId: h.employee.managerId,
+          email: email,
+          role: dept["departmentId"] == "D-HR" ? "hr" : "employee",
+        ),
+      );
+    }
   }
 
   void _persist() {
@@ -1101,6 +1189,7 @@ class AppStore extends ChangeNotifier {
         _storageKey,
         jsonEncode({
           "userId": user?.id,
+          "userEmail": user?.email,
           "locale": locale,
           "counter": counter,
           ...snapshot(),
@@ -1140,7 +1229,10 @@ class AppStore extends ChangeNotifier {
         if (item is Map)
           auditLog.add(auditFromJson(item.cast<String, dynamic>()));
       }
-      user = person(data["userId"] as String?);
+      _repairOwners();
+      user =
+          person(data["userId"] as String?) ??
+          findByEmail("${data["userEmail"] ?? ""}");
     } catch (_) {
       accounts = [];
       handovers.clear();

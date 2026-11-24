@@ -87,12 +87,14 @@ Map<String, dynamic> mergeSharedState(
   void takeAccounts(List items) {
     for (final item in items) {
       if (item is! Map) continue;
-      final email = "${item["email"]}".trim().toLowerCase();
-      if (email.isEmpty) continue;
-      final current = accounts[email];
+      final id = "${item["id"]}";
+      if (id.isEmpty) continue;
+      final current = accounts[id];
       if (current == null ||
-          (current["managerId"] == null && item["managerId"] != null)) {
-        accounts[email] = Map<String, dynamic>.from(item);
+          (current["managerId"] == null && item["managerId"] != null) ||
+          ("${current["email"]}".trim().isEmpty &&
+              "${item["email"]}".trim().isNotEmpty)) {
+        accounts[id] = Map<String, dynamic>.from(item);
       }
     }
   }
@@ -138,7 +140,8 @@ String stateFingerprint(Map<String, dynamic> raw) {
   final state = asSharedState(raw);
   final accounts = [
     for (final item in state["accounts"] as List)
-      if (item is Map) "${item["email"]}".trim().toLowerCase(),
+      if (item is Map)
+        "${item["id"]}:${"${item["email"]}".trim().toLowerCase()}",
   ]..sort();
   final handovers = [
     for (final item in state["handovers"] as List)

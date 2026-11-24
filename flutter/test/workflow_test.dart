@@ -473,6 +473,61 @@ void main() {
     expect(otherDevice.inboxFor(hrThere).hrQueue.map((h) => h.id), [toHr]);
   });
 
+  test(
+    "a form stays open when the same email is saved from another device",
+    () {
+      final store = AppStore();
+      final hr = store.createAccount(
+        email: "hr4@alfaris.test",
+        name: "هند",
+        employeeNo: "60115",
+        jobTitle: "موارد بشرية",
+        departmentId: "D-HR",
+      );
+      final owner = store.createAccount(
+        email: "shahad0x4@gmail.com",
+        name: "shahad saad alqahtani",
+        employeeNo: "17272",
+        jobTitle: "AI",
+        departmentId: "D-ITD",
+      );
+      store.signInForTest(owner);
+      final id = store.startOwn(
+        owner,
+        type: "resignation",
+        lastWorkingDay: "2026-12-30",
+      );
+      final older = AppStore();
+      older.createAccount(
+        email: "shahad0x4@gmail.com",
+        name: "mohamed Ali",
+        employeeNo: "12212",
+        jobTitle: "IT",
+        departmentId: "D-ITD",
+      );
+      store.replaceShared(older.snapshot());
+      expect(store.handover(id), isNotNull);
+      expect(store.handover(id)!.status, "pending_hr");
+      expect(store.user?.id, "17272");
+      expect(store.inboxFor(store.user!).mine.map((h) => h.id), contains(id));
+      expect(store.person("12212"), isNotNull);
+      expect(store.inboxFor(hr).hrQueue.map((h) => h.id), contains(id));
+      final saved = store.snapshot();
+      (saved["accounts"] as List).removeWhere((item) => item["id"] == "17272");
+      final restored = AppStore();
+      restored.replaceShared(saved);
+      expect(restored.person("17272")?.email, "shahad0x4@gmail.com");
+      expect(restored.handover(id)?.status, "pending_hr");
+      expect(
+        restored
+            .inboxFor(restored.findByEmail("shahad0x4@gmail.com")!)
+            .mine
+            .map((h) => h.id),
+        contains(id),
+      );
+    },
+  );
+
   test("a refusal comes back, then acceptance reaches the manager and HR", () {
     final store = AppStore();
     final hind = store.createAccount(
