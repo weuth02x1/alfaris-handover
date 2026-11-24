@@ -189,8 +189,19 @@ class I18n {
   String get startRequest => isAr ? "ابدأ الطلب" : "Start request";
   String get newRequest => isAr ? "رفع طلب" : "New request";
   String get newRequestHint => isAr
-      ? "اختر نوع الخروج والتاريخ. بعدها تعبّئ المهام وتسندها لأي شخص مسجّل في الموقع."
-      : "Choose the reason and the dates. Then list the tasks and assign each one to any registered person.";
+      ? "بمجرد الرفع يوصل الطلب لمديرك المباشر. إذا ما اخترت مديراً عند التسجيل يوصل مباشرة للموارد البشرية."
+      : "As soon as you raise it, the request goes to your direct manager. With no manager, it goes straight to HR.";
+  String arrival(String status) => switch (status) {
+    "pending_manager" =>
+      isAr
+          ? "الطلب عند المدير المباشر، ويعتمده من حسابه."
+          : "The request is with the direct manager.",
+    "pending_hr" =>
+      isAr
+          ? "ما فيه مدير مباشر، فالطلب عند الموارد البشرية للاعتماد."
+          : "There is no direct manager, so the request is with HR.",
+    _ => "",
+  };
   String get sameDepartmentOnly => isAr
       ? "المستلم لازم يكون موظفاً مسجّلاً في الموقع، من أي قسم."
       : "The recipient must be registered on this site, from any department.";

@@ -361,7 +361,10 @@ class AppStore extends ChangeNotifier {
     for (final h in handovers) {
       for (final task in h.tasks) {
         if (task.assigneeId != me.id) continue;
-        if (task.status == "pending" && h.status == "pending_acceptance") {
+        if (task.status == "pending" &&
+            (h.status == "pending_acceptance" ||
+                h.status == "pending_manager" ||
+                h.status == "pending_hr")) {
           toAccept.add(InboxItem(handover: h, task: task));
         } else if (task.status == "accepted") {
           accepted.add(InboxItem(handover: h, task: task));
@@ -494,13 +497,41 @@ class AppStore extends ChangeNotifier {
     );
     handovers.add(h);
     _audit(h, actor.id, "clearance_initiated", h.requestRef);
-    _notifyHr(
+    _sendToManagerOrHr(h);
+    _notify(
       h,
-      "يوجد طلب ${exitReasonAr(h.type)} من ${actor.nameAr}",
-      "راجع الطلب وافتح النموذج. الموظف يعبّئ المهام ويسندها لشخص مسجّل.",
+      actor,
+      "أرسلت الطلب ${h.number} | Request sent",
+      "وش صار: رفع الطلب.\nوين وصل: ${_where(h)}.",
     );
     notifyListeners();
     return h.id;
+  }
+
+  /// A raised request is already with someone: the direct manager, or HR when
+  /// the employee has no manager. It must not sit as a draft that nobody sees.
+  void _sendToManagerOrHr(Handover h) {
+    final manager = person(h.employee.managerId);
+    if (manager != null && manager.id != h.employee.id) {
+      h.status = "pending_manager";
+      _notify(
+        h,
+        manager,
+        "طلب ${exitReasonAr(h.type)} من ${h.employee.nameAr} | Approval needed",
+        "رفع ${h.employee.nameAr} طلب ${exitReasonAr(h.type)}.\nوش صار: وصل الطلب للمدير المباشر.\nوين وصل: ${_where(h)}.\nافتح نماذج بانتظار اعتمادك كمدير مباشر.",
+      );
+      return;
+    }
+    h.status = "pending_hr";
+    for (final person in hrUsers) {
+      if (person.id == h.employee.id) continue;
+      _notify(
+        h,
+        person,
+        "طلب ${exitReasonAr(h.type)} من ${h.employee.nameAr} | HR approval",
+        "رفع ${h.employee.nameAr} طلب ${exitReasonAr(h.type)} وما فيه مدير مباشر.\nوش صار: وصل الطلب مباشرة للموارد البشرية.\nوين وصل: ${_where(h)}.\nافتح نماذج بانتظار اعتماد الموارد البشرية.",
+      );
+    }
   }
 
   void saveForm(
@@ -512,8 +543,7 @@ class AppStore extends ChangeNotifier {
   }) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (h.employee.id != actor.id) throw WorkflowException("notAllowed");
-    if (h.status != "draft" && h.status != "returned")
-      throw WorkflowException("notAllowed");
+    if (h.status == "approved") throw WorkflowException("notAllowed");
     if (tasks.length > 40 || generalNotes.length > 4000)
       throw WorkflowException("notAllowed");
     final colleagueIds = colleaguesFor(actor.id).map((c) => c.id).toSet();
@@ -559,10 +589,14 @@ class AppStore extends ChangeNotifier {
       return;
     }
 
-    h.submittedAt = _now();
-    h.lastReturn = null;
-    h.managerApproval = null;
-    h.hrApproval = null;
+    final alreadyRouted =
+        h.status == "pending_manager" || h.status == "pending_hr";
+    h.submittedAt ??= _now();
+    if (!alreadyRouted) {
+      h.lastReturn = null;
+      h.managerApproval = null;
+      h.hrApproval = null;
+    }
     _audit(h, actor.id, "form_submitted", "${h.tasks.length}");
     for (final task in h.tasks) {
       if (task.status == "accepted") continue;
@@ -576,7 +610,7 @@ class AppStore extends ChangeNotifier {
         "${task.title} → ${recipient.nameAr}",
       );
     }
-    _advanceIfAllAccepted(h);
+    if (!alreadyRouted) _advanceIfAllAccepted(h);
     for (final task in h.tasks) {
       if (task.status != "pending") continue;
       final recipient = colleaguesFor(actor.id)
@@ -598,7 +632,7 @@ class AppStore extends ChangeNotifier {
     if (task == null ||
         task.assigneeId != actor.id ||
         task.status != "pending" ||
-        h.status != "pending_acceptance") {
+        !_openForTasks(h)) {
       throw WorkflowException("notAllowed");
     }
     task.status = "accepted";
@@ -625,7 +659,7 @@ class AppStore extends ChangeNotifier {
     if (task == null ||
         task.assigneeId != actor.id ||
         task.status != "pending" ||
-        h.status != "pending_acceptance") {
+        !_openForTasks(h)) {
       throw WorkflowException("notAllowed");
     }
     final owner =
@@ -651,7 +685,7 @@ class AppStore extends ChangeNotifier {
     String newAssigneeId,
   ) {
     final h = handover(id) ?? (throw WorkflowException("notFound"));
-    if (h.employee.id != actor.id || h.status != "pending_acceptance")
+    if (h.employee.id != actor.id || !_openForTasks(h))
       throw WorkflowException("notAllowed");
     final task = _task(h, taskId);
     if (task == null || task.status != "rejected")
@@ -775,23 +809,24 @@ class AppStore extends ChangeNotifier {
     );
   }
 
+  bool _openForTasks(Handover h) =>
+      h.status == "pending_acceptance" ||
+      h.status == "pending_manager" ||
+      h.status == "pending_hr" ||
+      h.status == "draft" ||
+      h.status == "returned";
+
   void _advanceIfAllAccepted(Handover h) {
-    if (!h.tasks.every((t) => t.status == "accepted")) {
-      h.status = "pending_acceptance";
+    if (h.status == "pending_manager" ||
+        h.status == "pending_hr" ||
+        h.status == "approved") {
       return;
     }
-    final manager = person(h.employee.managerId);
-    if (manager != null) {
-      h.status = "pending_manager";
-      _notify(
-        h,
-        manager,
-        "بانتظار اعتمادك: نموذج تسليم ${h.employee.nameAr} | Approval needed",
-        "قبل جميع المستلمين مهام ${h.employee.nameAr} في النموذج ${h.number}. راجع النموذج واعتمده أو أعده مع ذكر السبب.\n\nAll recipients accepted ${h.employee.nameEn}'s tasks (${h.number}). Please review and approve or return it.",
-      );
-    } else {
-      _moveToHr(h);
+    if (h.tasks.isEmpty || h.tasks.every((t) => t.status == "accepted")) {
+      _sendToManagerOrHr(h);
+      return;
     }
+    h.status = "pending_acceptance";
   }
 
   void _moveToHr(Handover h) {
@@ -991,22 +1026,40 @@ class AppStore extends ChangeNotifier {
     final local = snapshot();
     var merged = mergeSharedState(local, remote);
     if (stateFingerprint(merged) != stateFingerprint(remote)) {
-      final latest = await _shared.fetch();
-      if (latest == null) return;
-      merged = mergeSharedState(snapshot(), latest);
-      if (stateFingerprint(merged) != stateFingerprint(latest)) {
-        final saved = await _shared.save(merged);
-        if (!saved) return;
-      }
+      final written = await _writeUnion(merged);
+      if (written == null) return;
+      merged = written;
     }
     final now = snapshot();
-    if (stateFingerprint(now) != stateFingerprint(local)) {
+    final safe = mergeSharedState(now, merged);
+    if (stateFingerprint(now) != stateFingerprint(local) ||
+        stateFingerprint(safe) != stateFingerprint(merged)) {
       _syncQueued = true;
-      return;
     }
-    if (stateFingerprint(merged) != stateFingerprint(now)) {
-      replaceShared(merged);
+    if (stateFingerprint(safe) != stateFingerprint(now)) {
+      replaceShared(safe);
     }
+  }
+
+  /// Write the union, then read it back. If another device saved in between,
+  /// put the combined copy back so a new request is not deleted.
+  Future<Map<String, dynamic>?> _writeUnion(Map<String, dynamic> merged) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final latest = await _shared.fetch();
+      if (latest == null) return null;
+      merged = mergeSharedState(snapshot(), latest);
+      if (stateFingerprint(merged) == stateFingerprint(latest)) return merged;
+      if (!await _shared.save(merged)) return null;
+      final confirm = await _shared.fetch();
+      if (confirm == null) return merged;
+      final recovered = mergeSharedState(merged, confirm);
+      if (stateFingerprint(recovered) == stateFingerprint(confirm)) {
+        return recovered;
+      }
+      merged = recovered;
+    }
+    if (!await _shared.save(merged)) return null;
+    return merged;
   }
 
   void replaceShared(Map<String, dynamic> state) {

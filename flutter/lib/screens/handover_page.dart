@@ -46,8 +46,7 @@ class HandoverPage extends StatelessWidget {
         ),
       );
     }
-    final editable =
-        access.isOwner && (h.status == "draft" || h.status == "returned");
+    final editable = access.isOwner && h.status != "approved";
     final colleagues = access.isOwner
         ? store.colleaguesFor(user.id)
         : <Employee>[];
@@ -119,6 +118,13 @@ class HandoverPage extends StatelessWidget {
                       "${store.nameSnap(h.employee)} · ${t.type(h.type)} · ${h.requestRef}",
                       style: const TextStyle(color: mutedFg),
                     ),
+                    if (t.arrival(h.status).isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        t.arrival(h.status),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Card(
                       child: Padding(

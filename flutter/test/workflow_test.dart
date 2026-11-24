@@ -64,8 +64,9 @@ void main() {
       ],
       submit: true,
     );
-    expect(store.handover(id)!.status, "pending_acceptance");
+    expect(store.handover(id)!.status, "pending_manager");
     expect(store.waitingCount(abdullah), 1);
+    expect(store.inboxFor(fahad).managerQueue, hasLength(1));
     expect(store.waitingCount(fahad), 1);
 
     store.acceptTask(
@@ -89,7 +90,7 @@ void main() {
           .any(
             (m) =>
                 m.body.contains("إسناد مهمة") &&
-                m.body.contains("وين وصل الطلب: بانتظار قبول المهام"),
+                m.body.contains("وين وصل الطلب: عند المدير المباشر"),
           ),
       isTrue,
     );
@@ -217,15 +218,16 @@ void main() {
       lastWorkingDay: "2026-12-01",
       returnDate: "2026-12-20",
     );
-    expect(store.handover(id)!.status, "draft");
+    expect(store.handover(id)!.status, "pending_manager");
     final hind = store.person("30115")!;
-    final notice = store.mailFor(hind).single;
-    expect(notice.subject, "يوجد طلب إجازة سنوية من سارة القحطاني");
+    final notice = store.mailFor(fahad).single;
+    expect(notice.subject, contains("إجازة سنوية"));
     expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
     expect(notice.body, contains("آخر يوم عمل: 2026-12-01"));
     expect(notice.body, contains("تاريخ العودة: 2026-12-20"));
+    expect(store.inboxFor(fahad).managerQueue.map((h) => h.id), contains(id));
     expect(store.inboxFor(hind).raised.map((h) => h.id), contains(id));
-    expect(store.mailFor(sarah), isEmpty);
+    expect(store.mailFor(sarah).single.body, contains("عند المدير المباشر"));
     store.saveForm(
       sarah,
       id,
@@ -241,7 +243,7 @@ void main() {
       ],
       submit: true,
     );
-    expect(store.handover(id)!.status, "pending_acceptance");
+    expect(store.handover(id)!.status, "pending_manager");
     expect(store.inboxFor(store.person("40221")!).toAccept, hasLength(1));
   });
 
@@ -403,9 +405,72 @@ void main() {
       contains(id),
     );
     expect(
-      seen.inboxFor(seen.person(manager.id)!).teamOpen.map((h) => h.id),
+      seen.inboxFor(seen.person(manager.id)!).managerQueue.map((h) => h.id),
       contains(id),
     );
+  });
+
+  test("a new resignation goes to the manager, or straight to HR", () {
+    final store = AppStore();
+    final hr = store.createAccount(
+      email: "hr3@alfaris.test",
+      name: "هند",
+      employeeNo: "50115",
+      jobTitle: "موارد بشرية",
+      departmentId: "D-HR",
+    );
+    final manager = store.createAccount(
+      email: "boss3@alfaris.test",
+      name: "فهد",
+      employeeNo: "50501",
+      jobTitle: "مدير",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    final withBoss = store.createAccount(
+      email: "new.with.boss@gmail.com",
+      name: "سارة",
+      employeeNo: "50518",
+      jobTitle: "مطورة",
+      departmentId: "D-TA",
+      managerId: manager.id,
+    );
+    final noBoss = store.createAccount(
+      email: "new.no.boss@gmail.com",
+      name: "محمد",
+      employeeNo: "50519",
+      jobTitle: "محلل",
+      departmentId: "D-TA",
+    );
+    final toManager = store.startOwn(
+      withBoss,
+      type: "resignation",
+      lastWorkingDay: "2026-12-30",
+    );
+    expect(store.handover(toManager)!.status, "pending_manager");
+    expect(store.inboxFor(manager).managerQueue.map((h) => h.id), [toManager]);
+    expect(store.inboxFor(hr).hrQueue, isEmpty);
+
+    final toHr = store.startOwn(
+      noBoss,
+      type: "resignation",
+      lastWorkingDay: "2026-12-30",
+    );
+    expect(store.handover(toHr)!.status, "pending_hr");
+    expect(store.inboxFor(hr).hrQueue.map((h) => h.id), [toHr]);
+    expect(store.inboxFor(manager).managerQueue.map((h) => h.id), [toManager]);
+
+    final otherDevice = AppStore();
+    otherDevice.replaceShared(
+      mergeSharedState(otherDevice.snapshot(), store.snapshot()),
+    );
+    final hrThere = otherDevice.findByEmail("hr3@alfaris.test")!;
+    final bossThere = otherDevice.findByEmail("boss3@alfaris.test")!;
+    expect(otherDevice.inboxFor(bossThere).managerQueue.map((h) => h.id), [
+      toManager,
+    ]);
+    expect(otherDevice.inboxFor(hrThere).hrQueue.map((h) => h.id), [toHr]);
   });
 
   test("a refusal comes back, then acceptance reaches the manager and HR", () {
