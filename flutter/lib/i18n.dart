@@ -207,6 +207,7 @@ class I18n {
   String get managerQueue => isAr
       ? "نماذج بانتظار اعتمادك كمدير مباشر"
       : "Waiting for your approval as direct manager";
+  String get teamQueue => isAr ? "طلبات موظفيك" : "Requests from your team";
   String get hrQueue =>
       isAr ? "نماذج بانتظار اعتماد الموارد البشرية" : "Waiting for HR approval";
   String get raisedQueue =>

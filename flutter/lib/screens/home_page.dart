@@ -31,7 +31,12 @@ class HomePage extends StatelessWidget {
       child: AppScaffold(
         user: user,
         body: ListView(
-          padding: EdgeInsets.fromLTRB(MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 24, MediaQuery.sizeOf(context).width < 600 ? 12 : 28, 40),
+          padding: EdgeInsets.fromLTRB(
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 28,
+            24,
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 28,
+            40,
+          ),
           children: [
             Center(
               child: ConstrainedBox(
@@ -65,11 +70,7 @@ class HomePage extends StatelessWidget {
                           );
                         }
                         return Row(
-                          children: [
-                            title,
-                            const SizedBox(width: 16),
-                            action,
-                          ],
+                          children: [title, const SizedBox(width: 16), action],
                         );
                       },
                     ),
@@ -129,11 +130,15 @@ class HomePage extends StatelessWidget {
                                   for (final message in notices.take(8))
                                     _Row(
                                       title: message.subject,
-                                      meta: message.body.split("\n").take(3).join(" · "),
+                                      meta: message.body
+                                          .split("\n")
+                                          .take(3)
+                                          .join(" · "),
                                       badge: const SizedBox.shrink(),
                                       onTap: () {
                                         final link = message.link;
-                                        if (link != null) Navigator.pushNamed(context, link);
+                                        if (link != null)
+                                          Navigator.pushNamed(context, link);
                                       },
                                     ),
                                 ],
@@ -146,10 +151,18 @@ class HomePage extends StatelessWidget {
                                 children: [
                                   for (final h in inbox.raised)
                                     _Row(
-                                      title: "${empName(h)} · ${t.type(h.type)}",
-                                      meta: "${h.number} · ${t.date(h.lastWorkingDay)}",
-                                      badge: HandoverStatusBadge(status: h.status, label: t.status(h.status)),
-                                      onTap: () => Navigator.pushNamed(context, "/handovers/${h.id}"),
+                                      title:
+                                          "${empName(h)} · ${t.type(h.type)}",
+                                      meta:
+                                          "${h.number} · ${t.date(h.lastWorkingDay)}",
+                                      badge: HandoverStatusBadge(
+                                        status: h.status,
+                                        label: t.status(h.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
                                     ),
                                 ],
                               ),
@@ -186,6 +199,27 @@ class HomePage extends StatelessWidget {
                                       title: "${h.number} · ${t.type(h.type)}",
                                       meta:
                                           "${h.requestRef} · ${t.date(h.lastWorkingDay)}",
+                                      badge: HandoverStatusBadge(
+                                        status: h.status,
+                                        label: t.status(h.status),
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            if (inbox.teamOpen.isNotEmpty)
+                              _Section(
+                                icon: Icons.groups_outlined,
+                                title: t.teamQueue,
+                                highlight: true,
+                                children: [
+                                  for (final h in inbox.teamOpen)
+                                    _Row(
+                                      title: empName(h),
+                                      meta: "${h.number} · ${t.type(h.type)}",
                                       badge: HandoverStatusBadge(
                                         status: h.status,
                                         label: t.status(h.status),

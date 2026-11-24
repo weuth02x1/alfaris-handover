@@ -1,7 +1,9 @@
+import "dart:async";
 import "dart:convert";
 import "dart:math";
 
 import "package:crypto/crypto.dart";
+import "package:flutter/foundation.dart";
 import "package:material_ui/material_ui.dart";
 
 import "auth_mail.dart";
@@ -10,6 +12,7 @@ import "i18n.dart";
 import "local_box.dart";
 import "models.dart";
 import "persist.dart";
+import "shared_state.dart";
 
 class InboxItem {
   InboxItem({required this.handover, this.task});
@@ -23,6 +26,7 @@ class Inbox {
     required this.toAccept,
     required this.accepted,
     required this.managerQueue,
+    required this.teamOpen,
     required this.hrQueue,
     required this.raised,
   });
@@ -30,6 +34,7 @@ class Inbox {
   final List<InboxItem> toAccept;
   final List<InboxItem> accepted;
   final List<Handover> managerQueue;
+  final List<Handover> teamOpen;
   final List<Handover> hrQueue;
   final List<Handover> raised;
   bool get isEmpty =>
@@ -37,6 +42,7 @@ class Inbox {
       toAccept.isEmpty &&
       accepted.isEmpty &&
       managerQueue.isEmpty &&
+      teamOpen.isEmpty &&
       hrQueue.isEmpty &&
       raised.isEmpty;
 }
@@ -61,7 +67,10 @@ class AppStore extends ChangeNotifier {
   }
 
   final LocalBox _box;
+  final SharedBin _shared = SharedBin();
   bool _hydrating = false;
+  bool _syncing = false;
+  Timer? _syncTimer;
   static const _storageKey = "alfaris-handover-v1";
 
   @override
@@ -341,6 +350,7 @@ class AppStore extends ChangeNotifier {
     final box = inboxFor(person);
     return box.toAccept.length +
         box.managerQueue.length +
+        box.teamOpen.length +
         box.hrQueue.length +
         box.raised.length;
   }
@@ -364,6 +374,16 @@ class AppStore extends ChangeNotifier {
           (h) => h.status == "pending_manager" && h.employee.managerId == me.id,
         )
         .toList();
+    final teamOpen = handovers
+        .where(
+          (h) =>
+              h.employee.managerId == me.id &&
+              h.employee.id != me.id &&
+              h.status != "approved" &&
+              h.status != "pending_hr" &&
+              h.status != "pending_manager",
+        )
+        .toList();
     final hrQueue = me.isHr
         ? handovers.where((h) => h.status == "pending_hr").toList()
         : <Handover>[];
@@ -384,6 +404,7 @@ class AppStore extends ChangeNotifier {
       toAccept: toAccept,
       accepted: accepted,
       managerQueue: managerQueue,
+      teamOpen: teamOpen,
       hrQueue: hrQueue,
       raised: raised,
     );
@@ -921,6 +942,72 @@ class AppStore extends ChangeNotifier {
     "finalizedAt": h.finalizedAt,
   };
 
+  Map<String, dynamic> snapshot() => {
+    "counter": counter,
+    "accounts": [for (final e in accounts) employeeToJson(e)],
+    "handovers": [for (final h in handovers) handoverToJson(h)],
+    "outbox": [for (final m in outbox) mailToJson(m)],
+    "audit": [for (final a in auditLog) auditToJson(a)],
+  };
+
+  void startSharedSync() {
+    if (!kIsWeb) return;
+    syncShared();
+    Timer.periodic(const Duration(seconds: 8), (_) => syncShared());
+  }
+
+  Future<void> syncShared() async {
+    if (!kIsWeb || _syncing) return;
+    _syncing = true;
+    try {
+      final remote = await _shared.fetch();
+      final local = snapshot();
+      final merged = mergeSharedState(local, remote);
+      if (stateFingerprint(merged) != stateFingerprint(remote)) {
+        await _shared.save(merged);
+      }
+      if (stateFingerprint(merged) != stateFingerprint(local)) {
+        replaceShared(merged);
+      }
+    } catch (_) {
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  void replaceShared(Map<String, dynamic> state) {
+    final keepUser = user?.id;
+    final keepLocale = locale;
+    _hydrating = true;
+    counter = (state["counter"] as num?)?.toInt() ?? counter;
+    accounts = [
+      for (final item in state["accounts"] as List)
+        if (item is Map) employeeFromJson(Map<String, dynamic>.from(item)),
+    ];
+    handovers
+      ..clear()
+      ..addAll([
+        for (final item in state["handovers"] as List)
+          if (item is Map) handoverFromJson(Map<String, dynamic>.from(item)),
+      ]);
+    outbox
+      ..clear()
+      ..addAll([
+        for (final item in state["outbox"] as List)
+          if (item is Map) mailFromJson(Map<String, dynamic>.from(item)),
+      ]);
+    auditLog
+      ..clear()
+      ..addAll([
+        for (final item in state["audit"] as List)
+          if (item is Map) auditFromJson(Map<String, dynamic>.from(item)),
+      ]);
+    locale = keepLocale;
+    user = person(keepUser);
+    _hydrating = false;
+    notifyListeners();
+  }
+
   void _persist() {
     try {
       _box.write(
@@ -929,13 +1016,13 @@ class AppStore extends ChangeNotifier {
           "userId": user?.id,
           "locale": locale,
           "counter": counter,
-          "accounts": [for (final e in accounts) employeeToJson(e)],
-          "handovers": [for (final h in handovers) handoverToJson(h)],
-          "outbox": [for (final m in outbox) mailToJson(m)],
-          "audit": [for (final a in auditLog) auditToJson(a)],
+          ...snapshot(),
         }),
       );
     } catch (_) {}
+    if (!kIsWeb || _hydrating) return;
+    _syncTimer?.cancel();
+    _syncTimer = Timer(const Duration(milliseconds: 500), syncShared);
   }
 
   void _load() {

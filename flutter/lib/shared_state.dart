@@ -1,0 +1,162 @@
+import "dart:convert";
+
+import "package:http/http.dart" as http;
+
+const sharedBinId = "vmLt3VdAtq_yKg";
+const sharedBinKey = "RfgjQFGp558QVPLZ4XZhFzwGPecVhLaQ";
+
+Uri get sharedBinUri => Uri.parse("https://jsonstorage.com/$sharedBinId");
+
+Map<String, dynamic> emptySharedState() => {
+  "counter": 0,
+  "accounts": <Object?>[],
+  "handovers": <Object?>[],
+  "outbox": <Object?>[],
+  "audit": <Object?>[],
+};
+
+Map<String, dynamic> asSharedState(Object? raw) {
+  if (raw is! Map) return emptySharedState();
+  return {
+    "counter": (raw["counter"] as num?)?.toInt() ?? 0,
+    "accounts": raw["accounts"] is List ? raw["accounts"] as List : <Object?>[],
+    "handovers": raw["handovers"] is List
+        ? raw["handovers"] as List
+        : <Object?>[],
+    "outbox": raw["outbox"] is List ? raw["outbox"] as List : <Object?>[],
+    "audit": raw["audit"] is List ? raw["audit"] as List : <Object?>[],
+  };
+}
+
+int _rank(String status) => switch (status) {
+  "draft" => 1,
+  "returned" => 2,
+  "pending_acceptance" => 3,
+  "pending_manager" => 4,
+  "pending_hr" => 5,
+  "approved" => 6,
+  _ => 0,
+};
+
+int _progress(Map item) {
+  var score = _rank("${item["status"]}") * 100;
+  for (final task in item["tasks"] as List? ?? const []) {
+    if (task is Map && task["status"] == "accepted") score += 1;
+  }
+  return score;
+}
+
+Map<String, dynamic> _preferHandover(Map left, Map right) {
+  final lp = _progress(left);
+  final rp = _progress(right);
+  if (lp != rp) return Map<String, dynamic>.from(lp > rp ? left : right);
+  final lt =
+      "${left["finalizedAt"] ?? left["submittedAt"] ?? left["createdAt"] ?? ""}";
+  final rt =
+      "${right["finalizedAt"] ?? right["submittedAt"] ?? right["createdAt"] ?? ""}";
+  return Map<String, dynamic>.from(lt.compareTo(rt) >= 0 ? left : right);
+}
+
+Map<String, Map<String, dynamic>> _byId(List items) {
+  final out = <String, Map<String, dynamic>>{};
+  for (final item in items) {
+    if (item is! Map) continue;
+    final id = "${item["id"]}";
+    if (id.isEmpty) continue;
+    out[id] = Map<String, dynamic>.from(item);
+  }
+  return out;
+}
+
+/// Union of two browsers. A request opened on one device stays visible on the other.
+Map<String, dynamic> mergeSharedState(
+  Map<String, dynamic> left,
+  Map<String, dynamic> right,
+) {
+  final a = asSharedState(left);
+  final b = asSharedState(right);
+  final accounts = <String, Map<String, dynamic>>{};
+  void takeAccounts(List items) {
+    for (final item in items) {
+      if (item is! Map) continue;
+      final email = "${item["email"]}".trim().toLowerCase();
+      if (email.isEmpty) continue;
+      final current = accounts[email];
+      if (current == null ||
+          (current["managerId"] == null && item["managerId"] != null)) {
+        accounts[email] = Map<String, dynamic>.from(item);
+      }
+    }
+  }
+
+  takeAccounts(a["accounts"] as List);
+  takeAccounts(b["accounts"] as List);
+
+  final handovers = <String, Map<String, dynamic>>{};
+  void takeHandovers(List items) {
+    for (final item in items) {
+      if (item is! Map) continue;
+      final id = "${item["id"]}";
+      if (id.isEmpty) continue;
+      final current = handovers[id];
+      handovers[id] = current == null
+          ? Map<String, dynamic>.from(item)
+          : _preferHandover(current, item);
+    }
+  }
+
+  takeHandovers(a["handovers"] as List);
+  takeHandovers(b["handovers"] as List);
+
+  final outbox = {..._byId(a["outbox"] as List), ..._byId(b["outbox"] as List)};
+  final audit = {..._byId(a["audit"] as List), ..._byId(b["audit"] as List)};
+  final counters = [a["counter"] as int, b["counter"] as int];
+  return {
+    "counter": counters.reduce((x, y) => x > y ? x : y),
+    "accounts": accounts.values.toList(),
+    "handovers": handovers.values.toList(),
+    "outbox": outbox.values.toList(),
+    "audit": audit.values.toList(),
+  };
+}
+
+String stateFingerprint(Map<String, dynamic> raw) {
+  final state = asSharedState(raw);
+  final accounts = [
+    for (final item in state["accounts"] as List)
+      if (item is Map) "${item["email"]}".trim().toLowerCase(),
+  ]..sort();
+  final handovers = [
+    for (final item in state["handovers"] as List)
+      if (item is Map) "${item["id"]}|${_progress(item)}",
+  ]..sort();
+  final audit = [
+    for (final item in state["audit"] as List)
+      if (item is Map) "${item["id"]}",
+  ]..sort();
+  return "${state["counter"]}|${accounts.join(";")}||${handovers.join(";")}||${audit.join(";")}";
+}
+
+class SharedBin {
+  Future<Map<String, dynamic>> fetch() async {
+    final response = await http
+        .get(sharedBinUri)
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode >= 400) return emptySharedState();
+    return asSharedState(jsonDecode(response.body));
+  }
+
+  Future<bool> save(Map<String, dynamic> state) async {
+    final response = await http
+        .put(
+          sharedBinUri,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Bin-Key": sharedBinKey,
+          },
+          body: jsonEncode(state),
+        )
+        .timeout(const Duration(seconds: 15));
+    return response.statusCode < 400;
+  }
+}

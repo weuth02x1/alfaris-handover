@@ -3,6 +3,7 @@ import "package:alfaris_handover/directory.dart";
 import "package:alfaris_handover/i18n.dart";
 import "package:alfaris_handover/local_box.dart";
 import "package:alfaris_handover/models.dart";
+import "package:alfaris_handover/shared_state.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -65,7 +66,7 @@ void main() {
     );
     expect(store.handover(id)!.status, "pending_acceptance");
     expect(store.waitingCount(abdullah), 1);
-    expect(store.waitingCount(fahad), 0);
+    expect(store.waitingCount(fahad), 1);
 
     store.acceptTask(
       abdullah,
@@ -272,6 +273,85 @@ void main() {
     expect(again.person("10518")?.managerId, "10501");
     expect(again.managersFor("D-ITD").map((e) => e.id), ["10501"]);
     expect(again.managersFor("D-HR"), isEmpty);
+  });
+
+  test("a request opened on another device reaches HR and the manager", () {
+    final remote = {
+      "counter": 3,
+      "accounts": [
+        {
+          "id": "88001",
+          "nameAr": "محمد عبدالماجد",
+          "nameEn": "محمد عبدالماجد",
+          "jobTitleAr": "محلل",
+          "jobTitleEn": "محلل",
+          "departmentId": "D-ITD",
+          "departmentAr": "تطوير تقنية المعلومات",
+          "departmentEn": "IT Development",
+          "sectionAr": "تطوير الأنظمة",
+          "sectionEn": "Systems Development",
+          "branchId": "B-RUH",
+          "managerId": "22001",
+          "email": "mohammed@example.com",
+          "role": "employee",
+          "staffNumber": "88001",
+          "isManager": false,
+        },
+      ],
+      "handovers": [
+        {
+          "id": "remote-1",
+          "number": "HO-2026-0008",
+          "requestRef": "SELF-88001-1",
+          "type": "clearance",
+          "lastWorkingDay": "2026-12-01",
+          "employee": {
+            "id": "88001",
+            "nameAr": "محمد عبدالماجد",
+            "nameEn": "محمد عبدالماجد",
+            "jobTitleAr": "محلل",
+            "jobTitleEn": "محلل",
+            "departmentAr": "تطوير تقنية المعلومات",
+            "departmentEn": "IT Development",
+            "sectionAr": "تطوير الأنظمة",
+            "sectionEn": "Systems Development",
+            "managerId": "22001",
+            "managerNameAr": "شهد القحطاني",
+            "managerNameEn": "شهد القحطاني",
+          },
+          "status": "pending_acceptance",
+          "generalNotes": "",
+          "tasks": [
+            {
+              "id": "task-1",
+              "title": "تسليم الملفات",
+              "details": "",
+              "assigneeId": "22030",
+              "status": "pending",
+              "rejections": [],
+            },
+          ],
+          "initiatedById": "88001",
+          "createdAt": "2026-11-24T08:00:00Z",
+        },
+      ],
+      "outbox": [],
+      "audit": [],
+    };
+    final local = AppStore();
+    local.ensureCycleAccounts();
+    final merged = mergeSharedState(local.snapshot(), remote);
+    final seen = AppStore();
+    seen.replaceShared(merged);
+    final hr = seen.findByEmail("shahad0x66+hr@gmail.com")!;
+    final manager = seen.findByEmail("shahad0x66+manager@gmail.com")!;
+    expect(seen.inboxFor(hr).raised.map((h) => h.id), contains("remote-1"));
+    expect(
+      seen.inboxFor(manager).teamOpen.map((h) => h.id),
+      contains("remote-1"),
+    );
+    expect(seen.waitingCount(hr), greaterThan(0));
+    expect(seen.waitingCount(manager), greaterThan(0));
   });
 
   test("cycle accounts share one inbox and cover the whole handover", () {
