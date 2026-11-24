@@ -56,6 +56,10 @@ class I18n {
       ? "اضغط الاسم وادخل مباشرة. الطلب يبقى في نفس الصفحة إذا بدّلت الحساب من هنا."
       : "Tap a name to enter. The request stays on this page if you switch accounts here.";
   String get switchAccount => isAr ? "تبديل الحساب" : "Switch account";
+  String get cycleAccounts => isAr ? "حسابات الدورة" : "Cycle accounts";
+  String get cycleHint => isAr
+      ? "اضغط الإيميل ثم أرسل الرمز. كل الرموز توصل لصندوق جيميل شهد."
+      : "Tap an email, then send the code. Every code arrives in Shahad's Gmail.";
   String get email => isAr ? "الإيميل" : "Email";
   String get emailPh => "name@company.com";
   String get sendCode => isAr ? "أرسل الرمز على الإيميل" : "Email me the code";

@@ -239,6 +239,25 @@ void main() {
     expect(again.managersFor("D-HR"), isEmpty);
   });
 
+  test("cycle accounts share one inbox and cover the whole handover", () {
+    final store = AppStore();
+    store.ensureCycleAccounts();
+    expect(store.people, hasLength(4));
+    final shahad = store.findByEmail("shahad0x66@gmail.com");
+    expect(shahad, isNotNull);
+    expect(
+      store.colleaguesFor(shahad!.id).map((e) => e.email),
+      contains("shahad0x66+colleague@gmail.com"),
+    );
+    expect(
+      store.person(shahad.managerId)?.email,
+      "shahad0x66+manager@gmail.com",
+    );
+    expect(store.hrUsers.single.email, "shahad0x66+hr@gmail.com");
+    store.ensureCycleAccounts();
+    expect(store.people, hasLength(4));
+  });
+
   test("OTP redirect points at the live site, not localhost", () {
     expect(
       AuthMail.otpUri().queryParameters["redirect_to"],

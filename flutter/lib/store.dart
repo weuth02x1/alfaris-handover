@@ -222,6 +222,70 @@ class AppStore extends ChangeNotifier {
     return emp;
   }
 
+  /// Four linked accounts so one inbox can walk the whole handover cycle.
+  /// The plus-addresses all deliver to shahad0x66@gmail.com.
+  void ensureCycleAccounts() {
+    _addCycle(
+      email: "shahad0x66+hr@gmail.com",
+      name: "شهد القحطاني",
+      employeeNo: "22015",
+      jobTitle: "أخصائية موارد بشرية",
+      departmentId: "D-HR",
+    );
+    _addCycle(
+      email: "shahad0x66+manager@gmail.com",
+      name: "شهد القحطاني",
+      employeeNo: "22001",
+      jobTitle: "مديرة تطوير تقنية المعلومات",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    _addCycle(
+      email: "shahad0x66+colleague@gmail.com",
+      name: "شهد القحطاني",
+      employeeNo: "22030",
+      jobTitle: "مطورة أنظمة",
+      departmentId: "D-ITD",
+      managerId: "22001",
+    );
+    _addCycle(
+      email: "shahad0x66@gmail.com",
+      name: "شهد القحطاني",
+      employeeNo: "22018",
+      jobTitle: "مطورة أنظمة",
+      departmentId: "D-ITD",
+      managerId: "22001",
+    );
+  }
+
+  void _addCycle({
+    required String email,
+    required String name,
+    required String employeeNo,
+    required String jobTitle,
+    required String departmentId,
+    String? managerId,
+    bool isManager = false,
+    String? managesDepartmentId,
+  }) {
+    if (findByEmail(email) != null || person(employeeNo) != null) return;
+    try {
+      createAccount(
+        email: email,
+        name: name,
+        employeeNo: employeeNo,
+        jobTitle: jobTitle,
+        departmentId: departmentId,
+        managerId: managerId,
+        isManager: isManager,
+        managesDepartmentId: managesDepartmentId,
+      );
+    } on WorkflowException {
+      return;
+    }
+  }
+
   Future<void> register({
     required String email,
     required String name,

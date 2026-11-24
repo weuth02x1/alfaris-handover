@@ -237,6 +237,41 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                       const SizedBox(height: 20),
+                      if (AuthMail.enabled &&
+                          store.people.isNotEmpty &&
+                          !codeStep) ...[
+                        Text(
+                          t.cycleAccounts,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: navy,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          t.cycleHint,
+                          style: const TextStyle(color: mutedFg, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        for (final person in store.people)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: OutlinedButton(
+                              onPressed: () => setState(() {
+                                email.text = person.email;
+                                signup = false;
+                                error = null;
+                              }),
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  "${store.nameOf(person)} · ${t.pick(person.jobTitleAr, person.jobTitleEn)} · ${person.email}",
+                                  textDirection: TextDirection.ltr,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                       if (AuthMail.enabled) ...[
                         Text(
                           t.email,

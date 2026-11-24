@@ -11,7 +11,9 @@ import "theme.dart";
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(HandoverApp(store: AppStore()));
+  final store = AppStore();
+  store.ensureCycleAccounts();
+  runApp(HandoverApp(store: store));
 }
 
 class HandoverApp extends StatelessWidget {
@@ -39,24 +41,43 @@ class HandoverApp extends StatelessWidget {
             ),
             onGenerateRoute: (settings) {
               if (store.user == null) {
-                return MaterialPageRoute(builder: (_) => const LoginPage(), settings: settings);
+                return MaterialPageRoute(
+                  builder: (_) => const LoginPage(),
+                  settings: settings,
+                );
               }
               final name = settings.name ?? "/";
               if (name == "/hr") {
-                return MaterialPageRoute(builder: (_) => const HrPage(), settings: settings);
+                return MaterialPageRoute(
+                  builder: (_) => const HrPage(),
+                  settings: settings,
+                );
               }
               if (name == "/outbox") {
-                return MaterialPageRoute(builder: (_) => const OutboxPage(), settings: settings);
+                return MaterialPageRoute(
+                  builder: (_) => const OutboxPage(),
+                  settings: settings,
+                );
               }
               final handover = RegExp(r"^/handovers/([^/]+)$").firstMatch(name);
               if (handover != null) {
-                return MaterialPageRoute(builder: (_) => HandoverPage(id: handover.group(1)!), settings: settings);
+                return MaterialPageRoute(
+                  builder: (_) => HandoverPage(id: handover.group(1)!),
+                  settings: settings,
+                );
               }
-              final report = RegExp(r"^/handovers/([^/]+)/report$").firstMatch(name);
+              final report = RegExp(r"^/handovers/([^/]+)/report$")
+                  .firstMatch(name);
               if (report != null) {
-                return MaterialPageRoute(builder: (_) => ReportPage(id: report.group(1)!), settings: settings);
+                return MaterialPageRoute(
+                  builder: (_) => ReportPage(id: report.group(1)!),
+                  settings: settings,
+                );
               }
-              return MaterialPageRoute(builder: (_) => const HomePage(), settings: settings);
+              return MaterialPageRoute(
+                builder: (_) => const HomePage(),
+                settings: settings,
+              );
             },
           );
         },
