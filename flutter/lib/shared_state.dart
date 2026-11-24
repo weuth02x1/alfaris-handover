@@ -154,12 +154,20 @@ String stateFingerprint(Map<String, dynamic> raw) {
 }
 
 class SharedBin {
-  Future<Map<String, dynamic>> fetch() async {
+  /// Null means the read failed. Callers must not save over the bin in that case,
+  /// or a new device's request gets wiped by an empty copy.
+  Future<Map<String, dynamic>?> fetch() async {
+    final uri = sharedBinUri.replace(
+      queryParameters: {"v": "${DateTime.now().microsecondsSinceEpoch}"},
+    );
     final response = await http
-        .get(sharedBinUri)
+        .get(uri, headers: const {"Cache-Control": "no-cache"})
         .timeout(const Duration(seconds: 15));
-    if (response.statusCode >= 400) return emptySharedState();
-    return asSharedState(jsonDecode(response.body));
+    if (response.statusCode == 404) return emptySharedState();
+    if (response.statusCode >= 400) return null;
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) return null;
+    return asSharedState(decoded);
   }
 
   Future<bool> save(Map<String, dynamic> state) async {

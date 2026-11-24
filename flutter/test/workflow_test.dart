@@ -208,7 +208,7 @@ void main() {
     final colleagues = store.colleaguesFor(sarah.id).map((e) => e.id);
     expect(colleagues, contains("10540"));
     expect(colleagues, contains("10501"));
-    expect(colleagues, isNot(contains("40221")));
+    expect(colleagues, contains("40221"));
     expect(departmentKey(store.person("10540")!), "D-ITD");
 
     final id = store.startOwn(
@@ -226,26 +226,23 @@ void main() {
     expect(notice.body, contains("تاريخ العودة: 2026-12-20"));
     expect(store.inboxFor(hind).raised.map((h) => h.id), contains(id));
     expect(store.mailFor(sarah), isEmpty);
-    expect(
-      () => store.saveForm(
-        sarah,
-        id,
-        generalNotes: "",
-        tasks: [
-          HandoverTask(
-            id: "",
-            title: "تسليم",
-            details: "",
-            assigneeId: "40221",
-            status: "draft",
-          ),
-        ],
-        submit: true,
-      ),
-      throwsA(
-        isA<WorkflowException>().having((e) => e.code, "code", "notAllowed"),
-      ),
+    store.saveForm(
+      sarah,
+      id,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "",
+          title: "تسليم",
+          details: "",
+          assigneeId: "40221",
+          status: "draft",
+        ),
+      ],
+      submit: true,
     );
+    expect(store.handover(id)!.status, "pending_acceptance");
+    expect(store.inboxFor(store.person("40221")!).toAccept, hasLength(1));
   });
 
   test("a reload keeps registered people and their manager", () {
@@ -272,7 +269,7 @@ void main() {
     final again = AppStore(box: box);
     expect(again.person("10518")?.managerId, "10501");
     expect(again.managersFor("D-ITD").map((e) => e.id), ["10501"]);
-    expect(again.managersFor("D-HR"), isEmpty);
+    expect(again.managersFor("D-HR").map((e) => e.id), ["10501"]);
   });
 
   test("a request opened on another device reaches HR and the manager", () {
@@ -352,6 +349,63 @@ void main() {
     );
     expect(seen.waitingCount(hr), greaterThan(0));
     expect(seen.waitingCount(manager), greaterThan(0));
+  });
+
+  test("a new account on a fresh device can send to any registered person", () {
+    final fresh = AppStore();
+    fresh.ensureCycleAccounts();
+    final manager = fresh.findByEmail("shahad0x66+manager@gmail.com")!;
+    final colleague = fresh.findByEmail("shahad0x66+colleague@gmail.com")!;
+    final hr = fresh.findByEmail("shahad0x66+hr@gmail.com")!;
+    final newcomer = fresh.createAccount(
+      email: "mohammed.new@gmail.com",
+      name: "محمد عبدالماجد",
+      employeeNo: "88021",
+      jobTitle: "محلل",
+      departmentId: "D-TA",
+      managerId: manager.id,
+    );
+    final id = fresh.startOwn(
+      newcomer,
+      type: "clearance",
+      lastWorkingDay: "2026-12-01",
+    );
+    fresh.saveForm(
+      newcomer,
+      id,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "",
+          title: "تسليم الملفات",
+          details: "",
+          assigneeId: colleague.id,
+          status: "draft",
+        ),
+      ],
+      submit: true,
+    );
+    final olderDevice = AppStore();
+    olderDevice.ensureCycleAccounts();
+    final merged = mergeSharedState(olderDevice.snapshot(), fresh.snapshot());
+    final seen = AppStore();
+    seen.replaceShared(merged);
+    expect(seen.findByEmail("mohammed.new@gmail.com"), isNotNull);
+    expect(
+      seen
+          .inboxFor(seen.person(colleague.id)!)
+          .toAccept
+          .map((item) => item.handover.id),
+      contains(id),
+    );
+    expect(
+      seen.inboxFor(seen.person(hr.id)!).raised.map((h) => h.id),
+      contains(id),
+    );
+    expect(
+      seen.inboxFor(seen.person(manager.id)!).teamOpen.map((h) => h.id),
+      contains(id),
+    );
   });
 
   test("a refusal comes back, then acceptance reaches the manager and HR", () {

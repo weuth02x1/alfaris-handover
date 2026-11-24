@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
             echo "Mail key is missing; login will not send email."
-            flutter build web --release --base-href /alfaris-handover/
+            flutter build web --release --base-href /alfaris-handover/ --pwa-strategy=none
             exit 0
           fi
           python3 - <<'PY'
@@ -53,7 +53,7 @@ jobs:
           }))
           print("Mail key is present; sign-in codes will be emailed.")
           PY
-          flutter build web --release --base-href /alfaris-handover/ --dart-define-from-file=/tmp/dart-defines.json
+          flutter build web --release --base-href /alfaris-handover/ --pwa-strategy=none --dart-define-from-file=/tmp/dart-defines.json
           python3 - <<'PY'
           import os, pathlib, sys
           key = os.environ["SUPABASE_ANON_KEY"].strip()

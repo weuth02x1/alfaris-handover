@@ -73,6 +73,7 @@ class AppStore extends ChangeNotifier {
   final SharedBin _shared = SharedBin();
   bool _hydrating = false;
   bool _syncing = false;
+  bool _syncQueued = false;
   Timer? _syncTimer;
   static const _storageKey = "alfaris-handover-v1";
 
@@ -135,20 +136,18 @@ class AppStore extends ChangeNotifier {
   List<Employee> colleaguesFor(String employeeId) {
     final me = person(employeeId);
     if (me == null) return [];
-    final key = departmentKey(me);
-    return accounts
-        .where((p) => p.id != me.id && departmentKey(p) == key)
-        .toList();
+    return accounts.where((p) => p.id != me.id).toList();
   }
 
-  List<Employee> managersFor(String departmentId) => accounts
-      .where(
-        (p) =>
-            p.isManager &&
-            (p.managesDepartmentId == null ||
-                p.managesDepartmentId == departmentId),
-      )
-      .toList();
+  List<Employee> managersFor(String departmentId) {
+    final managers = accounts.where((p) => p.isManager).toList();
+    managers.sort((a, b) {
+      final am = a.managesDepartmentId == departmentId ? 0 : 1;
+      final bm = b.managesDepartmentId == departmentId ? 0 : 1;
+      return am.compareTo(bm);
+    });
+    return managers;
+  }
 
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
 
@@ -205,10 +204,6 @@ class AppStore extends ChangeNotifier {
     if (bossId != null) {
       final boss = person(bossId);
       if (boss == null || !boss.isManager) throw WorkflowException("invalid");
-      if (boss.managesDepartmentId != null &&
-          boss.managesDepartmentId != departmentId) {
-        throw WorkflowException("invalid");
-      }
     }
     final emp = Employee(
       id: no,
@@ -502,7 +497,7 @@ class AppStore extends ChangeNotifier {
     _notifyHr(
       h,
       "يوجد طلب ${exitReasonAr(h.type)} من ${actor.nameAr}",
-      "راجع الطلب وافتح النموذج. الموظف يعبّئ المهام ويسندها لزميل من نفس القسم.",
+      "راجع الطلب وافتح النموذج. الموظف يعبّئ المهام ويسندها لشخص مسجّل.",
     );
     notifyListeners();
     return h.id;
@@ -969,21 +964,48 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> syncShared() async {
-    if (!kIsWeb || _syncing) return;
+    if (!kIsWeb) return;
+    if (_syncing) {
+      _syncQueued = true;
+      return;
+    }
     _syncing = true;
     try {
-      final remote = await _shared.fetch();
-      final local = snapshot();
-      final merged = mergeSharedState(local, remote);
-      if (stateFingerprint(merged) != stateFingerprint(remote)) {
-        await _shared.save(merged);
-      }
-      if (stateFingerprint(merged) != stateFingerprint(local)) {
-        replaceShared(merged);
-      }
+      do {
+        _syncQueued = false;
+        await _exchange();
+      } while (_syncQueued);
     } catch (_) {
     } finally {
       _syncing = false;
+      if (_syncQueued) {
+        _syncQueued = false;
+        syncShared();
+      }
+    }
+  }
+
+  Future<void> _exchange() async {
+    final remote = await _shared.fetch();
+    if (remote == null) return;
+    final local = snapshot();
+    var merged = mergeSharedState(local, remote);
+    if (stateFingerprint(merged) != stateFingerprint(remote)) {
+      final latest = await _shared.fetch();
+      if (latest == null) return;
+      merged = mergeSharedState(snapshot(), latest);
+      if (stateFingerprint(merged) != stateFingerprint(latest)) {
+        final saved = await _shared.save(merged);
+        if (!saved) return;
+      }
+    }
+    final now = snapshot();
+    if (stateFingerprint(now) != stateFingerprint(local)) {
+      _syncQueued = true;
+      return;
+    }
+    if (stateFingerprint(merged) != stateFingerprint(now)) {
+      replaceShared(merged);
     }
   }
 

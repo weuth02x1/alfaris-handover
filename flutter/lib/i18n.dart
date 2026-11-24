@@ -189,11 +189,11 @@ class I18n {
   String get startRequest => isAr ? "ابدأ الطلب" : "Start request";
   String get newRequest => isAr ? "رفع طلب" : "New request";
   String get newRequestHint => isAr
-      ? "اختر نوع الخروج والتاريخ. بعدها تعبّئ المهام وتسندها لزميل من نفس القسم."
-      : "Choose the reason and the dates. Then list the tasks and assign each one to someone in your department.";
+      ? "اختر نوع الخروج والتاريخ. بعدها تعبّئ المهام وتسندها لأي شخص مسجّل في الموقع."
+      : "Choose the reason and the dates. Then list the tasks and assign each one to any registered person.";
   String get sameDepartmentOnly => isAr
-      ? "المستلم لازم يكون موظفاً مسجّلاً في الموقع ومن نفس قسمك."
-      : "The recipient must be registered on this site and in your department.";
+      ? "المستلم لازم يكون موظفاً مسجّلاً في الموقع، من أي قسم."
+      : "The recipient must be registered on this site, from any department.";
   String get pickDate => isAr ? "اختر من التقويم" : "Choose from the calendar";
   String get inboxTitle => isAr ? "المطلوب منك" : "Waiting on you";
   String get inboxSubtitle => isAr
@@ -278,8 +278,8 @@ class I18n {
   String get returnDate => isAr ? "تاريخ العودة" : "Return date";
   String get tasks => isAr ? "المهام المُسلَّمة" : "Handed-over tasks";
   String get tasksHint => isAr
-      ? "اكتب كل مهمة وحدد الموظف الذي سيستلمها. المستلم لازم يكون من نفس القسم، حتى لو اسم القسم مختلف، ويجب أن يقبل كل مستلم مهمته."
-      : "List each task and who will take it over. Recipients must be in your department, and each must accept.";
+      ? "اكتب كل مهمة وحدد الموظف الذي سيستلمها. أي حساب مسجّل يقدر يستلم، ويجب أن يقبل كل مستلم مهمته."
+      : "List each task and who will take it over. Any registered account can receive it, and each recipient must accept.";
   String get taskTitle => isAr ? "المهمة" : "Task";
   String get taskTitlePh => isAr
       ? "مثال: متابعة مشروع ترقية نظام الرواتب"
