@@ -7,19 +7,38 @@ class I18n {
   TextDirection get dir => isAr ? TextDirection.rtl : TextDirection.ltr;
   String pick(String ar, String en) => isAr ? ar : en;
 
-  String date(String? iso, {bool withTime = false}) {
-    if (iso == null || iso.isEmpty) return dash;
-    final raw = iso.length == 10 ? "${iso}T00:00:00" : iso;
-    final d = DateTime.tryParse(raw);
-    if (d == null) return iso;
-    final local = d.toUtc().add(const Duration(hours: 3));
-    final y = local.year.toString().padLeft(4, "0");
+  DateTime? _riyadh(String? iso) {
+    if (iso == null || iso.isEmpty) return null;
+    if (iso.length == 10) return DateTime.tryParse("${iso}T00:00:00");
+    final parsed = DateTime.tryParse(iso);
+    if (parsed == null) return null;
+    return parsed.toUtc().add(const Duration(hours: 3));
+  }
+
+  /// Day, month, then year, so a date does not read backwards in Arabic layout.
+  String? day(String? iso) {
+    final local = _riyadh(iso);
+    if (local == null) return null;
+    final d = local.day.toString().padLeft(2, "0");
     final m = local.month.toString().padLeft(2, "0");
-    final day = local.day.toString().padLeft(2, "0");
-    if (!withTime) return "$y-$m-$day";
+    return "$d/$m/${local.year}";
+  }
+
+  String? clock(String? iso) {
+    if (iso == null || iso.length == 10) return null;
+    final local = _riyadh(iso);
+    if (local == null) return null;
     final h = local.hour.toString().padLeft(2, "0");
     final min = local.minute.toString().padLeft(2, "0");
-    return "$y-$m-$day $h:$min";
+    return "$h:$min";
+  }
+
+  String date(String? iso, {bool withTime = false}) {
+    final dayText = day(iso);
+    if (dayText == null) return iso == null || iso.isEmpty ? dash : iso;
+    if (!withTime) return dayText;
+    final time = clock(iso);
+    return time == null ? dayText : "$dayText $time";
   }
 
   String fmt(String s, Map<String, Object> vars) {
