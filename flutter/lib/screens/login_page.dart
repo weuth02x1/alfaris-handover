@@ -286,11 +286,16 @@ class _LoginPageState extends State<LoginPage> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: OutlinedButton(
-                              onPressed: () => setState(() {
-                                email.text = person.email;
-                                signup = false;
-                                error = null;
-                              }),
+                              onPressed: busy
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        email.text = person.email;
+                                        signup = false;
+                                        error = null;
+                                      });
+                                      sendCode(create: false);
+                                    },
                               child: Align(
                                 alignment: AlignmentDirectional.centerStart,
                                 child: Column(
@@ -590,6 +595,15 @@ class _LoginPageState extends State<LoginPage> {
                             t.codeSent,
                             style: const TextStyle(
                               color: mutedFg,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            email.text.trim(),
+                            textDirection: TextDirection.ltr,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
                               fontSize: 14,
                             ),
                           ),

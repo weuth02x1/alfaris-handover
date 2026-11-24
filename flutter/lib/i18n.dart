@@ -70,8 +70,8 @@ class I18n {
   String get codeSent =>
       isAr ? "أرسلنا رمز الدخول إلى إيميلك." : "We emailed the sign-in code.";
   String get checkInbox => isAr
-      ? "افتح الإيميل واكتب الرمز كما هو. شيك غير المرغوب إذا تأخر."
-      : "Open the email and type the code as it appears. Check spam if it is slow.";
+      ? "عنوان الرسالة Confirm your email address من مجموعة الفارس. إذا ما ظهرت في الوارد افتح غير المرغوب. طلب جديد لنفس الإيميل ينتظر دقيقة."
+      : "The message subject is Confirm your email address, from Alfaris Group. If it is not in the inbox, open spam. A new code for the same email waits one minute.";
   String get demoMail => isAr ? "رمز الدخول" : "Sign-in code";
   String get code => isAr ? "رمز الدخول" : "Sign-in code";
   String get confirm => isAr ? "دخول" : "Sign in";
@@ -87,8 +87,8 @@ class I18n {
       ? "تأكد من الإيميل وباقي البيانات."
       : "Check the email and the other fields.";
   String get slow => isAr
-      ? "محاولات كثيرة. انتظر ربع ساعة ثم أعد الطلب."
-      : "Too many attempts. Wait 15 minutes, then try again.";
+      ? "انرسل رمز قبل قليل. انتظر دقيقة واحدة ثم اطلب رمزاً جديداً."
+      : "A code was just sent. Wait one minute, then request another.";
   String get mailFailed => isAr
       ? "ما قدرنا نرسل الرمز إلى هذا الإيميل. حاول مرة ثانية."
       : "We could not send the code to that email. Try again.";
