@@ -249,8 +249,8 @@ class I18n {
 
   String get outboxTitle => isAr ? "رسائلي" : "My messages";
   String get outboxSubtitle => isAr
-      ? "الرسائل المرسلة إلى إيميلك فقط. رابط المهمة يبقى داخل الإيميل."
-      : "Only messages sent to your email. The task link stays in the email itself.";
+      ? "نسخة من إيميل الإشعار: وش صار، ووين وصل الطلب."
+      : "A copy of the notice email: what happened, and where the request stands.";
   String get outboxEmpty =>
       isAr ? "لم تُرسل أي رسالة بعد." : "No messages sent yet.";
   String get outboxTo => isAr ? "إلى" : "To";

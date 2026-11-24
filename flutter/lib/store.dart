@@ -539,9 +539,20 @@ class AppStore extends ChangeNotifier {
         "task_assigned",
         "${task.title} → ${recipient.nameAr}",
       );
-      _notifyRecipient(h, task, recipient, actor);
     }
     _advanceIfAllAccepted(h);
+    for (final task in h.tasks) {
+      if (task.status != "pending") continue;
+      final recipient = colleaguesFor(actor.id)
+          .firstWhere((c) => c.id == task.assigneeId);
+      _notifyRecipient(h, task, recipient, actor);
+    }
+    _notify(
+      h,
+      actor,
+      "أرسلت الطلب ${h.number} | Request sent",
+      "أرسلت الطلب وأُسندت المهام لزملائك.\nوش صار: إرسال الطلب.\nوين وصل: ${_where(h)}.",
+    );
     notifyListeners();
   }
 
@@ -559,6 +570,15 @@ class AppStore extends ChangeNotifier {
     task.acceptNote = note.trim().isEmpty ? null : note.trim();
     _audit(h, actor.id, "task_accepted", task.title);
     _advanceIfAllAccepted(h);
+    final owner = person(h.employee.id);
+    if (owner != null) {
+      _notify(
+        h,
+        owner,
+        "قبل ${actor.nameAr} مهمة | Task accepted",
+        "قبل ${actor.nameAr} المهمة \"${task.title}\".\nوش صار: قبول المهمة.\nوين وصل: ${_where(h)}.",
+      );
+    }
     notifyListeners();
   }
 
@@ -641,6 +661,12 @@ class AppStore extends ChangeNotifier {
       );
       _audit(h, actor.id, "manager_approved", comment.trim());
       _moveToHr(h);
+      _notify(
+        h,
+        owner,
+        "اعتمد مديرك الطلب ${h.number} | Manager approved",
+        "اعتمد ${actor.nameAr} الطلب.\nوش صار: اعتماد المدير المباشر.\nوين وصل: ${_where(h)}.",
+      );
     } else {
       _returnToEmployee(h, owner, actor, "manager", comment.trim());
     }
@@ -673,12 +699,27 @@ class AppStore extends ChangeNotifier {
         .toString();
     _audit(h, actor.id, "hr_approved", comment.trim());
     _audit(h, "system", "document_generated", h.documentHash!.substring(0, 16));
+    final taskLines = h.tasks
+        .map(
+          (task) =>
+              "- ${task.title}${task.details.isEmpty ? "" : "\n  ${task.details}"}",
+        )
+        .join("\n");
     _notify(
       h,
       owner,
-      "اكتمل تسليم المهام ${h.number} | Handover completed",
-      "تم الاعتماد النهائي لنموذج تسليم المهام وإصدار التقرير وحفظه في ملفك بنظام الموارد البشرية.\n\nYour handover was approved and the final report is filed on your HR record.",
+      "اعتمدت الموارد البشرية طلبك ${h.number} | HR approved",
+      "اعتمدت الموارد البشرية الطلب وأُغلق.\nوش صار: اعتماد نهائي وإصدار التقرير.\nوين وصل: ${_where(h)}.\nالمهام:\n$taskLines",
     );
+    final manager = person(h.employee.managerId);
+    if (manager != null && manager.id != owner.id) {
+      _notify(
+        h,
+        manager,
+        "أُغلق طلب ${h.employee.nameAr} ${h.number} | Request closed",
+        "اعتمدت الموارد البشرية طلب ${h.employee.nameAr} وأُغلق.\nوش صار: اعتماد نهائي.\nوين وصل: ${_where(h)}.\nالمهام:\n$taskLines",
+      );
+    }
     h.hrmsDocumentId = "MENA-${h.number}";
     _audit(h, "system", "document_uploaded", h.hrmsDocumentId!);
     notifyListeners();
@@ -694,7 +735,7 @@ class AppStore extends ChangeNotifier {
       h,
       recipient,
       "${from.nameAr} أسند لك مهام، ادخل للموافقة",
-      "${from.nameAr} أسند لك مهام وتحتاج موافقتك.\nالمهمة: ${task.title}${task.details.isNotEmpty ? "\n${task.details}" : ""}\n\nادخل عبر الرابط للموافقة أو الرفض. الموقع ما يرسل إشعارات داخل المتصفح، والاعتماد يصير من الرابط في هذا الإيميل.\n\n${from.nameEn} assigned you a task and needs your approval: ${task.title}",
+      "${from.nameAr} أسند لك مهمة وتحتاج موافقتك.\nوش صار: إسناد مهمة.\nالمهمة: ${task.title}${task.details.isNotEmpty ? "\nالتفاصيل: ${task.details}" : ""}\nوين وصل: ${_where(h)}.\nادخل بحسابك واقبل المهمة أو ارفضها.\n\n${from.nameEn} assigned you a task: ${task.title}",
     );
   }
 
@@ -764,22 +805,33 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  String _where(Handover h) => switch (h.status) {
+    "draft" => "مسودة عند الموظف",
+    "pending_acceptance" => "بانتظار قبول المهام",
+    "pending_manager" => "عند المدير المباشر",
+    "pending_hr" => "عند الموارد البشرية",
+    "returned" => "راجع للموظف للتعديل",
+    "approved" => "معتمد ومغلق",
+    _ => h.status,
+  };
+
   String _requestBlock(Handover h) {
     final back = (h.returnDate == null || h.returnDate!.isEmpty)
         ? "غير محدد"
         : h.returnDate!;
     return [
-      "يوجد طلب ${exitReasonAr(h.type)}",
+      "رقم الطلب: ${h.number}",
+      "نوع الطلب: ${exitReasonAr(h.type)}",
       "الموظف: ${h.employee.nameAr}",
       "القسم: ${h.employee.departmentAr}",
       "آخر يوم عمل: ${h.lastWorkingDay}",
       "تاريخ العودة: $back",
-      "رقم الطلب: ${h.number}",
+      "وين وصل الطلب: ${_where(h)}",
     ].join("\n");
   }
 
   void _notify(Handover h, Employee to, String subject, String body) {
-    final full = "${_requestBlock(h)}\n\n$body";
+    final full = "${_requestBlock(h)}\n\n$body\n\nافتح الموقع:\n$siteUrl";
     outbox.add(
       EmailMessage(
         id: _id(),

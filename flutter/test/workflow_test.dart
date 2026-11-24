@@ -79,6 +79,39 @@ void main() {
     store.hrDecision(hind, id, true, "معتمد");
     expect(store.handover(id)!.status, "approved");
     expect(store.handover(id)!.documentHash, isNotNull);
+
+    expect(
+      store
+          .mailFor(abdullah)
+          .any(
+            (m) =>
+                m.body.contains("إسناد مهمة") &&
+                m.body.contains("وين وصل الطلب: بانتظار قبول المهام"),
+          ),
+      isTrue,
+    );
+    expect(
+      store.mailFor(sarah).any((m) => m.body.contains("قبول المهمة")),
+      isTrue,
+    );
+    expect(
+      store
+          .mailFor(fahad)
+          .any((m) => m.body.contains("وين وصل الطلب: عند المدير المباشر")),
+      isTrue,
+    );
+    expect(
+      store
+          .mailFor(hind)
+          .any((m) => m.body.contains("وين وصل الطلب: عند الموارد البشرية")),
+      isTrue,
+    );
+    expect(store.mailFor(sarah).first.body, contains("معتمد ومغلق"));
+    expect(
+      store.mailFor(sarah).first.body,
+      contains("متابعة مشروع ترقية نظام الرواتب"),
+    );
+    expect(store.mailFor(fahad).first.subject, contains("أُغلق طلب"));
   });
 
   test(
