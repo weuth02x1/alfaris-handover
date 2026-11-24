@@ -356,17 +356,50 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> verifyOtp(String email, String code) async {
-    final emp = findByEmail(email);
-    if (emp == null) throw WorkflowException("notFoundEmail");
-    try {
-      await AuthMail.verify(emp.email, code);
-    } catch (_) {
-      throw WorkflowException("badCode");
+  /// Addresses whose mail lands in the same inbox as [email].
+  /// A code is issued for one exact address, and Gmail shows all of them together.
+  List<String> otpEmailsFor(String email) {
+    final typed = email.trim().toLowerCase();
+    final key = AuthMail.inboxKey(typed);
+    final ordered = <String>[];
+    void add(String? value) {
+      final mail = (value ?? "").trim().toLowerCase();
+      if (mail.isEmpty || ordered.contains(mail)) return;
+      if (findByEmail(mail) == null) return;
+      ordered.add(mail);
     }
-    user = emp;
-    lastOtpCode = null;
-    notifyListeners();
+
+    add(typed);
+    add(lastOtpEmail);
+    final rest = [
+      for (final person in accounts)
+        if (AuthMail.inboxKey(person.email) == key) person.email,
+    ]..sort();
+    for (final mail in rest) {
+      add(mail);
+    }
+    return ordered;
+  }
+
+  Future<void> verifyOtp(String email, String code) async {
+    final candidates = otpEmailsFor(email);
+    if (candidates.isEmpty) throw WorkflowException("notFoundEmail");
+    WorkflowException? last;
+    for (final mail in candidates) {
+      try {
+        await AuthMail.verify(mail, code);
+        user = findByEmail(mail);
+        lastOtpCode = null;
+        notifyListeners();
+        return;
+      } on WorkflowException catch (e) {
+        if (e.code == "slow") rethrow;
+        last = e;
+      } catch (_) {
+        last = WorkflowException("badCode");
+      }
+    }
+    throw last ?? WorkflowException("badCode");
   }
 
   void logout() {

@@ -76,10 +76,12 @@ class I18n {
   String get code => isAr ? "رمز الدخول" : "Sign-in code";
   String get confirm => isAr ? "دخول" : "Sign in";
   String get resend => isAr ? "إرسال رمز جديد" : "Send a new code";
-  String get badCode => isAr ? "الرمز غير صحيح." : "That code is not correct.";
+  String get badCode => isAr
+      ? "الرمز ما طابق الإيميل الظاهر. اكتبه كما وصل في آخر رسالة لهذا العنوان."
+      : "That code does not match the email shown. Type it as it arrived in the latest message for that address.";
   String get expired => isAr
-      ? "انتهت صلاحية الرمز. اطلب رمزاً جديداً."
-      : "This code has expired. Request a new one.";
+      ? "هذا الرمز استُخدم أو مُرسل لعنوان ثاني في نفس الصندوق. اطلب رمزاً جديداً ودخله كما هو."
+      : "This code was already used, or it was sent to another address in the same inbox. Request a new one and type it as it arrives.";
   String get notFound => isAr
       ? "ما فيه حساب بهذا الإيميل. أنشئ حساباً أولاً."
       : "No account uses this email. Create one first.";

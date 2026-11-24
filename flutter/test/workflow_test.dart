@@ -118,6 +118,45 @@ void main() {
     expect(store.mailFor(fahad).first.subject, contains("أُغلق طلب"));
   });
 
+  test("a code typed in Arabic matches every address in the same inbox", () {
+    expect(AuthMail.digits("٦٧٦٨٨٧"), "676887");
+    expect(AuthMail.digits("۴۷۶ ۴۰۳"), "476403");
+    expect(
+      AuthMail.inboxKey("Shahad0x66+HR@gmail.com"),
+      AuthMail.inboxKey("shahad.0x66@googlemail.com"),
+    );
+    expect(
+      AuthMail.inboxKey("shahad0x66+hr@gmail.com"),
+      isNot(AuthMail.inboxKey("shahad0x4@gmail.com")),
+    );
+    final store = AppStore();
+    store.createAccount(
+      email: "shahad0x66+hr@gmail.com",
+      name: "شهد موارد",
+      employeeNo: "22015",
+      jobTitle: "موارد بشرية",
+      departmentId: "D-HR",
+    );
+    store.createAccount(
+      email: "shahad0x66@gmail.com",
+      name: "شهد",
+      employeeNo: "22018",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    store.createAccount(
+      email: "shahad0x4@gmail.com",
+      name: "شهد أخرى",
+      employeeNo: "17272",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    expect(store.otpEmailsFor("shahad0x66@gmail.com"), [
+      "shahad0x66@gmail.com",
+      "shahad0x66+hr@gmail.com",
+    ]);
+  });
+
   test(
     "sign-in without mail configured does not invent a local code",
     () async {

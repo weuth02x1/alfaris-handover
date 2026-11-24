@@ -25,10 +25,10 @@ class AuthMail {
   static Uri otpUri() => _uri("/auth/v1/otp", {"redirect_to": siteUrl});
 
   static Map<String, String> get _headers => {
-        "apikey": supabaseAnonKey.trim(),
-        "Authorization": "Bearer ${supabaseAnonKey.trim()}",
-        "Content-Type": "application/json",
-      };
+    "apikey": supabaseAnonKey.trim(),
+    "Authorization": "Bearer ${supabaseAnonKey.trim()}",
+    "Content-Type": "application/json",
+  };
 
   static Future<void> send(String email) async {
     if (!enabled) throw WorkflowException("mailFailed");
@@ -36,14 +36,50 @@ class AuthMail {
         .post(
           otpUri(),
           headers: _headers,
-          body: jsonEncode({"email": email.trim().toLowerCase(), "create_user": true}),
+          body: jsonEncode({
+            "email": email.trim().toLowerCase(),
+            "create_user": true,
+          }),
         )
         .timeout(const Duration(seconds: 25));
-    if (response.statusCode >= 400) throw WorkflowException(_mailError(response));
+    if (response.statusCode >= 400)
+      throw WorkflowException(_mailError(response));
+  }
+
+  /// Arabic and Persian digits count as the code the person sees.
+  static String digits(String raw) {
+    const eastern = "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹";
+    final out = StringBuffer();
+    for (final rune in raw.runes) {
+      final ch = String.fromCharCode(rune);
+      final easternAt = eastern.indexOf(ch);
+      if (easternAt >= 0) {
+        out.write(easternAt % 10);
+        continue;
+      }
+      if (rune >= 48 && rune <= 57) out.writeCharCode(rune);
+    }
+    return out.toString();
+  }
+
+  /// Gmail delivers plus-addresses and dotted locals to one inbox.
+  static String inboxKey(String email) {
+    final mail = email.trim().toLowerCase();
+    final at = mail.lastIndexOf("@");
+    if (at <= 0) return mail;
+    var local = mail.substring(0, at);
+    var domain = mail.substring(at + 1);
+    final plus = local.indexOf("+");
+    if (plus >= 0) local = local.substring(0, plus);
+    if (domain == "googlemail.com") domain = "gmail.com";
+    if (domain == "gmail.com") local = local.replaceAll(".", "");
+    return "$local@$domain";
   }
 
   static Future<void> verify(String email, String code) async {
     if (!enabled) throw WorkflowException("badCode");
+    final token = digits(code);
+    if (token.length < 6) throw WorkflowException("badCode");
     final response = await http
         .post(
           _uri("/auth/v1/verify"),
@@ -51,12 +87,27 @@ class AuthMail {
           body: jsonEncode({
             "type": "email",
             "email": email.trim().toLowerCase(),
-            "token": code.trim(),
+            "token": token,
           }),
         )
         .timeout(const Duration(seconds: 20));
+    if (response.statusCode < 400) return;
     if (response.statusCode == 429) throw WorkflowException("slow");
-    if (response.statusCode >= 400) throw WorkflowException("badCode");
+    throw WorkflowException(_verifyError(response));
+  }
+
+  static String _verifyError(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+      final code = "${body["error_code"] ?? body["code"] ?? ""}".toLowerCase();
+      final msg = "${body["msg"] ?? body["message"] ?? ""}".toLowerCase();
+      if (code.contains("expired") ||
+          msg.contains("expired") ||
+          msg.contains("invalid")) {
+        return "expired";
+      }
+    } catch (_) {}
+    return "badCode";
   }
 
   static String _mailError(http.Response response) {
@@ -65,7 +116,9 @@ class AuthMail {
       final body = jsonDecode(response.body);
       final code = "${body["error_code"] ?? ""}".toLowerCase();
       final msg = "${body["msg"] ?? body["message"] ?? ""}".toLowerCase();
-      if (code == "unexpected_failure" || msg.contains("confirmation email") || msg.contains("error sending")) {
+      if (code == "unexpected_failure" ||
+          msg.contains("confirmation email") ||
+          msg.contains("error sending")) {
         return "mailerDown";
       }
     } catch (_) {}
@@ -83,7 +136,8 @@ class WorkflowMail {
     required String body,
   }) async {
     final address = to.trim().toLowerCase();
-    if (!AuthMail.enabled || address.endsWith(".example") || address.isEmpty) return;
+    if (!AuthMail.enabled || address.endsWith(".example") || address.isEmpty)
+      return;
     try {
       await http
           .post(

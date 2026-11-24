@@ -115,7 +115,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _codeReady(String value) {
-    final n = value.trim().length;
+    final n = AuthMail.digits(value).length;
     return n == 6 || n == 8;
   }
 
