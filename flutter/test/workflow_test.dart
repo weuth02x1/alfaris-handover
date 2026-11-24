@@ -354,6 +354,90 @@ void main() {
     expect(seen.waitingCount(manager), greaterThan(0));
   });
 
+  test("a refusal comes back, then acceptance reaches the manager and HR", () {
+    final store = AppStore();
+    final hind = store.createAccount(
+      email: "hind2@alfaris.test",
+      name: "هند",
+      employeeNo: "40115",
+      jobTitle: "موارد بشرية",
+      departmentId: "D-HR",
+    );
+    final fahad = store.createAccount(
+      email: "fahad2@alfaris.test",
+      name: "فهد",
+      employeeNo: "20501",
+      jobTitle: "مدير",
+      departmentId: "D-ITD",
+      isManager: true,
+      managesDepartmentId: "D-ITD",
+    );
+    final sara = store.createAccount(
+      email: "sara2@alfaris.test",
+      name: "سارة",
+      employeeNo: "20518",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    final first = store.createAccount(
+      email: "first2@alfaris.test",
+      name: "أحمد",
+      employeeNo: "20530",
+      jobTitle: "مطور",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    final second = store.createAccount(
+      email: "second2@alfaris.test",
+      name: "ليان",
+      employeeNo: "20531",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+      managerId: fahad.id,
+    );
+    final id = store.startOwn(
+      sara,
+      type: "annual_leave",
+      lastWorkingDay: "2026-12-20",
+    );
+    store.saveForm(
+      sara,
+      id,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "",
+          title: "تسليم الملفات",
+          details: "على المجلد المشترك",
+          assigneeId: first.id,
+          status: "draft",
+        ),
+      ],
+      submit: true,
+    );
+    expect(store.inboxFor(first).toAccept, hasLength(1));
+    final before = store.snapshot();
+    store.rejectTask(first, id, store.handover(id)!.tasks.first.id, "مشغولة");
+    expect(store.inboxFor(sara).needsReassign, hasLength(1));
+    final rejected = store.snapshot();
+    final seenByOwner = mergeSharedState(before, rejected);
+    final task =
+        ((seenByOwner["handovers"] as List).single["tasks"] as List).single;
+    expect(task["status"], "rejected");
+
+    store.reassignTask(sara, id, store.handover(id)!.tasks.first.id, second.id);
+    expect(store.inboxFor(second).toAccept, hasLength(1));
+    store.acceptTask(second, id, store.handover(id)!.tasks.first.id, "تم");
+    expect(store.handover(id)!.status, "pending_manager");
+    expect(store.inboxFor(fahad).managerQueue, hasLength(1));
+    store.managerDecision(fahad, id, true, "");
+    expect(store.handover(id)!.status, "pending_hr");
+    expect(store.inboxFor(hind).hrQueue, hasLength(1));
+    store.hrDecision(hind, id, true, "معتمد");
+    expect(store.handover(id)!.status, "approved");
+  });
+
   test("cycle accounts share one inbox and cover the whole handover", () {
     final store = AppStore();
     store.ensureCycleAccounts();

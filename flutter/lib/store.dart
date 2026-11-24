@@ -27,6 +27,7 @@ class Inbox {
     required this.accepted,
     required this.managerQueue,
     required this.teamOpen,
+    required this.needsReassign,
     required this.hrQueue,
     required this.raised,
   });
@@ -35,6 +36,7 @@ class Inbox {
   final List<InboxItem> accepted;
   final List<Handover> managerQueue;
   final List<Handover> teamOpen;
+  final List<Handover> needsReassign;
   final List<Handover> hrQueue;
   final List<Handover> raised;
   bool get isEmpty =>
@@ -43,6 +45,7 @@ class Inbox {
       accepted.isEmpty &&
       managerQueue.isEmpty &&
       teamOpen.isEmpty &&
+      needsReassign.isEmpty &&
       hrQueue.isEmpty &&
       raised.isEmpty;
 }
@@ -351,6 +354,7 @@ class AppStore extends ChangeNotifier {
     return box.toAccept.length +
         box.managerQueue.length +
         box.teamOpen.length +
+        box.needsReassign.length +
         box.hrQueue.length +
         box.raised.length;
   }
@@ -384,6 +388,13 @@ class AppStore extends ChangeNotifier {
               h.status != "pending_manager",
         )
         .toList();
+    final needsReassign = handovers
+        .where(
+          (h) =>
+              h.employee.id == me.id &&
+              h.tasks.any((task) => task.status == "rejected"),
+        )
+        .toList();
     final hrQueue = me.isHr
         ? handovers.where((h) => h.status == "pending_hr").toList()
         : <Handover>[];
@@ -405,6 +416,7 @@ class AppStore extends ChangeNotifier {
       accepted: accepted,
       managerQueue: managerQueue,
       teamOpen: teamOpen,
+      needsReassign: needsReassign,
       hrQueue: hrQueue,
       raised: raised,
     );

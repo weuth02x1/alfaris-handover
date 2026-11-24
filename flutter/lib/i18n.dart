@@ -201,6 +201,9 @@ class I18n {
       : "Everything that needs your action in the handover cycle.";
   String get myHandovers =>
       isAr ? "نماذج التسليم الخاصة بي" : "My handover forms";
+  String get pickAnother => isAr
+      ? "المستلم رفض. اختاري شخصاً ثانياً"
+      : "The recipient declined. Pick someone else";
   String get tasksToAccept => isAr
       ? "مهام مُسندة إليك بانتظار قبولك"
       : "Tasks assigned to you, waiting for your acceptance";

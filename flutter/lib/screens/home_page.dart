@@ -166,6 +166,27 @@ class HomePage extends StatelessWidget {
                                     ),
                                 ],
                               ),
+                            if (inbox.needsReassign.isNotEmpty)
+                              _Section(
+                                icon: Icons.undo,
+                                title: t.pickAnother,
+                                highlight: true,
+                                children: [
+                                  for (final h in inbox.needsReassign)
+                                    _Row(
+                                      title: h.number,
+                                      meta: t.type(h.type),
+                                      badge: HandoverStatusBadge(
+                                        status: "returned",
+                                        label: t.pickAnother,
+                                      ),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        "/handovers/${h.id}",
+                                      ),
+                                    ),
+                                ],
+                              ),
                             if (inbox.toAccept.isNotEmpty)
                               _Section(
                                 icon: Icons.back_hand_outlined,

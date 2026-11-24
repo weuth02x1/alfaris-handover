@@ -46,6 +46,14 @@ int _progress(Map item) {
   return score;
 }
 
+int _auditsFor(Map<String, dynamic> state, String id) {
+  var count = 0;
+  for (final item in state["audit"] as List) {
+    if (item is Map && "${item["handoverId"]}" == id) count += 1;
+  }
+  return count;
+}
+
 Map<String, dynamic> _preferHandover(Map left, Map right) {
   final lp = _progress(left);
   final rp = _progress(right);
@@ -93,20 +101,26 @@ Map<String, dynamic> mergeSharedState(
   takeAccounts(b["accounts"] as List);
 
   final handovers = <String, Map<String, dynamic>>{};
-  void takeHandovers(List items) {
-    for (final item in items) {
+  final handoverAudits = <String, int>{};
+  void takeHandovers(Map<String, dynamic> state) {
+    for (final item in state["handovers"] as List) {
       if (item is! Map) continue;
       final id = "${item["id"]}";
       if (id.isEmpty) continue;
+      final audits = _auditsFor(state, id);
       final current = handovers[id];
-      handovers[id] = current == null
-          ? Map<String, dynamic>.from(item)
-          : _preferHandover(current, item);
+      final known = handoverAudits[id] ?? -1;
+      if (current == null || audits > known) {
+        handovers[id] = Map<String, dynamic>.from(item);
+        handoverAudits[id] = audits;
+      } else if (audits == known) {
+        handovers[id] = _preferHandover(current, item);
+      }
     }
   }
 
-  takeHandovers(a["handovers"] as List);
-  takeHandovers(b["handovers"] as List);
+  takeHandovers(a);
+  takeHandovers(b);
 
   final outbox = {..._byId(a["outbox"] as List), ..._byId(b["outbox"] as List)};
   final audit = {..._byId(a["audit"] as List), ..._byId(b["audit"] as List)};
@@ -128,7 +142,9 @@ String stateFingerprint(Map<String, dynamic> raw) {
   ]..sort();
   final handovers = [
     for (final item in state["handovers"] as List)
-      if (item is Map) "${item["id"]}|${_progress(item)}",
+      if (item is Map)
+        "${item["id"]}|${item["status"]}|${[for (final task in item["tasks"] as List? ?? const [])
+          if (task is Map) "${task["id"]}:${task["status"]}:${task["assigneeId"]}:${(task["rejections"] as List?)?.length ?? 0}"].join(",")}",
   ]..sort();
   final audit = [
     for (final item in state["audit"] as List)
