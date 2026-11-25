@@ -143,10 +143,21 @@ void main() {
       ),
     );
     await tester.pump();
+    expect(find.text(I18n("ar").reportWaitsForTasks), findsOneWidget);
+    expect(find.text("لم يُقبل"), findsNothing);
+    h.tasks.first.status = "accepted";
+    h.tasks.first.acceptedAt = "2026-11-24T13:20:03.944Z";
+    await tester.pumpWidget(
+      StoreScope(
+        store: store,
+        child: MaterialApp(home: ReportPage(id: id)),
+      ),
+    );
+    await tester.pump();
     expect(find.text("26/11/2026"), findsWidgets);
     expect(find.text("03/12/2026"), findsWidgets);
-    expect(find.text("لم يُقبل"), findsOneWidget);
-    expect(find.text("16:20"), findsOneWidget);
+    expect(find.text("لم يُقبل"), findsNothing);
+    expect(find.text("16:20"), findsWidgets);
     expect(find.text("16:39"), findsWidgets);
     expect(find.textContaining("2026-11-"), findsNothing);
   });

@@ -28,7 +28,8 @@ class ReportPage extends StatelessWidget {
     if (!(access.isOwner || access.isManager || access.isHr)) {
       return Scaffold(body: Center(child: Text(t.notAllowed)));
     }
-    if (h.status != "approved") {
+    final tasksOpen = h.tasks.any((task) => task.status != "accepted");
+    if (h.status != "approved" || tasksOpen) {
       return Directionality(
         textDirection: t.dir,
         child: Scaffold(
@@ -36,7 +37,7 @@ class ReportPage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(t.reportNotFinal),
+                Text(tasksOpen ? t.reportWaitsForTasks : t.reportNotFinal),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => Navigator.pop(context),

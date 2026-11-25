@@ -394,13 +394,16 @@ class I18n {
   String get reportNotFinal => isAr
       ? "التقرير يصدر بعد الاعتماد النهائي من الموارد البشرية."
       : "The report is issued after final HR approval.";
+  String get reportWaitsForTasks => isAr
+      ? "الفورم النهائي ما يطلع إلا بعد ما كل الأشخاص يقبلون مهامهم."
+      : "The final form appears after every assignee accepts their task.";
 
   String get notAllowed => isAr
       ? "ليست لديك صلاحية لهذا الإجراء."
       : "You are not allowed to do this.";
   String get tasksPending => isAr
-      ? "الفورم ما يطلع للاعتماد إلا بعد ما كل المسند لهم يقبلون مهامهم."
-      : "The form stays hidden from approval until every assignee accepts their task.";
+      ? "الفورم النهائي ما يطلع إلا بعد ما كل الأشخاص يقبلون مهامهم."
+      : "The final form appears after every assignee accepts their task.";
   String get commentRequired =>
       isAr ? "سبب الرفض إلزامي." : "A reason is required.";
   String get handoverNotFound =>

@@ -7,6 +7,13 @@ import "../widgets/app_header.dart";
 import "../widgets/badges.dart";
 import "../widgets/step_tracker.dart";
 
+bool _taskOpen(String status) =>
+    status == "draft" ||
+    status == "pending_acceptance" ||
+    status == "pending_manager" ||
+    status == "pending_hr" ||
+    status == "returned";
+
 class HandoverPage extends StatelessWidget {
   const HandoverPage({super.key, required this.id});
   final String id;
@@ -115,7 +122,8 @@ class HandoverPage extends StatelessWidget {
                           status: h.status,
                           label: t.status(h.status),
                         ),
-                        if (h.status == "approved")
+                        if (h.status == "approved" &&
+                            h.tasks.every((task) => task.status == "accepted"))
                           FilledButton.icon(
                             onPressed: () => Navigator.pushNamed(
                               context,
@@ -165,11 +173,20 @@ class HandoverPage extends StatelessWidget {
                         body: h.lastReturn!.comment,
                       ),
                     ],
-                    if (access.isOwner &&
-                        rejected.isNotEmpty &&
-                        h.status == "pending_acceptance") ...[
+                    if (access.isOwner && rejected.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _Alert(title: t.rejectedTasksBanner),
+                      for (final task in rejected) ...[
+                        const SizedBox(height: 8),
+                        _Reassign(
+                          handoverId: h.id,
+                          taskId: task.id,
+                          colleagues: colleagues,
+                          excluded: task.rejections
+                              .map((r) => r.recipientId)
+                              .toSet(),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 16),
                     LayoutBuilder(
@@ -267,7 +284,18 @@ class HandoverPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     if (editable)
-                      _Editor(handover: h, colleagues: colleagues)
+                      _Editor(
+                        key: ValueKey(
+                          h.tasks
+                              .map(
+                                (task) =>
+                                    "${task.id}:${task.status}:${task.assigneeId}",
+                              )
+                              .join("|"),
+                        ),
+                        handover: h,
+                        colleagues: colleagues,
+                      )
                     else
                       _ReadonlyTasks(
                         handover: h,
@@ -484,7 +512,7 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _Editor extends StatefulWidget {
-  const _Editor({required this.handover, required this.colleagues});
+  const _Editor({super.key, required this.handover, required this.colleagues});
   final Handover handover;
   final List<Employee> colleagues;
   @override
@@ -729,11 +757,12 @@ class _TaskFieldsState extends State<_TaskFields> {
           expandedInsets: EdgeInsets.zero,
           dropdownMenuEntries: [
             for (final c in widget.colleagues)
-              DropdownMenuEntry(
-                value: c.id,
-                label:
-                    "${store.nameOf(c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)} · ${c.staffNumber ?? c.id} · ${c.email}",
-              ),
+              if (!widget.task.rejections.any((r) => r.recipientId == c.id))
+                DropdownMenuEntry(
+                  value: c.id,
+                  label:
+                      "${store.nameOf(c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)} · ${c.staffNumber ?? c.id} · ${c.email}",
+                ),
           ],
           onSelected: (v) {
             widget.task.assigneeId = v ?? "";
@@ -834,7 +863,7 @@ class _ReadonlyTasks extends StatelessWidget {
                     color:
                         task.assigneeId == user.id &&
                             task.status == "pending" &&
-                            handover.status == "pending_acceptance"
+                            _taskOpen(handover.status)
                         ? navy.withValues(alpha: 0.5)
                         : line,
                   ),
@@ -919,7 +948,7 @@ class _ReadonlyTasks extends StatelessWidget {
                         ),
                     if (task.assigneeId == user.id &&
                         task.status == "pending" &&
-                        handover.status == "pending_acceptance")
+                        _taskOpen(handover.status))
                       _RecipientActions(
                         handoverId: handover.id,
                         taskId: task.id,
@@ -927,7 +956,7 @@ class _ReadonlyTasks extends StatelessWidget {
                       ),
                     if (access.isOwner &&
                         task.status == "rejected" &&
-                        handover.status == "pending_acceptance")
+                        _taskOpen(handover.status))
                       _Reassign(
                         handoverId: handover.id,
                         taskId: task.id,
