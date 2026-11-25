@@ -141,7 +141,7 @@ class WorkflowMail {
     try {
       await http
           .post(
-            AuthMail._uri("/functions/v1/send-notice"),
+            AuthMail._uri("/functions/v1/bright-api"),
             headers: AuthMail._headers,
             body: jsonEncode({"to": address, "subject": subject, "body": body}),
           )
