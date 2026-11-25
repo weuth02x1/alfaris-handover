@@ -280,11 +280,7 @@ class HandoverPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       _Decision(kind: "manager", handoverId: h.id),
                     ],
-                    if (access.isHr &&
-                        (h.status == "pending_hr" ||
-                            ((h.employee.managerId == null ||
-                                    h.employee.managerId!.isEmpty) &&
-                                h.status == "pending_acceptance"))) ...[
+                    if (h.status == "pending_hr" && access.isHr) ...[
                       const SizedBox(height: 16),
                       _Decision(kind: "hr", handoverId: h.id),
                     ],

@@ -558,13 +558,13 @@ class AppStore extends ChangeNotifier {
       createdAt: _now(),
     );
     handovers.add(h);
+    h.status = "pending_acceptance";
     _audit(h, actor.id, "clearance_initiated", h.requestRef);
-    _sendToManagerOrHr(h);
     _notify(
       h,
       actor,
       "أرسلت الطلب ${h.number} | Request sent",
-      "وش صار: رفع الطلب.\nوين وصل: ${_where(h)}.",
+      "وش صار: رفع الطلب.\nالفورم ما يوصل للمدير أو الموارد البشرية إلا بعد ما كل شخص أسندت له مهمة يقبلها، سواء شخص أو أكثر.\nوين وصل: ${_where(h)}.",
     );
     notifyListeners();
     return h.id;
@@ -672,7 +672,7 @@ class AppStore extends ChangeNotifier {
         "${task.title} → ${recipient.nameAr}",
       );
     }
-    if (!alreadyRouted) _advanceIfAllAccepted(h);
+    _advanceIfAllAccepted(h);
     for (final task in h.tasks) {
       if (task.status != "pending") continue;
       final recipient = colleaguesFor(actor.id)
@@ -783,6 +783,7 @@ class AppStore extends ChangeNotifier {
     if (_owns(actor, h)) throw WorkflowException("notAllowed");
     if (h.status != "pending_manager" || h.employee.managerId != actor.id)
       throw WorkflowException("notAllowed");
+    if (!_tasksReady(h)) throw WorkflowException("tasksPending");
     final owner =
         person(h.employee.id) ?? (throw WorkflowException("notFound"));
     if (approve) {
@@ -805,18 +806,12 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _withHr(Handover h) {
-    final noManager =
-        h.employee.managerId == null || h.employee.managerId!.isEmpty;
-    return h.status == "pending_hr" ||
-        (noManager && h.status == "pending_acceptance");
-  }
+  bool _tasksReady(Handover h) =>
+      h.tasks.isNotEmpty && h.tasks.every((task) => task.status == "accepted");
 
-  /// A submitted request with no direct manager is HR's to approve or reject,
-  /// even while a task is still waiting for acceptance.
-  void _sendUnassignedToHr() {
+  void _holdForAcceptance() {
     for (final h in handovers) {
-      if (_withHr(h) && h.status != "pending_hr") h.status = "pending_hr";
+      _advanceIfAllAccepted(h);
     }
   }
 
@@ -864,7 +859,8 @@ class AppStore extends ChangeNotifier {
       throw WorkflowException("commentRequired");
     final h = handover(id) ?? (throw WorkflowException("notFound"));
     if (_owns(actor, h)) throw WorkflowException("notAllowed");
-    if (!_withHr(h)) throw WorkflowException("notAllowed");
+    if (h.status != "pending_hr") throw WorkflowException("notAllowed");
+    if (!_tasksReady(h)) throw WorkflowException("tasksPending");
     final owner = _ownerOf(h);
     if (!approve) {
       _returnToEmployee(h, owner, actor, "hr", comment.trim());
@@ -931,16 +927,21 @@ class AppStore extends ChangeNotifier {
       h.status == "returned";
 
   void _advanceIfAllAccepted(Handover h) {
-    if (h.status == "pending_manager" ||
-        h.status == "pending_hr" ||
-        h.status == "approved") {
+    if (_tasksReady(h)) {
+      if (h.status == "pending_acceptance" || h.status == "draft") {
+        _sendToManagerOrHr(h);
+      }
       return;
     }
-    if (h.tasks.isEmpty || h.tasks.every((t) => t.status == "accepted")) {
-      _sendToManagerOrHr(h);
-      return;
+    if (h.status == "draft" || h.status == "returned") return;
+    if (h.status == "approved") {
+      h.hrApproval = null;
+      h.managerApproval = null;
+      h.finalizedAt = null;
+      h.documentHash = null;
+      h.hrmsDocumentId = null;
     }
-    h.status = "pending_acceptance";
+    if (h.status != "pending_acceptance") h.status = "pending_acceptance";
   }
 
   void _moveToHr(Handover h) {
@@ -1215,7 +1216,7 @@ class AppStore extends ChangeNotifier {
           if (item is Map) auditFromJson(Map<String, dynamic>.from(item)),
       ]);
     _repairOwners();
-    _sendUnassignedToHr();
+    _holdForAcceptance();
     user = person(keepUser) ?? findByEmail(keepEmail ?? "");
     _hydrating = false;
     notifyListeners();
@@ -1316,7 +1317,7 @@ class AppStore extends ChangeNotifier {
           auditLog.add(auditFromJson(item.cast<String, dynamic>()));
       }
       _repairOwners();
-      _sendUnassignedToHr();
+      _holdForAcceptance();
       user =
           person(data["userId"] as String?) ??
           findByEmail("${data["userEmail"] ?? ""}");

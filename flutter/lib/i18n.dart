@@ -398,6 +398,9 @@ class I18n {
   String get notAllowed => isAr
       ? "ليست لديك صلاحية لهذا الإجراء."
       : "You are not allowed to do this.";
+  String get tasksPending => isAr
+      ? "الفورم ما يطلع للاعتماد إلا بعد ما كل المسند لهم يقبلون مهامهم."
+      : "The form stays hidden from approval until every assignee accepts their task.";
   String get commentRequired =>
       isAr ? "سبب الرفض إلزامي." : "A reason is required.";
   String get handoverNotFound =>
@@ -412,6 +415,7 @@ class I18n {
   String error(String code) =>
       {
         "notAllowed": notAllowed,
+        "tasksPending": tasksPending,
         "commentRequired": commentRequired,
         "notFound": handoverNotFound,
         "assigneeRequired": assigneeRequired,

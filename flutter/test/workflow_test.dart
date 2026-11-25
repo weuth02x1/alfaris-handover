@@ -64,10 +64,10 @@ void main() {
       ],
       submit: true,
     );
-    expect(store.handover(id)!.status, "pending_manager");
+    expect(store.handover(id)!.status, "pending_acceptance");
     expect(store.waitingCount(abdullah), 1);
-    expect(store.inboxFor(fahad).managerQueue, hasLength(1));
-    expect(store.waitingCount(fahad), 1);
+    expect(store.inboxFor(fahad).managerQueue, isEmpty);
+    expect(store.inboxFor(hind).hrQueue, isEmpty);
 
     store.acceptTask(
       abdullah,
@@ -90,7 +90,7 @@ void main() {
           .any(
             (m) =>
                 m.body.contains("إسناد مهمة") &&
-                m.body.contains("وين وصل الطلب: عند المدير المباشر"),
+                m.body.contains("وين وصل الطلب: بانتظار قبول المهام"),
           ),
       isTrue,
     );
@@ -257,16 +257,11 @@ void main() {
       lastWorkingDay: "2026-12-01",
       returnDate: "2026-12-20",
     );
-    expect(store.handover(id)!.status, "pending_manager");
+    expect(store.handover(id)!.status, "pending_acceptance");
     final hind = store.person("30115")!;
-    final notice = store.mailFor(fahad).single;
-    expect(notice.subject, contains("إجازة سنوية"));
-    expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
-    expect(notice.body, contains("آخر يوم عمل: 2026-12-01"));
-    expect(notice.body, contains("تاريخ العودة: 2026-12-20"));
-    expect(store.inboxFor(fahad).managerQueue.map((h) => h.id), contains(id));
-    expect(store.inboxFor(hind).raised.map((h) => h.id), contains(id));
-    expect(store.mailFor(sarah).single.body, contains("عند المدير المباشر"));
+    expect(store.inboxFor(fahad).managerQueue, isEmpty);
+    expect(store.inboxFor(hind).hrQueue, isEmpty);
+    expect(store.mailFor(sarah).single.body, contains("بانتظار قبول المهام"));
     store.saveForm(
       sarah,
       id,
@@ -282,8 +277,21 @@ void main() {
       ],
       submit: true,
     );
-    expect(store.handover(id)!.status, "pending_manager");
+    expect(store.handover(id)!.status, "pending_acceptance");
     expect(store.inboxFor(store.person("40221")!).toAccept, hasLength(1));
+    store.acceptTask(
+      store.person("40221")!,
+      id,
+      store.handover(id)!.tasks.first.id,
+      "تم",
+    );
+    expect(store.handover(id)!.status, "pending_manager");
+    final notice = store.mailFor(fahad).single;
+    expect(notice.subject, contains("إجازة سنوية"));
+    expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
+    expect(notice.body, contains("آخر يوم عمل: 2026-12-01"));
+    expect(notice.body, contains("تاريخ العودة: 2026-12-20"));
+    expect(store.inboxFor(fahad).managerQueue.map((h) => h.id), contains(id));
   });
 
   test("a reload keeps registered people and their manager", () {
@@ -443,8 +451,9 @@ void main() {
       seen.inboxFor(seen.person(hr.id)!).raised.map((h) => h.id),
       contains(id),
     );
+    expect(seen.inboxFor(seen.person(manager.id)!).managerQueue, isEmpty);
     expect(
-      seen.inboxFor(seen.person(manager.id)!).managerQueue.map((h) => h.id),
+      seen.inboxFor(seen.person(manager.id)!).teamOpen.map((h) => h.id),
       contains(id),
     );
   });
@@ -487,15 +496,66 @@ void main() {
       type: "resignation",
       lastWorkingDay: "2026-12-30",
     );
+    expect(store.handover(toManager)!.status, "pending_acceptance");
+    expect(store.inboxFor(manager).managerQueue, isEmpty);
+    expect(store.inboxFor(hr).hrQueue, isEmpty);
+    store.saveForm(
+      withBoss,
+      toManager,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "",
+          title: "تسليم",
+          details: "",
+          assigneeId: noBoss.id,
+          status: "draft",
+        ),
+      ],
+      submit: true,
+    );
+    expect(store.handover(toManager)!.status, "pending_acceptance");
+    store.acceptTask(
+      noBoss,
+      toManager,
+      store.handover(toManager)!.tasks.first.id,
+      "تم",
+    );
     expect(store.handover(toManager)!.status, "pending_manager");
     expect(store.inboxFor(manager).managerQueue.map((h) => h.id), [toManager]);
-    expect(store.inboxFor(hr).hrQueue, isEmpty);
 
     final toHr = store.startOwn(
       noBoss,
       type: "resignation",
       lastWorkingDay: "2026-12-30",
     );
+    expect(store.handover(toHr)!.status, "pending_acceptance");
+    store.saveForm(
+      noBoss,
+      toHr,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "",
+          title: "تسليم",
+          details: "",
+          assigneeId: hr.id,
+          status: "draft",
+        ),
+        HandoverTask(
+          id: "",
+          title: "شبكة",
+          details: "",
+          assigneeId: manager.id,
+          status: "draft",
+        ),
+      ],
+      submit: true,
+    );
+    store.acceptTask(hr, toHr, store.handover(toHr)!.tasks.first.id, "تم");
+    expect(store.handover(toHr)!.status, "pending_acceptance");
+    expect(store.inboxFor(hr).hrQueue, isEmpty);
+    store.acceptTask(manager, toHr, store.handover(toHr)!.tasks.last.id, "تم");
     expect(store.handover(toHr)!.status, "pending_hr");
     expect(store.inboxFor(hr).hrQueue.map((h) => h.id), [toHr]);
     expect(store.inboxFor(manager).managerQueue.map((h) => h.id), [toManager]);
@@ -546,17 +606,18 @@ void main() {
       );
       store.replaceShared(older.snapshot());
       expect(store.handover(id), isNotNull);
-      expect(store.handover(id)!.status, "pending_hr");
+      expect(store.handover(id)!.status, "pending_acceptance");
       expect(store.user?.id, "17272");
       expect(store.inboxFor(store.user!).mine.map((h) => h.id), contains(id));
       expect(store.person("12212"), isNotNull);
-      expect(store.inboxFor(hr).hrQueue.map((h) => h.id), contains(id));
+      expect(store.inboxFor(hr).raised.map((h) => h.id), contains(id));
+      expect(store.inboxFor(hr).hrQueue, isEmpty);
       final saved = store.snapshot();
       (saved["accounts"] as List).removeWhere((item) => item["id"] == "17272");
       final restored = AppStore();
       restored.replaceShared(saved);
       expect(restored.person("17272")?.email, "shahad0x4@gmail.com");
-      expect(restored.handover(id)?.status, "pending_hr");
+      expect(restored.handover(id)?.status, "pending_acceptance");
       expect(
         restored
             .inboxFor(restored.findByEmail("shahad0x4@gmail.com")!)
@@ -613,6 +674,27 @@ void main() {
         status: "accepted",
       ),
     ];
+    store.handover(id)!.status = "pending_hr";
+    expect(
+      () => store.hrDecision(hr, id, true, ""),
+      throwsA(
+        isA<WorkflowException>().having((e) => e.code, "code", "tasksPending"),
+      ),
+    );
+    store.handover(id)!.hrApproval = null;
+    store.handover(id)!.status = "approved";
+    store.handover(id)!.hrmsDocumentId = "MENA-HO-2026-0010";
+    store.replaceShared(store.snapshot());
+    expect(store.handover(id)!.status, "pending_acceptance");
+    expect(store.handover(id)!.hrmsDocumentId, isNull);
+    expect(store.inboxFor(hr).hrQueue, isEmpty);
+    expect(
+      () => store.hrDecision(hr, id, true, ""),
+      throwsA(
+        isA<WorkflowException>().having((e) => e.code, "code", "notAllowed"),
+      ),
+    );
+    store.handover(id)!.tasks.first.status = "accepted";
     store.replaceShared(store.snapshot());
     expect(store.handover(id)!.status, "pending_hr");
     expect(store.inboxFor(hr).hrQueue.map((h) => h.id), contains(id));
@@ -624,9 +706,13 @@ void main() {
       type: "annual_leave",
       lastWorkingDay: "2026-11-26",
     );
-    store.accounts.removeWhere((e) => e.id == person.id);
-    store.hrDecision(hr, other, true, "");
-    expect(store.handover(other)!.status, "approved");
+    expect(
+      () => store.hrDecision(hr, other, true, ""),
+      throwsA(
+        isA<WorkflowException>().having((e) => e.code, "code", "notAllowed"),
+      ),
+    );
+    expect(store.handover(other)!.status, "pending_acceptance");
   });
 
   test("a refusal comes back, then acceptance reaches the manager and HR", () {
