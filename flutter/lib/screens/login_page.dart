@@ -49,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _profileReady() {
-    final mail = email.text.trim();
+    final mail = AuthMail.normalize(email.text);
     const departments = {"D-HR", "D-TA", "D-ITD"};
     return RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(mail) &&
         name.text.trim().length >= 2 &&
@@ -63,7 +63,8 @@ class _LoginPageState extends State<LoginPage> {
     if (!AuthMail.enabled) return;
     final store = StoreScope.of(context);
     final t = store.t;
-    final mail = email.text.trim().toLowerCase();
+    final mail = AuthMail.normalize(email.text);
+    if (email.text != mail) email.text = mail;
     final known = store.findByEmail(mail);
     if (!create &&
         RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(mail) &&
@@ -118,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _codeReady(String value) {
-    final n = AuthMail.digits(value).length;
+    final n = AuthMail.codeToken(value).length;
     return n == 6 || n == 8;
   }
 

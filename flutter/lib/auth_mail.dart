@@ -37,13 +37,22 @@ class AuthMail {
           otpUri(),
           headers: _headers,
           body: jsonEncode({
-            "email": email.trim().toLowerCase(),
+            "email": normalize(email),
             "create_user": true,
           }),
         )
         .timeout(const Duration(seconds: 25));
     if (response.statusCode >= 400)
       throw WorkflowException(_mailError(response));
+  }
+
+  /// The address Supabase issued the code for. Company mail keeps dots and
+  /// plus-tags; only Gmail folds those into one inbox.
+  static String normalize(String email) {
+    var mail = email.trim().toLowerCase();
+    mail = mail.replaceAll(RegExp(r"[\u200b-\u200d\u2060\ufeff\u00a0]"), "");
+    mail = mail.replaceAll("＠", "@").replaceAll("．", ".");
+    return mail;
   }
 
   /// Arabic and Persian digits count as the code the person sees.
@@ -62,38 +71,75 @@ class AuthMail {
     return out.toString();
   }
 
+  /// The sign-in code itself, even when the person pastes the whole line.
+  /// Extra numbers, such as a year in the mail footer, stay out of the token.
+  static String codeToken(String raw) {
+    final normalized = digits(raw);
+    final source = StringBuffer();
+    var digitIndex = 0;
+    for (final rune in raw.runes) {
+      final ch = String.fromCharCode(rune);
+      final eastern = "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹";
+      if (eastern.contains(ch) || (rune >= 48 && rune <= 57)) {
+        source.write(normalized[digitIndex]);
+        digitIndex += 1;
+      } else {
+        source.write(ch);
+      }
+    }
+    final groups = RegExp(r"\d{6,8}")
+        .allMatches(source.toString())
+        .map((match) => match.group(0)!)
+        .toList();
+    for (final length in [6, 8]) {
+      final found = groups.where((group) => group.length == length).toList();
+      if (found.isNotEmpty) return found.last;
+    }
+    return normalized;
+  }
+
   /// Gmail delivers plus-addresses and dotted locals to one inbox.
+  /// A company address is exact: the dot in the name is part of the address.
   static String inboxKey(String email) {
-    final mail = email.trim().toLowerCase();
+    final mail = normalize(email);
     final at = mail.lastIndexOf("@");
     if (at <= 0) return mail;
     var local = mail.substring(0, at);
     var domain = mail.substring(at + 1);
-    final plus = local.indexOf("+");
-    if (plus >= 0) local = local.substring(0, plus);
     if (domain == "googlemail.com") domain = "gmail.com";
-    if (domain == "gmail.com") local = local.replaceAll(".", "");
+    if (domain == "gmail.com") {
+      final plus = local.indexOf("+");
+      if (plus >= 0) local = local.substring(0, plus);
+      local = local.replaceAll(".", "");
+    }
     return "$local@$domain";
   }
 
   static Future<void> verify(String email, String code) async {
     if (!enabled) throw WorkflowException("badCode");
-    final token = digits(code);
-    if (token.length < 6) throw WorkflowException("badCode");
-    final response = await http
-        .post(
-          _uri("/auth/v1/verify"),
-          headers: _headers,
-          body: jsonEncode({
-            "type": "email",
-            "email": email.trim().toLowerCase(),
-            "token": token,
-          }),
-        )
-        .timeout(const Duration(seconds: 20));
-    if (response.statusCode < 400) return;
-    if (response.statusCode == 429) throw WorkflowException("slow");
-    throw WorkflowException(_verifyError(response));
+    final token = codeToken(code);
+    final mail = normalize(email);
+    if (token.length != 6 && token.length != 8) {
+      throw WorkflowException("badCode");
+    }
+    // A new company address accepts the same digits as a signup code or as
+    // an email code. The wrong label comes back as expired and leaves the
+    // digits usable, so both labels are tried for this exact address.
+    WorkflowException? last;
+    for (final type in ["email", "signup"]) {
+      final response = await http
+          .post(
+            _uri("/auth/v1/verify"),
+            headers: _headers,
+            body: jsonEncode({"type": type, "email": mail, "token": token}),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode < 400) return;
+      if (response.statusCode == 429) throw WorkflowException("slow");
+      last = WorkflowException(_verifyError(response));
+      if (last.code != "expired") break;
+    }
+    throw last ?? WorkflowException("badCode");
   }
 
   static String _verifyError(http.Response response) {

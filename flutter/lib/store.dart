@@ -126,7 +126,7 @@ class AppStore extends ChangeNotifier {
       "${DateTime.now().microsecondsSinceEpoch}-${_rng.nextInt(0x7fffffff)}-${_rng.nextInt(0x7fffffff)}";
 
   Employee? findByEmail(String email) {
-    final target = email.trim().toLowerCase();
+    final target = AuthMail.normalize(email);
     final matches = [
       for (final e in accounts)
         if (e.email.toLowerCase() == target) e,
@@ -182,7 +182,7 @@ class AppStore extends ChangeNotifier {
   List<Employee> get hrUsers => accounts.where((e) => e.isHr).toList();
 
   Future<void> requestOtp(String email) async {
-    final mail = email.trim().toLowerCase();
+    final mail = AuthMail.normalize(email);
     if (!_isEmail(mail)) throw WorkflowException("invalid");
     final emp = findByEmail(mail);
     if (emp == null) throw WorkflowException("notFoundEmail");
@@ -209,7 +209,7 @@ class AppStore extends ChangeNotifier {
     bool isManager = false,
     String? managesDepartmentId,
   }) {
-    final mail = email.trim().toLowerCase();
+    final mail = AuthMail.normalize(email);
     final n = name.trim();
     final no = employeeNo.trim();
     final job = jobTitle.trim();
@@ -295,7 +295,7 @@ class AppStore extends ChangeNotifier {
   /// Addresses whose mail lands in the same inbox as [email].
   /// A code is issued for one exact address, and Gmail shows all of them together.
   List<String> otpEmailsFor(String email) {
-    final typed = email.trim().toLowerCase();
+    final typed = AuthMail.normalize(email);
     final key = AuthMail.inboxKey(typed);
     final ordered = <String>[];
     void add(String? value) {

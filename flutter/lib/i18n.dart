@@ -89,11 +89,11 @@ class I18n {
   String get confirm => isAr ? "دخول" : "Sign in";
   String get resend => isAr ? "إرسال رمز جديد" : "Send a new code";
   String get badCode => isAr
-      ? "الرمز ما طابق الإيميل الظاهر. اكتبه كما وصل في آخر رسالة لهذا العنوان."
-      : "That code does not match the email shown. Type it as it arrived in the latest message for that address.";
+      ? "الرمز ما طابق الإيميل الظاهر. اكتب الأرقام الستة من آخر رسالة فقط، لنفس العنوان المكتوب فوق."
+      : "That code does not match the email shown. Type the six digits from the latest message only, for that same address.";
   String get expired => isAr
-      ? "هذا الرمز استُخدم أو مُرسل لعنوان ثاني في نفس الصندوق. اطلب رمزاً جديداً ودخله كما هو."
-      : "This code was already used, or it was sent to another address in the same inbox. Request a new one and type it as it arrives.";
+      ? "هذا الرمز من رسالة قديمة. اطلب رمزاً جديداً واكتب أرقام آخر رسالة لنفس الإيميل الظاهر."
+      : "That code is from an older message. Request a new one and type the digits from the latest message for the same email.";
   String get notFound => isAr
       ? "ما فيه حساب بهذا الإيميل. أنشئ حساباً أولاً."
       : "No account uses this email. Create one first.";

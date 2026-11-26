@@ -156,6 +156,12 @@ void main() {
   test("a code typed in Arabic matches every address in the same inbox", () {
     expect(AuthMail.digits("٦٧٦٨٨٧"), "676887");
     expect(AuthMail.digits("۴۷۶ ۴۰۳"), "476403");
+    expect(AuthMail.codeToken("Your sign-in code ٦٧٦٨٨٧"), "676887");
+    expect(AuthMail.codeToken("Your sign-in code 482913 © 2026"), "482913");
+    expect(
+      AuthMail.normalize(" Shahad.Alqahtani@Alfarisgrp.com "),
+      "shahad.alqahtani@alfarisgrp.com",
+    );
     expect(
       AuthMail.inboxKey("Shahad0x66+HR@gmail.com"),
       AuthMail.inboxKey("shahad.0x66@googlemail.com"),
@@ -163,6 +169,14 @@ void main() {
     expect(
       AuthMail.inboxKey("shahad0x66+hr@gmail.com"),
       isNot(AuthMail.inboxKey("shahad0x4@gmail.com")),
+    );
+    expect(
+      AuthMail.inboxKey("shahad.alqahtani@alfarisgrp.com"),
+      isNot(AuthMail.inboxKey("shahadalqahtani@alfarisgrp.com")),
+    );
+    expect(
+      AuthMail.inboxKey("sara+hr@alfarisgrp.com"),
+      isNot(AuthMail.inboxKey("sara@alfarisgrp.com")),
     );
     final store = AppStore();
     store.createAccount(
