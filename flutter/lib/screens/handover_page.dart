@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../assist.dart";
 import "../models.dart";
 import "../store.dart";
 import "../theme.dart";
@@ -532,6 +533,7 @@ class _Editor extends StatefulWidget {
 class _EditorState extends State<_Editor> {
   late final notes = TextEditingController(text: widget.handover.generalNotes);
   late List<HandoverTask> tasks;
+  bool suggesting = false;
 
   @override
   void initState() {
@@ -564,6 +566,58 @@ class _EditorState extends State<_Editor> {
   void dispose() {
     notes.dispose();
     super.dispose();
+  }
+
+  Future<void> suggest() async {
+    final store = StoreScope.of(context);
+    final employee = widget.handover.employee;
+    setState(() => suggesting = true);
+    try {
+      final ideas = await Assist.suggestTasks(
+        type: store.t.type(widget.handover.type),
+        job: store.t.pick(employee.jobTitleAr, employee.jobTitleEn),
+        department: store.t.pick(employee.departmentAr, employee.departmentEn),
+        lastWorkingDay: widget.handover.lastWorkingDay,
+        notes: notes.text,
+        existing: [
+          for (final task in tasks)
+            if (task.title.trim().isNotEmpty) task.title.trim(),
+        ],
+      );
+      if (!mounted) return;
+      if (ideas.isEmpty) {
+        setState(() => suggesting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(store.t.assistEmpty)),
+        );
+        return;
+      }
+      setState(() {
+        suggesting = false;
+        final kept = [
+          for (final task in tasks)
+            if (task.title.trim().isNotEmpty || task.details.trim().isNotEmpty)
+              task,
+        ];
+        tasks = [
+          ...kept,
+          for (final idea in ideas)
+            HandoverTask(
+              id: "",
+              title: idea.title,
+              details: idea.details,
+              assigneeId: "",
+              status: "draft",
+            ),
+        ];
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => suggesting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(store.t.error(e.toString()))),
+      );
+    }
   }
 
   void save(bool submit) {
@@ -675,6 +729,7 @@ class _EditorState extends State<_Editor> {
                       ],
                     ),
                     _TaskFields(
+                      key: ObjectKey(tasks[i]),
                       task: tasks[i],
                       colleagues: widget.colleagues,
                       onChanged: () => setState(() {}),
@@ -682,20 +737,45 @@ class _EditorState extends State<_Editor> {
                   ],
                 ),
               ),
-            OutlinedButton.icon(
-              onPressed: () => setState(
-                () => tasks.add(
-                  HandoverTask(
-                    id: "",
-                    title: "",
-                    details: "",
-                    assigneeId: "",
-                    status: "draft",
-                  ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: suggesting
+                      ? null
+                      : () => setState(
+                            () => tasks.add(
+                              HandoverTask(
+                                id: "",
+                                title: "",
+                                details: "",
+                                assigneeId: "",
+                                status: "draft",
+                              ),
+                            ),
+                          ),
+                  icon: const Icon(Icons.add),
+                  label: Text(t.addTask),
                 ),
-              ),
-              icon: const Icon(Icons.add),
-              label: Text(t.addTask),
+                OutlinedButton.icon(
+                  onPressed: suggesting ? null : suggest,
+                  icon: suggesting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome_outlined, size: 18),
+                  label: Text(suggesting ? t.suggesting : t.suggestTasks),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              t.suggestHint,
+              style: const TextStyle(color: mutedFg, fontSize: 12),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -731,6 +811,7 @@ class _EditorState extends State<_Editor> {
 
 class _TaskFields extends StatefulWidget {
   const _TaskFields({
+    super.key,
     required this.task,
     required this.colleagues,
     required this.onChanged,

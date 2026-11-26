@@ -316,6 +316,17 @@ class I18n {
   String get chooseAssignee =>
       isAr ? "اختر الموظف المستلم" : "Choose recipient";
   String get addTask => isAr ? "إضافة مهمة" : "Add task";
+  String get suggestTasks => isAr ? "اقتراح مهام" : "Suggest tasks";
+  String get suggesting => isAr ? "يقترح المهام..." : "Suggesting tasks...";
+  String get suggestHint => isAr
+      ? "اقتراح فقط. راجع النص واختر المستلم قبل الإرسال."
+      : "A suggestion only. Review the text and choose who receives each task before sending.";
+  String get assistFailed => isAr
+      ? "ما قدر الاقتراح يوصل. أضف المهام يدوياً، والإرسال يشتغل كما هو."
+      : "Suggestions did not arrive. Add the tasks yourself. Sending still works.";
+  String get assistEmpty => isAr
+      ? "ما طلع اقتراح هالمرة. أضف المهمة يدوياً."
+      : "No suggestion this time. Add the task yourself.";
   String get removeTask => isAr ? "حذف" : "Remove";
   String get generalNotes => isAr ? "ملاحظات عامة" : "General notes";
   String get generalNotesPh => isAr
@@ -423,6 +434,7 @@ class I18n {
         "slow": slow,
         "mailFailed": mailFailed,
         "mailerDown": mailerDown,
+        "assistFailed": assistFailed,
         "emailTaken": emailTaken,
         "idTaken": idTaken,
       }[code] ??
