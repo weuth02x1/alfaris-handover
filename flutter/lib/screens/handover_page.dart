@@ -471,9 +471,11 @@ class _InfoCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 16),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -617,8 +619,15 @@ class _EditorState extends State<_Editor> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: muted.withValues(alpha: 0.45),
-                  border: Border.all(color: line),
+                  color: tasks[i].status == "rejected"
+                      ? rejectedTaskBg
+                      : muted.withValues(alpha: 0.45),
+                  border: Border.all(
+                    color: tasks[i].status == "rejected"
+                        ? rejectedTaskBorder
+                        : line,
+                    width: tasks[i].status == "rejected" ? 1.6 : 1,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -626,14 +635,29 @@ class _EditorState extends State<_Editor> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          "${t.taskTitle} ${i + 1}",
-                          style: const TextStyle(
-                            color: mutedFg,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                "${t.taskTitle} ${i + 1}",
+                                style: TextStyle(
+                                  color: tasks[i].status == "rejected"
+                                      ? rejectedTaskFg
+                                      : mutedFg,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (tasks[i].status == "rejected")
+                                TaskStatusBadge(
+                                  status: tasks[i].status,
+                                  label: t.taskStatus(tasks[i].status),
+                                ),
+                            ],
                           ),
                         ),
-                        const Spacer(),
                         TextButton(
                           onPressed: tasks.length == 1
                               ? null
@@ -859,13 +883,16 @@ class _ReadonlyTasks extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
+                  color: task.status == "rejected" ? rejectedTaskBg : null,
                   border: Border.all(
-                    color:
-                        task.assigneeId == user.id &&
-                            task.status == "pending" &&
-                            _taskOpen(handover.status)
+                    color: task.status == "rejected"
+                        ? rejectedTaskBorder
+                        : task.assigneeId == user.id &&
+                              task.status == "pending" &&
+                              _taskOpen(handover.status)
                         ? navy.withValues(alpha: 0.5)
                         : line,
+                    width: task.status == "rejected" ? 1.6 : 1,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -879,7 +906,12 @@ class _ReadonlyTasks extends StatelessWidget {
                       children: [
                         Text(
                           task.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: task.status == "rejected"
+                                ? rejectedTaskFg
+                                : null,
+                          ),
                         ),
                         if (task.assigneeId == user.id)
                           Container(

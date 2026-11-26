@@ -177,7 +177,7 @@ class I18n {
   }[key]!;
 
   String type(String key) => {
-    "annual_leave": isAr ? "إجازة سنوية" : "Annual leave",
+    "annual_leave": isAr ? "إجازة" : "Vacation",
     "clearance": isAr ? "إخلاء طرف" : "Clearance",
     "resignation": isAr ? "استقالة" : "Resignation",
     "transfer": isAr ? "نقل" : "Transfer",

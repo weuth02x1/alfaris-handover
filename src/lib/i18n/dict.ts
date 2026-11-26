@@ -64,7 +64,7 @@ const ar = {
     rejected: "مرفوضة - تحتاج مستلم آخر",
   } satisfies Record<TaskStatus, string>,
   type: {
-    annual_leave: "إجازة سنوية",
+    annual_leave: "إجازة",
     clearance: "إخلاء طرف",
     resignation: "استقالة",
     transfer: "نقل",
@@ -285,7 +285,7 @@ const en: Dict = {
     rejected: "Rejected - needs new recipient",
   },
   type: {
-    annual_leave: "Annual leave",
+    annual_leave: "Vacation",
     clearance: "Clearance",
     resignation: "Resignation",
     transfer: "Transfer",

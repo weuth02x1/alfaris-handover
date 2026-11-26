@@ -260,7 +260,7 @@ void main() {
     expect(store.handover(id)!.status, "pending_manager");
     final hind = store.person("30115")!;
     final notice = store.mailFor(fahad).single;
-    expect(notice.subject, contains("إجازة سنوية"));
+    expect(notice.subject, contains("إجازة"));
     expect(notice.body, contains("القسم: تطوير تقنية المعلومات"));
     expect(notice.body, contains("آخر يوم عمل: 2026-12-01"));
     expect(notice.body, contains("تاريخ العودة: 2026-12-20"));

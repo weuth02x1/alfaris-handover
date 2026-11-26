@@ -3,8 +3,10 @@ import "dart:ui";
 import "package:alfaris_handover/i18n.dart";
 import "package:alfaris_handover/main.dart";
 import "package:alfaris_handover/models.dart";
+import "package:alfaris_handover/screens/handover_page.dart";
 import "package:alfaris_handover/screens/report_page.dart";
 import "package:alfaris_handover/store.dart";
+import "package:alfaris_handover/theme.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 
@@ -160,5 +162,101 @@ void main() {
     expect(find.text("16:20"), findsWidgets);
     expect(find.text("16:39"), findsWidgets);
     expect(find.textContaining("2026-11-"), findsNothing);
+  });
+
+  testWidgets("a rejected task is red among the others", (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final store = AppStore();
+    final owner = store.createAccount(
+      email: "sara@alfaris.test",
+      name: "سارة",
+      employeeNo: "33001",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    final first = store.createAccount(
+      email: "nora@alfaris.test",
+      name: "نورة",
+      employeeNo: "33002",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    final second = store.createAccount(
+      email: "lama@alfaris.test",
+      name: "لمى",
+      employeeNo: "33003",
+      jobTitle: "مطورة",
+      departmentId: "D-ITD",
+    );
+    store.signInForTest(owner);
+    final id = store.startOwn(
+      owner,
+      type: "annual_leave",
+      lastWorkingDay: "2026-12-01",
+      returnDate: "2026-12-20",
+    );
+    store.saveForm(
+      owner,
+      id,
+      generalNotes: "",
+      tasks: [
+        HandoverTask(
+          id: "t1",
+          title: "الأولى",
+          details: "",
+          assigneeId: first.id,
+          status: "draft",
+        ),
+        HandoverTask(
+          id: "t2",
+          title: "الثانية",
+          details: "",
+          assigneeId: second.id,
+          status: "draft",
+        ),
+        HandoverTask(
+          id: "t3",
+          title: "الثالثة",
+          details: "",
+          assigneeId: first.id,
+          status: "draft",
+        ),
+      ],
+      submit: true,
+    );
+    store.rejectTask(second, id, "t2", "مشغولة");
+    await tester.pumpWidget(
+      StoreScope(
+        store: store,
+        child: MaterialApp(
+          theme: alfarisTheme(),
+          home: HandoverPage(id: id),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text("إجازة"), findsWidgets);
+    expect(find.text("مرفوضة - تحتاج مستلم آخر"), findsWidgets);
+
+    bool redCard(String label) {
+      return find
+          .ancestor(
+            of: find.text(label),
+            matching: find.byWidgetPredicate((widget) {
+              if (widget is! Container) return false;
+              final decoration = widget.decoration;
+              return decoration is BoxDecoration &&
+                  decoration.color == rejectedTaskBg;
+            }),
+          )
+          .evaluate()
+          .isNotEmpty;
+    }
+
+    expect(redCard("المهمة 2"), isTrue);
+    expect(redCard("المهمة 1"), isFalse);
+    expect(redCard("المهمة 3"), isFalse);
   });
 }

@@ -41,7 +41,7 @@ const exitReasons = [
 ];
 
 String exitReasonAr(String key) => switch (key) {
-  "annual_leave" => "إجازة سنوية",
+  "annual_leave" => "إجازة",
   "clearance" => "إخلاء طرف",
   "resignation" => "استقالة",
   "transfer" => "نقل",

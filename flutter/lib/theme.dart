@@ -8,6 +8,9 @@ const cardBg = Color(0xFFFFFCF7);
 const muted = Color(0xFFEFE8DA);
 const mutedFg = Color(0xFF5C584F);
 const line = Color(0xFFE3D9C8);
+const rejectedTaskBg = Color(0xFFFFE4E6);
+const rejectedTaskFg = Color(0xFF9F1239);
+const rejectedTaskBorder = Color(0xFFE11D48);
 
 ThemeData alfarisTheme() {
   final scheme = ColorScheme.fromSeed(seedColor: navy, primary: navy, surface: cardBg).copyWith(
