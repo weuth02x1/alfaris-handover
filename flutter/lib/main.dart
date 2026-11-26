@@ -12,7 +12,6 @@ import "theme.dart";
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final store = AppStore();
-  store.ensureCycleAccounts();
   store.startSharedSync();
   runApp(HandoverApp(store: store));
 }

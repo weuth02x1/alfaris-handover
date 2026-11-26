@@ -7,6 +7,41 @@ import "package:alfaris_handover/shared_state.dart";
 import "package:alfaris_handover/store.dart";
 import "package:flutter_test/flutter_test.dart";
 
+void addCompanyAccounts(AppStore store) {
+  store.createAccount(
+    email: "hr@alfaris.test",
+    name: "هند الغامدي",
+    employeeNo: "22015",
+    jobTitle: "أخصائية موارد بشرية",
+    departmentId: "D-HR",
+  );
+  store.createAccount(
+    email: "manager@alfaris.test",
+    name: "فهد العتيبي",
+    employeeNo: "22001",
+    jobTitle: "مدير تطوير",
+    departmentId: "D-ITD",
+    isManager: true,
+    managesDepartmentId: "D-ITD",
+  );
+  store.createAccount(
+    email: "colleague@alfaris.test",
+    name: "لمى الحربي",
+    employeeNo: "22030",
+    jobTitle: "مطورة أنظمة",
+    departmentId: "D-ITD",
+    managerId: "22001",
+  );
+  store.createAccount(
+    email: "employee@alfaris.test",
+    name: "سارة القحطاني",
+    employeeNo: "22018",
+    jobTitle: "مطورة أنظمة",
+    departmentId: "D-ITD",
+    managerId: "22001",
+  );
+}
+
 void main() {
   test("clearance cycle after a signed-in employee", () {
     final store = AppStore();
@@ -187,7 +222,7 @@ void main() {
         ),
       );
       expect(I18n("ar").error("mailFailed"), isNot(contains("mailFailed")));
-      expect(I18n("ar").error("mailerDown"), contains("SMTP"));
+      expect(I18n("ar").error("mailerDown"), "ما قدرنا نرسل الرمز الآن. حاول بعد دقيقة.");
       expect(store.lastOtpCode, isNull);
       expect(store.user, isNull);
     },
@@ -381,12 +416,12 @@ void main() {
       "audit": [],
     };
     final local = AppStore();
-    local.ensureCycleAccounts();
+    addCompanyAccounts(local);
     final merged = mergeSharedState(local.snapshot(), remote);
     final seen = AppStore();
     seen.replaceShared(merged);
-    final hr = seen.findByEmail("shahad0x66+hr@gmail.com")!;
-    final manager = seen.findByEmail("shahad0x66+manager@gmail.com")!;
+    final hr = seen.findByEmail("hr@alfaris.test")!;
+    final manager = seen.findByEmail("manager@alfaris.test")!;
     expect(seen.inboxFor(hr).raised.map((h) => h.id), contains("remote-1"));
     expect(
       seen.inboxFor(manager).teamOpen.map((h) => h.id),
@@ -398,10 +433,10 @@ void main() {
 
   test("a new account on a fresh device can send to any registered person", () {
     final fresh = AppStore();
-    fresh.ensureCycleAccounts();
-    final manager = fresh.findByEmail("shahad0x66+manager@gmail.com")!;
-    final colleague = fresh.findByEmail("shahad0x66+colleague@gmail.com")!;
-    final hr = fresh.findByEmail("shahad0x66+hr@gmail.com")!;
+    addCompanyAccounts(fresh);
+    final manager = fresh.findByEmail("manager@alfaris.test")!;
+    final colleague = fresh.findByEmail("colleague@alfaris.test")!;
+    final hr = fresh.findByEmail("hr@alfaris.test")!;
     final newcomer = fresh.createAccount(
       email: "mohammed.new@gmail.com",
       name: "محمد عبدالماجد",
@@ -431,7 +466,7 @@ void main() {
       submit: true,
     );
     final olderDevice = AppStore();
-    olderDevice.ensureCycleAccounts();
+    addCompanyAccounts(olderDevice);
     final merged = mergeSharedState(olderDevice.snapshot(), fresh.snapshot());
     final seen = AppStore();
     seen.replaceShared(merged);
@@ -778,23 +813,11 @@ void main() {
     expect(store.handover(id)!.status, "approved");
   });
 
-  test("cycle accounts share one inbox and cover the whole handover", () {
+  test("a fresh start has no accounts or requests", () {
     final store = AppStore();
-    store.ensureCycleAccounts();
-    expect(store.people, hasLength(4));
-    final shahad = store.findByEmail("shahad0x66@gmail.com");
-    expect(shahad, isNotNull);
-    expect(
-      store.colleaguesFor(shahad!.id).map((e) => e.email),
-      contains("shahad0x66+colleague@gmail.com"),
-    );
-    expect(
-      store.person(shahad.managerId)?.email,
-      "shahad0x66+manager@gmail.com",
-    );
-    expect(store.hrUsers.single.email, "shahad0x66+hr@gmail.com");
-    store.ensureCycleAccounts();
-    expect(store.people, hasLength(4));
+    expect(store.people, isEmpty);
+    expect(store.handovers, isEmpty);
+    expect(store.hrUsers, isEmpty);
   });
 
   test("OTP redirect points at the live site, not localhost", () {

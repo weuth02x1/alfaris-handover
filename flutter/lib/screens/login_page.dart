@@ -19,8 +19,8 @@ class _LoginPageState extends State<LoginPage> {
   final employeeNo = TextEditingController();
   final jobTitle = TextEditingController();
   final code = TextEditingController();
-  String departmentId = "D-HR";
-  String managesDepartmentId = "D-HR";
+  String departmentId = "";
+  String managesDepartmentId = "";
   String managerId = "";
   bool isManager = false;
   bool signup = false;
@@ -50,10 +50,13 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _profileReady() {
     final mail = email.text.trim();
+    const departments = {"D-HR", "D-TA", "D-ITD"};
     return RegExp(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").hasMatch(mail) &&
         name.text.trim().length >= 2 &&
         RegExp(r"^\d{3,10}$").hasMatch(employeeNo.text.trim()) &&
-        jobTitle.text.trim().length >= 2;
+        jobTitle.text.trim().length >= 2 &&
+        departments.contains(departmentId) &&
+        (!isManager || departments.contains(managesDepartmentId));
   }
 
   Future<void> sendCode({required bool create}) async {
@@ -266,59 +269,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      if (AuthMail.enabled &&
-                          store.people.isNotEmpty &&
-                          !codeStep) ...[
-                        Text(
-                          t.cycleAccounts,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: navy,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          t.cycleHint,
-                          style: const TextStyle(color: mutedFg, fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        for (final person in store.people)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: OutlinedButton(
-                              onPressed: busy
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        email.text = person.email;
-                                        signup = false;
-                                        error = null;
-                                      });
-                                      sendCode(create: false);
-                                    },
-                              child: Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (store.waitingCount(person) > 0)
-                                      Text(
-                                        t.waitingHere,
-                                        style: const TextStyle(
-                                          color: Color(0xFF047857),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    Text(
-                                      "${store.nameOf(person)} · ${t.pick(person.jobTitleAr, person.jobTitleEn)} · ${person.staffNumber ?? person.id} · ${person.email}",
-                                      textDirection: TextDirection.ltr,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
                       if (AuthMail.enabled) ...[
                         Text(
                           t.email,
@@ -472,7 +422,11 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 const SizedBox(height: 6),
                                 DropdownMenu<String>(
-                                  initialSelection: departmentId,
+                                  key: ValueKey("dept-$departmentId"),
+                                  initialSelection: departmentId.isEmpty
+                                      ? null
+                                      : departmentId,
+                                  hintText: t.department,
                                   expandedInsets: EdgeInsets.zero,
                                   dropdownMenuEntries: [
                                     DropdownMenuEntry(
@@ -489,7 +443,11 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ],
                                   onSelected: (v) => setState(() {
-                                    departmentId = v ?? "D-HR";
+                                    departmentId = v ?? "";
+                                    if (isManager &&
+                                        managesDepartmentId.isEmpty) {
+                                      managesDepartmentId = departmentId;
+                                    }
                                     final allowed = store
                                         .managersFor(departmentId)
                                         .map((p) => p.id);
@@ -550,8 +508,14 @@ class _LoginPageState extends State<LoginPage> {
                                   title: Text(t.isDirectManager),
                                   controlAffinity:
                                       ListTileControlAffinity.leading,
-                                  onChanged: (v) =>
-                                      setState(() => isManager = v ?? false),
+                                  onChanged: (v) => setState(() {
+                                    isManager = v ?? false;
+                                    if (isManager &&
+                                        managesDepartmentId.isEmpty &&
+                                        departmentId.isNotEmpty) {
+                                      managesDepartmentId = departmentId;
+                                    }
+                                  }),
                                 ),
                                 if (isManager) ...[
                                   Text(
@@ -563,8 +527,13 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   const SizedBox(height: 6),
                                   DropdownMenu<String>(
-                                    key: ValueKey(managesDepartmentId),
-                                    initialSelection: managesDepartmentId,
+                                    key: ValueKey(
+                                      "manages-$managesDepartmentId",
+                                    ),
+                                    initialSelection:
+                                        managesDepartmentId.isEmpty
+                                        ? null
+                                        : managesDepartmentId,
                                     expandedInsets: EdgeInsets.zero,
                                     dropdownMenuEntries: [
                                       DropdownMenuEntry(
@@ -581,7 +550,7 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ],
                                     onSelected: (v) => setState(
-                                      () => managesDepartmentId = v ?? "D-HR",
+                                      () => managesDepartmentId = v ?? "",
                                     ),
                                   ),
                                 ],

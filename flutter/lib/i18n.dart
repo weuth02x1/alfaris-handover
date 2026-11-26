@@ -65,21 +65,14 @@ class I18n {
       ? "أدخل إيميلك. نرسل رمز الدخول إلى صندوق الوارد عبر بريد المجموعة."
       : "Enter your email. We send the sign-in code to that inbox through company mail.";
   String get mailLive => isAr
-      ? "البريد مربوط: الرمز يطلع على إيميلك من Supabase / Resend."
-      : "Mail is connected: the code is emailed through Supabase / Resend.";
+      ? "رمز الدخول يوصل على إيميلك من بريد مجموعة الفارس."
+      : "The sign-in code arrives in your email from Alfaris Group.";
   String get mailOffline => isAr
-      ? "البريد غير مربوط على هذا الموقع حالياً. استخدم الدخول التجريبي أو أعد المحاولة لاحقاً."
-      : "Mail is not connected on this site right now. Use sample sign-in or try again later.";
-  String get sampleTitle => isAr ? "حسابات محفوظة" : "Saved accounts";
+      ? "البريد غير مربوط على هذا الموقع حالياً. أعد المحاولة لاحقاً."
+      : "Mail is not connected on this site right now. Try again later.";
   String get sampleHint => isAr
-      ? "اضغط الاسم وادخل مباشرة. الطلب يبقى في نفس الصفحة إذا بدّلت الحساب من هنا."
-      : "Tap a name to enter. The request stays on this page if you switch accounts here.";
-  String get switchAccount => isAr ? "تبديل الحساب" : "Switch account";
-  String get cycleAccounts => isAr ? "حسابات الدورة" : "Cycle accounts";
-  String get cycleHint => isAr
-      ? "اضغط الإيميل ثم أرسل الرمز. كل الرموز توصل لصندوق جيميل شهد. إذا طلع «مهمة بانتظارك» فالمهمة وصلت لهذا الحساب في هذا المتصفح."
-      : "Tap an email, then send the code. Every code arrives in Shahad's Gmail. “A task is waiting” means that account has it in this browser.";
-  String get waitingHere => isAr ? "مهمة بانتظارك" : "A task is waiting";
+      ? "البريد غير مربوط على هذا الموقع حالياً. أعد المحاولة لاحقاً."
+      : "Mail is not connected on this site right now. Try again later.";
   String sentTo(String who) => isAr
       ? "أُرسلت المهمة إلى $who. ادخل بهذا الإيميل من نفس المتصفح."
       : "The task was sent to $who. Sign in with that email in this same browser.";
@@ -114,8 +107,8 @@ class I18n {
       ? "ما قدرنا نرسل الرمز إلى هذا الإيميل. حاول مرة ثانية."
       : "We could not send the code to that email. Try again.";
   String get mailerDown => isAr
-      ? "المشروع واصل، بس بريد Supabase/Resend رافض الإرسال. في Authentication → SMTP حط Host smtp.resend.com وPort 465 وUser resend، والمرسل عنوان على دومين موثّق في Resend مو Gmail."
-      : "The app reached Supabase, but its mailer refused to send. In Authentication → SMTP set host smtp.resend.com, port 465, user resend, and a From address on a Resend-verified domain — not Gmail.";
+      ? "ما قدرنا نرسل الرمز الآن. حاول بعد دقيقة."
+      : "We could not send the code right now. Try again in a minute.";
   String get emailTaken => isAr
       ? "هذا الإيميل مسجّل. ادخل منه."
       : "This email is already registered. Sign in with it.";
@@ -229,8 +222,8 @@ class I18n {
   String get pickDate => isAr ? "اختر من التقويم" : "Choose from the calendar";
   String get inboxTitle => isAr ? "المطلوب منك" : "Waiting on you";
   String get inboxSubtitle => isAr
-      ? "كل ما ينتظر إجراءك في دورة تسليم المهام."
-      : "Everything that needs your action in the handover cycle.";
+      ? "كل ما يحتاج إجراءك في تسليم المهام."
+      : "Everything that needs your action.";
   String get myHandovers =>
       isAr ? "نماذج التسليم الخاصة بي" : "My handover forms";
   String get pickAnother => isAr
@@ -295,9 +288,7 @@ class I18n {
       isAr ? "لم تُرسل أي رسالة بعد." : "No messages sent yet.";
   String get outboxTo => isAr ? "إلى" : "To";
 
-  String get employeeInfo => isAr
-      ? "بيانات الموظف (من نظام الموارد البشرية)"
-      : "Employee details (from HR system)";
+  String get employeeInfo => isAr ? "بيانات الموظف" : "Employee details";
   String get formName => isAr ? "اسم الموظف" : "Employee name";
   String get formId => isAr ? "الرقم الوظيفي" : "Employee ID";
   String get formJobTitle => isAr ? "المسمى الوظيفي" : "Job title";
