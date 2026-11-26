@@ -258,5 +258,19 @@ void main() {
     expect(redCard("المهمة 2"), isTrue);
     expect(redCard("المهمة 1"), isFalse);
     expect(redCard("المهمة 3"), isFalse);
+
+    final menus = tester.widgetList<DropdownMenu<String>>(
+      find.byType(DropdownMenu<String>),
+    );
+    final reassign = menus.where(
+      (menu) =>
+          menu.dropdownMenuEntries.any((entry) => entry.label.startsWith("نورة")) &&
+          menu.dropdownMenuEntries.every((entry) => !entry.label.startsWith("لمى")),
+    );
+    expect(reassign, isNotEmpty);
+    expect(
+      reassign.first.dropdownMenuEntries.single.label,
+      "نورة · تطوير تقنية المعلومات",
+    );
   });
 }

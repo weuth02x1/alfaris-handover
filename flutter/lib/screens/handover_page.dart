@@ -7,6 +7,14 @@ import "../widgets/app_header.dart";
 import "../widgets/badges.dart";
 import "../widgets/step_tracker.dart";
 
+String _personChoice(AppStore store, Employee person) {
+  final t = store.t;
+  final department = t.pick(person.departmentAr, person.departmentEn);
+  final name = store.nameOf(person);
+  if (department.isEmpty) return name;
+  return "$name · $department";
+}
+
 bool _taskOpen(String status) =>
     status == "draft" ||
     status == "pending_acceptance" ||
@@ -785,7 +793,7 @@ class _TaskFieldsState extends State<_TaskFields> {
                 DropdownMenuEntry(
                   value: c.id,
                   label:
-                      "${store.nameOf(c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)} · ${c.staffNumber ?? c.id} · ${c.email}",
+                      "${_personChoice(store, c)} · ${t.pick(c.jobTitleAr, c.jobTitleEn)} · ${c.staffNumber ?? c.id}",
                 ),
           ],
           onSelected: (v) {
@@ -1216,7 +1224,10 @@ class _ReassignState extends State<_Reassign> {
             expandedInsets: EdgeInsets.zero,
             dropdownMenuEntries: [
               for (final c in options)
-                DropdownMenuEntry(value: c.id, label: store.nameOf(c)),
+                DropdownMenuEntry(
+                  value: c.id,
+                  label: _personChoice(store, c),
+                ),
             ],
             onSelected: (v) => setState(() => assignee = v),
           ),
