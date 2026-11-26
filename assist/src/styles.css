@@ -1,0 +1,145 @@
+:root {
+  color: #0b114f;
+  background: #f6f3ec;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+button, input { font: inherit; }
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+header h1 {
+  margin: 4px 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.mark {
+  margin: 0;
+  color: #a49787;
+  letter-spacing: 3px;
+  font-size: 12px;
+}
+
+.note, .sample, .empty, .wait, .ready {
+  color: #5c584f;
+  margin: 0;
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.chat, .card {
+  background: #fffcf7;
+  border: 1px solid #e3d9c8;
+  border-radius: 16px;
+}
+
+.chat { padding: 16px; }
+
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 280px;
+}
+
+li {
+  max-width: 90%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+}
+
+li.assist {
+  background: #efe8da;
+  align-self: flex-start;
+}
+
+li.user {
+  background: #0b114f;
+  color: #f4efe4;
+  align-self: flex-end;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chips button, form button, .ghost {
+  border-radius: 999px;
+  border: 1px solid #e3d9c8;
+  background: #fff;
+  color: #0b114f;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+input {
+  flex: 1;
+  border: 1px solid #e3d9c8;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  color: #0b114f;
+}
+
+form button {
+  background: #0b114f;
+  color: #f4efe4;
+  border-color: #0b114f;
+}
+
+.card { padding: 16px; }
+
+.card h2 { margin: 0 0 12px; font-size: 18px; }
+
+dl { margin: 0; }
+
+dl div {
+  padding: 8px 0;
+  border-top: 1px solid #e3d9c8;
+}
+
+dt { color: #5c584f; font-size: 12px; }
+
+dd { margin: 0; font-weight: 700; }
+
+.ready { color: #0b114f; margin-top: 12px; }
+
+.wait, .empty { margin-top: 8px; }
+
+.ghost { margin-top: 12px; }
+
+.sample { margin-top: 10px; font-size: 13px; }
+
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; }
+  header h1 { font-size: 26px; }
+  form { flex-direction: column; }
+}
